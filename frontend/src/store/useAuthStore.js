@@ -16,6 +16,7 @@ export const useAuthStore = create((set) => ({
       set({ user: res.data, isAuthenticated: true });
     } catch (error) {
       console.log('Error in checkAuth:', error);
+      localStorage.removeItem('token');
       set({ user: null, isAuthenticated: false });
     } finally {
       set({ isCheckingAuth: false });
@@ -26,6 +27,9 @@ export const useAuthStore = create((set) => ({
     set({ isSigningUp: true });
     try {
       const res = await axiosInstance.post('/auth/signup', data);
+      if (res.data?.token) {
+        localStorage.setItem('token', res.data.token);
+      }
       set({ user: res.data, isAuthenticated: true });
       toast.success('Account created successfully');
     } catch (error) {
@@ -39,6 +43,9 @@ export const useAuthStore = create((set) => ({
     set({ isLoggingIn: true });
     try {
       const res = await axiosInstance.post('/auth/login', data);
+      if (res.data?.token) {
+        localStorage.setItem('token', res.data.token);
+      }
       set({ user: res.data, isAuthenticated: true });
       toast.success('Logged in successfully');
     } catch (error) {
@@ -51,9 +58,12 @@ export const useAuthStore = create((set) => ({
   logout: async () => {
     try {
       await axiosInstance.post('/auth/logout');
+      localStorage.removeItem('token');
       set({ user: null, isAuthenticated: false });
       toast.success('Logged out successfully');
     } catch (error) {
+      localStorage.removeItem('token');
+      set({ user: null, isAuthenticated: false });
       toast.error(error.response?.data?.message || 'Error logging out');
     }
   },
