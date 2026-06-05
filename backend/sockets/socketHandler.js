@@ -144,6 +144,15 @@ export const handleSockets = (io) => {
       io.to(to.toString()).emit('call:ended', { callId, duration });
     });
 
+    // WebRTC signaling
+    socket.on('webrtc:signal', ({ to, signal }) => {
+      if (!socket.userId) return;
+      io.to(to.toString()).emit('webrtc:signal', {
+        from: socket.userId,
+        signal
+      });
+    });
+
     // ─── DISCONNECT ──────────────────────────────────────────
     socket.on('disconnect', async () => {
       if (!socket.userId) return;

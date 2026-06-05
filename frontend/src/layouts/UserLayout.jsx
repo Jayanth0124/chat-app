@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import UserSidebar from '../components/UserSidebar';
 import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Video, VideoOff, PhoneOff, PhoneIncoming, Check, Loader2 } from 'lucide-react';
@@ -28,6 +28,204 @@ export default function UserLayout() {
   const callTimerRef = useState(null);
 
   const { socket } = useChatStore();
+
+  // WebRTC Audio Connection Setup
+  const pcRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const remoteAudioRef = useRef(null);
+
+  const activeCallRef = useRef(activeCall);
+  const incomingCallRef = useRef(incomingCall);
+  const isMutedRef = useRef(isMuted);
+
+  useEffect(() => { activeCallRef.current = activeCall; }, [activeCall]);
+  useEffect(() => { incomingCallRef.current = incomingCall; }, [incomingCall]);
+  useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
+
+  // Handle hidden audio player lifecycle
+  useEffect(() => {
+    if (!remoteAudioRef.current) {
+      const audio = document.createElement('audio');
+      audio.autoplay = true;
+      audio.style.display = 'none';
+      document.body.appendChild(audio);
+      remoteAudioRef.current = audio;
+    }
+    return () => {
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.remove();
+        remoteAudioRef.current = null;
+      }
+    };
+  }, []);
+
+  const cleanupWebRTC = () => {
+    if (pcRef.current) {
+      try { pcRef.current.close(); } catch (e) {}
+      pcRef.current = null;
+    }
+    if (localStreamRef.current) {
+      try {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+      } catch (e) {}
+      localStreamRef.current = null;
+    }
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.srcObject = null;
+    }
+  };
+
+  useEffect(() => {
+    if (!activeCall) {
+      cleanupWebRTC();
+    }
+  }, [activeCall]);
+
+  useEffect(() => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach(track => {
+        track.enabled = !isMuted;
+      });
+    }
+  }, [isMuted]);
+
+  useEffect(() => {
+    if (activeCall?.status === 'connected') {
+      const startWebRTC = async () => {
+        try {
+          cleanupWebRTC();
+          
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          localStreamRef.current = stream;
+          stream.getAudioTracks().forEach(track => {
+            track.enabled = !isMutedRef.current;
+          });
+
+          const pc = new RTCPeerConnection({
+            iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun1.l.google.com:19302' },
+              { urls: 'stun:stun2.l.google.com:19302' }
+            ]
+          });
+          pcRef.current = pc;
+
+          stream.getTracks().forEach(track => {
+            pc.addTrack(track, stream);
+          });
+
+          pc.ontrack = (event) => {
+            if (remoteAudioRef.current) {
+              remoteAudioRef.current.srcObject = event.streams[0];
+            }
+          };
+
+          pc.onicecandidate = (event) => {
+            if (event.candidate && socket) {
+              const otherId = activeCallRef.current?.receiverId;
+              if (otherId) {
+                socket.emit('webrtc:signal', {
+                  to: otherId,
+                  signal: { type: 'candidate', candidate: event.candidate }
+                });
+              }
+            }
+          };
+
+          if (activeCallRef.current?.direction === 'outgoing') {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit('webrtc:signal', {
+              to: activeCallRef.current.receiverId,
+              signal: { type: 'offer', offer }
+            });
+          }
+        } catch (err) {
+          console.error('Failed to get media devices or start WebRTC:', err);
+          toast.error('Could not access microphone');
+        }
+      };
+
+      startWebRTC();
+    }
+  }, [activeCall?.status, socket]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleWebRTCSignal = async ({ from, signal }) => {
+      try {
+        if (signal.type === 'offer') {
+          if (!pcRef.current) {
+            let stream = localStreamRef.current;
+            if (!stream) {
+              stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+              localStreamRef.current = stream;
+              stream.getAudioTracks().forEach(track => {
+                track.enabled = !isMutedRef.current;
+              });
+            }
+
+            const pc = new RTCPeerConnection({
+              iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
+              ]
+            });
+            pcRef.current = pc;
+
+            stream.getTracks().forEach(track => {
+              pc.addTrack(track, stream);
+            });
+
+            pc.ontrack = (event) => {
+              if (remoteAudioRef.current) {
+                remoteAudioRef.current.srcObject = event.streams[0];
+              }
+            };
+
+            pc.onicecandidate = (event) => {
+              if (event.candidate && socket) {
+                socket.emit('webrtc:signal', {
+                  to: from,
+                  signal: { type: 'candidate', candidate: event.candidate }
+                });
+              }
+            };
+          }
+
+          const pc = pcRef.current;
+          await pc.setRemoteDescription(new RTCSessionDescription(signal.offer));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+
+          socket.emit('webrtc:signal', {
+            to: from,
+            signal: { type: 'answer', answer }
+          });
+        } else if (signal.type === 'answer') {
+          const pc = pcRef.current;
+          if (pc) {
+            await pc.setRemoteDescription(new RTCSessionDescription(signal.answer));
+          }
+        } else if (signal.type === 'candidate') {
+          const pc = pcRef.current;
+          if (pc) {
+            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          }
+        }
+      } catch (err) {
+        console.error('Error handling WebRTC signal:', err);
+      }
+    };
+
+    socket.on('webrtc:signal', handleWebRTCSignal);
+
+    return () => {
+      socket.off('webrtc:signal', handleWebRTCSignal);
+    };
+  }, [socket]);
 
   // Fetch real call history from API
   const fetchCallHistory = async () => {
