@@ -1,0 +1,249 @@
+import { useState, useRef, useEffect } from 'react';
+import { Paperclip, Send, Smile, Mic, Camera, X, Check, FileText, MapPin, Image } from 'lucide-react';
+
+export default function ChatInput({ onSendMessage, socket, selectedChat }) {
+  const [message, setMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [showEmojiMenu, setShowEmojiMenu] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  
+  // Voice Recording Simulator State
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+
+  const inputRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+  const secondsIntervalRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (isRecording) {
+      setRecordingSeconds(0);
+      secondsIntervalRef.current = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      if (secondsIntervalRef.current) clearInterval(secondsIntervalRef.current);
+    }
+    return () => {
+      if (secondsIntervalRef.current) clearInterval(secondsIntervalRef.current);
+    };
+  }, [isRecording]);
+
+  const handleTyping = (e) => {
+    setMessage(e.target.value);
+
+    if (!socket || !selectedChat) return;
+
+    if (!isTyping) {
+      setIsTyping(true);
+      socket.emit('typing', selectedChat._id);
+    }
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit('stop typing', selectedChat._id);
+      setIsTyping(false);
+    }, 2000);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (message.trim()) {
+      onSendMessage(message);
+      setMessage('');
+      setShowEmojiMenu(false);
+      setShowAttachMenu(false);
+      if (socket && selectedChat) {
+        socket.emit('stop typing', selectedChat._id);
+        setIsTyping(false);
+      }
+    }
+  };
+
+  const addEmoji = (emoji) => {
+    setMessage((prev) => prev + emoji);
+    inputRef.current?.focus();
+  };
+
+  const sendVoiceNote = () => {
+    const formatTime = (sec) => {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m}:${s < 10 ? '0' : ''}${s}`;
+    };
+    onSendMessage(`[Voice Message (${formatTime(recordingSeconds)})]`);
+    setIsRecording(false);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onSendMessage('', reader.result, 'image');
+      };
+      reader.readAsDataURL(file);
+    }
+    setShowAttachMenu(false);
+  };
+
+  const attachMockFile = (type) => {
+    setMessage(`[Shared ${type}]`);
+    setShowAttachMenu(false);
+    inputRef.current?.focus();
+  };
+
+  return (
+    <div className="px-6 py-4 bg-background flex flex-col items-center justify-center gap-2 z-10 shrink-0 relative">
+      
+      {/* Emoji Menu Overlay */}
+      {showEmojiMenu && (
+        <div className="absolute bottom-20 left-10 bg-surface border border-outline-variant/60 p-3 rounded-2xl shadow-xl z-50 grid grid-cols-5 gap-2 animate-in slide-in-from-bottom-2 duration-150">
+          {['😊', '😂', '❤️', '👍', '🔥', '🎉', '👀', '✨', '🚀', '💯'].map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => addEmoji(emoji)}
+              className="w-10 h-10 flex items-center justify-center text-xl hover:bg-surface-container rounded-lg transition-colors cursor-pointer"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Attachment Menu Overlay */}
+      {showAttachMenu && (
+        <div className="absolute bottom-20 left-20 bg-surface border border-outline-variant/60 p-2 rounded-2xl shadow-xl z-50 flex flex-col gap-1 w-44 animate-in slide-in-from-bottom-2 duration-150">
+          <button 
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-3 px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container rounded-xl transition-colors text-left w-full cursor-pointer"
+          >
+            <Image size={16} className="text-blue-500" /> Photo & Video
+          </button>
+          <button 
+            type="button"
+            onClick={() => attachMockFile('Document')}
+            className="flex items-center gap-3 px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container rounded-xl transition-colors text-left"
+          >
+            <FileText size={16} className="text-purple-500" /> Document
+          </button>
+          <button 
+            type="button"
+            onClick={() => attachMockFile('Location')}
+            className="flex items-center gap-3 px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container rounded-xl transition-colors text-left"
+          >
+            <MapPin size={16} className="text-emerald-500" /> Location
+          </button>
+        </div>
+      )}
+
+      <div className="flex w-full items-center justify-center gap-3 max-w-[900px]">
+        {isRecording ? (
+          /* Pulsing Voice Recorder Simulation bar */
+          <div className="flex-1 bg-surface-container-low rounded-full border border-outline-variant/60 shadow-sm flex items-center justify-between h-[52px] px-6 transition-colors animate-pulse">
+            <div className="flex items-center gap-3 text-red-500 text-sm font-bold">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+              Recording Voice Note ({Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60).toString().padStart(2, '0')})
+            </div>
+            <div className="flex items-center gap-2">
+              <button 
+                type="button" 
+                onClick={() => setIsRecording(false)} 
+                className="p-2 hover:bg-surface-container text-on-surface-variant hover:text-red-500 rounded-full transition-colors cursor-pointer"
+                title="Discard"
+              >
+                <X size={18} />
+              </button>
+              <button 
+                type="button" 
+                onClick={sendVoiceNote} 
+                className="p-2 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 rounded-full transition-colors cursor-pointer"
+                title="Send Voice Note"
+              >
+                <Check size={18} />
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Normal Message Composer Input */
+          <form onSubmit={handleSubmit} className="flex-1 relative">
+            <div className="bg-surface-container-low rounded-full border border-outline-variant/60 shadow-sm flex items-center h-[52px] px-2 transition-colors focus-within:border-primary">
+              
+              {/* Left Icons inside input */}
+              <div className="flex items-center gap-1 pl-1 pr-2 text-on-surface-variant">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setShowEmojiMenu(!showEmojiMenu);
+                    setShowAttachMenu(false);
+                  }}
+                  className={`p-2 hover:text-on-surface transition-colors rounded-full cursor-pointer ${showEmojiMenu ? 'text-primary' : ''}`}
+                  title="Emoji"
+                >
+                  <Smile size={22} strokeWidth={2} />
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setShowAttachMenu(!showAttachMenu);
+                    setShowEmojiMenu(false);
+                  }}
+                  className={`p-2 hover:text-on-surface transition-colors rounded-full cursor-pointer ${showAttachMenu ? 'text-primary' : ''}`}
+                  title="Attach"
+                >
+                  <Paperclip size={20} strokeWidth={2} />
+                </button>
+              </div>
+
+              <input
+                ref={inputRef}
+                type="text"
+                value={message}
+                onChange={handleTyping}
+                placeholder="Type a message..."
+                className="flex-1 bg-transparent text-[15px] text-on-surface placeholder-on-surface-variant/50 font-medium outline-none h-full"
+              />
+
+              {/* Hidden File Input for Real Image Uploads */}
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleFileChange} 
+              />
+            </div>
+          </form>
+        )}
+
+        {/* External Send/Mic Button */}
+        {!isRecording && (
+          <div className="shrink-0 flex items-center justify-center">
+            {message.trim() ? (
+              <button 
+                onClick={handleSubmit}
+                className="w-[50px] h-[50px] rounded-full bg-primary hover:bg-primary/90 text-white flex items-center justify-center shadow-md transition-all active:scale-95 cursor-pointer"
+              >
+                <Send size={22} strokeWidth={2.5} className="ml-1" />
+              </button>
+            ) : (
+              <button 
+                type="button" 
+                onClick={() => setIsRecording(true)}
+                className="w-[50px] h-[50px] rounded-full bg-surface-container-low border border-outline-variant/60 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high flex items-center justify-center shadow-sm transition-all cursor-pointer"
+                title="Record Audio"
+              >
+                <Mic size={22} strokeWidth={2} />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+      
+    </div>
+  );
+}

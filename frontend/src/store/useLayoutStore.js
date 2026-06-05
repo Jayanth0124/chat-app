@@ -1,0 +1,19 @@
+import { create } from 'zustand';
+
+export const useLayoutStore = create((set) => ({
+  isProfileOpen: false,
+  isCallsOpen: false,
+  isLogoutOpen: false,
+  isSearchModalOpen: false,
+  isSearchFriendsOpen: false,
+  isManageFriendsOpen: false,
+  activeCall: null, // { name: '', type: 'voice' | 'video', status: 'dialing' | 'connected' }
+
+  setProfileOpen: (isOpen) => set({ isProfileOpen: isOpen }),
+  setCallsOpen: (isOpen) => set({ isCallsOpen: isOpen }),
+  setLogoutOpen: (isOpen) => set({ isLogoutOpen: isOpen }),
+  setSearchModalOpen: (isOpen) => set({ isSearchModalOpen: isOpen }),
+  setSearchFriendsOpen: (isOpen) => set({ isSearchFriendsOpen: isOpen }),
+  setManageFriendsOpen: (isOpen) => set({ isManageFriendsOpen: isOpen }),
+  setActiveCall: (call) => set({ activeCall: call }),
+}));

@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: var(--primary);
+  --color-primary-container: var(--primary-container);
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+  --color-inverse-on-surface: var(--inverse-on-surface);
+  --color-secondary-container: var(--secondary-container);
+  --color-on-secondary-container: var(--on-secondary-container);
+  --color-secondary: var(--secondary);
+
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+
+  --spacing-ds-sm: 8px;
+  --spacing-margin-desktop: 40px;
+  --spacing-gutter: 20px;
+  --spacing-ds-xl: 32px;
+  --spacing-ds-lg: 24px;
+  --spacing-ds-md: 16px;
+  --spacing-unit: 4px;
+  --spacing-ds-xs: 4px;
+  --spacing-margin-mobile: 16px;
+}
+
+:root {
+  /* Default: Light (Stitch style) */
+  --primary: #0058bc;
+  --primary-container: #0070eb;
+  --background: #faf9fe;
+  --surface: #faf9fe;
+  --surface-container-low: #f4f3f8;
+  --surface-container-lowest: #ffffff;
+  --on-surface: #1a1b1f;
+  --on-surface-variant: #414755;
+  --outline: #717786;
+  --outline-variant: #c1c6d7;
+  --inverse-on-surface: #f1f0f5;
+  --secondary: #4c4aca;
+  --secondary-container: #e2dfff;
+  --on-secondary-container: #0c006a;
+}
+
+html.theme-light {
+  --primary: #0058bc;
+  --primary-container: #0070eb;
+  --background: #faf9fe;
+  --surface: #faf9fe;
+  --surface-container-low: #f4f3f8;
+  --surface-container-lowest: #ffffff;
+  --on-surface: #1a1b1f;
+  --on-surface-variant: #414755;
+  --outline: #717786;
+  --outline-variant: #c1c6d7;
+  --inverse-on-surface: #f1f0f5;
+  --secondary: #4c4aca;
+  --secondary-container: #e2dfff;
+  --on-secondary-container: #0c006a;
+}
+
+html.theme-dark {
+  --primary: #adc6ff;
+  --primary-container: #004493;
+  --background: #0f172a;
+  --surface: #1e293b;
+  --surface-container-low: #0f172a;
+  --surface-container-lowest: #1e293b;
+  --on-surface: #f8fafc;
+  --on-surface-variant: #94a3b8;
+  --outline: #64748b;
+  --outline-variant: #334155;
+  --inverse-on-surface: #1e293b;
+  --secondary: #6366f1;
+  --secondary-container: #312e81;
+  --on-secondary-container: #e0e7ff;
+}
+
+html.theme-blue {
+  --primary: #2563eb;
+  --primary-container: #3b82f6;
+  --background: #f0f7ff;
+  --surface: #ffffff;
+  --surface-container-low: #e0f2fe;
+  --surface-container-lowest: #ffffff;
+  --on-surface: #1e3a8a;
+  --on-surface-variant: #475569;
+  --outline: #94a3b8;
+  --outline-variant: #bae6fd;
+  --inverse-on-surface: #f0f7ff;
+  --secondary: #0ea5e9;
+  --secondary-container: #e0f2fe;
+  --on-secondary-container: #0369a1;
+}
+
+html.theme-umbrellad {
+  --primary: #c64f00;
+  --primary-container: #ff8c3a;
+  --background: #fffbff;
+  --surface: #ffffff;
+  --surface-container-low: #ffdbcc;
+  --surface-container-lowest: #ffffff;
+  --on-surface: #351000;
+  --on-surface-variant: #7c2e00;
+  --outline: #b05c2d;
+  --outline-variant: #ffb595;
+  --inverse-on-surface: #fffbff;
+  --secondary: #9e3d00;
+  --secondary-container: #ffdbcc;
+  --on-secondary-container: #c64f00;
+}
+
+html.theme-midnight {
+  --primary: #9F21E3;
+  --primary-container: #b850f2;
+  --background: #090514;
+  --surface: #130c25;
+  --surface-container-low: #1e113a;
+  --surface-container-lowest: #130c25;
+  --on-surface: #f3e8ff;
+  --on-surface-variant: #a78bfa;
+  --outline: #7c3aed;
+  --outline-variant: #4a307a;
+  --inverse-on-surface: #090514;
+  --secondary: #db2777;
+  --secondary-container: #4c0519;
+  --on-secondary-container: #fce7f3;
+}
+
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--on-surface);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+.theme-dark ::-webkit-scrollbar-thumb,
+.theme-midnight ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
