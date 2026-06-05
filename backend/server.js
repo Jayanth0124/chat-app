@@ -14,18 +14,22 @@ import callRoutes from './routes/calls.js';
 
 dotenv.config();
 
+const frontendOrigin = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.replace(/\/$/, '')
+  : 'http://localhost:5173';
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: frontendOrigin,
     methods: ['GET', 'POST'],
     credentials: true,
   }
 });
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: frontendOrigin,
   credentials: true
 }));
 app.use(express.json());
