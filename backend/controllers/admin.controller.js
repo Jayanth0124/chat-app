@@ -2,21 +2,35 @@ import User from '../models/User.js';
 import Chat from '../models/Chat.js';
 import Message from '../models/Message.js';
 import AuditLog from '../models/AuditLog.js';
+import Report from '../models/Report.js';
+import SecurityLog from '../models/SecurityLog.js';
 
 export const getDashboardStats = async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
     const activeUsers = await User.countDocuments({ status: 'active' });
+    const onlineUsers = await User.countDocuments({ isOnline: true });
+    const messagesSent = await Message.countDocuments();
+    const reportsSubmitted = await Report.countDocuments();
     const bannedUsers = await User.countDocuments({ status: 'banned' });
     const totalChats = await Chat.countDocuments();
-    const totalMessages = await Message.countDocuments();
+
+    // Count friend requests
+    const friendRequestsRes = await User.aggregate([
+      { $project: { count: { $size: { $ifNull: ["$friendRequests", []] } } } },
+      { $group: { _id: null, total: { $sum: "$count" } } }
+    ]);
+    const friendRequests = friendRequestsRes[0]?.total || 0;
 
     res.status(200).json({
       totalUsers,
       activeUsers,
+      onlineUsers,
+      messagesSent,
+      friendRequests,
+      reportsSubmitted,
       bannedUsers,
-      totalChats,
-      totalMessages
+      totalChats
     });
   } catch (error) {
     console.log("Error in getDashboardStats:", error);
@@ -72,6 +86,154 @@ export const getAuditLogs = async (req, res) => {
     res.status(200).json(logs);
   } catch (error) {
     console.log("Error in getAuditLogs:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getReports = async (req, res) => {
+  try {
+    const reports = await Report.find()
+      .populate('reporter', 'displayName username profilePic email')
+      .populate('reportedUser', 'displayName username profilePic email')
+      .populate('reportedMessage')
+      .sort({ createdAt: -1 });
+    res.status(200).json(reports);
+  } catch (error) {
+    console.log("Error in getReports:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const updateReportStatus = async (req, res) => {
+  try {
+    const { reportId } = req.params;
+    const { status } = req.body; // 'resolved' or 'dismissed'
+
+    if (!['resolved', 'dismissed'].includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+    const report = await Report.findById(reportId);
+    if (!report) return res.status(404).json({ message: "Report not found" });
+
+    report.status = status;
+    await report.save();
+
+    // Create Audit Log
+    const action = status === 'resolved' ? 'RESOLVE_REPORT' : 'DISMISS_REPORT';
+    await AuditLog.create({
+      adminId: req.user._id,
+      action: action,
+      targetId: report._id,
+      targetModel: 'Message',
+      details: `${action} executed for report ID ${report._id}.`
+    });
+
+    res.status(200).json({ message: `Report marked as ${status}`, report });
+  } catch (error) {
+    console.log("Error in updateReportStatus:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const deleteMessageByAdmin = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const message = await Message.findById(messageId);
+    if (!message) return res.status(404).json({ message: "Message not found" });
+
+    await Message.findByIdAndDelete(messageId);
+
+    // Create Audit Log
+    await AuditLog.create({
+      adminId: req.user._id,
+      action: 'MODERATION_DELETE_MESSAGE',
+      targetId: message._id,
+      targetModel: 'Message',
+      details: `Admin deleted message ID ${messageId} containing: "${message.content?.substring(0, 50)}"`
+    });
+
+    // Notify clients
+    if (req.io) {
+      const chat = await Chat.findById(message.chat);
+      if (chat) {
+        chat.participants.forEach(participantId => {
+          req.io.to(participantId.toString()).emit('messageDeleted', { messageId, chatId: message.chat.toString() });
+        });
+      }
+    }
+
+    res.status(200).json({ message: "Message deleted successfully by admin" });
+  } catch (error) {
+    console.log("Error in deleteMessageByAdmin:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getSecurityLogs = async (req, res) => {
+  try {
+    const logs = await SecurityLog.find().sort({ createdAt: -1 });
+    res.status(200).json(logs);
+  } catch (error) {
+    console.error("Error in getSecurityLogs:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const blockIP = async (req, res) => {
+  try {
+    const { ip } = req.body;
+    if (!ip) {
+      return res.status(400).json({ message: "IP address is required" });
+    }
+
+    // Update status to blocked for matching logs
+    await SecurityLog.updateMany({ ip }, { $set: { status: 'blocked' } });
+
+    // Log admin audit
+    await AuditLog.create({
+      adminId: req.user._id,
+      action: 'BLOCK_IP',
+      targetId: req.user._id, // placeholder target ID
+      targetModel: 'User',
+      details: `Admin blocked IP address: ${ip}`
+    });
+
+    res.status(200).json({ message: `IP address ${ip} successfully blocked` });
+  } catch (error) {
+    console.error("Error in blockIP:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const sendBroadcast = async (req, res) => {
+  try {
+    const { audience, message } = req.body;
+    if (!message) {
+      return res.status(400).json({ message: "Message content is required" });
+    }
+
+    // Emit broadcast notification via socket
+    if (req.io) {
+      req.io.emit('broadcastNotification', {
+        message,
+        audience: audience || 'All Users',
+        sender: req.user.displayName || req.user.username
+      });
+    }
+
+    // Log admin audit
+    await AuditLog.create({
+      adminId: req.user._id,
+      action: 'SEND_BROADCAST',
+      targetId: req.user._id,
+      targetModel: 'User',
+      details: `Admin sent broadcast to [${audience || 'All Users'}]: "${message.substring(0, 60)}"`
+    });
+
+    res.status(200).json({ message: "Broadcast sent successfully to all active client sockets" });
+  } catch (error) {
+    console.error("Error in sendBroadcast:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

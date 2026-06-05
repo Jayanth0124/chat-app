@@ -129,6 +129,36 @@ export const useChatStore = create((set, get) => ({
       toast.success('Conversation deleted');
     });
 
+    // ── Message deleted ───────────────────────────────────────────────────
+    socket.on('messageDeleted', ({ messageId, chatId }) => {
+      const { messages, selectedChat, chats } = get();
+      if (selectedChat?._id === chatId) {
+        const updatedMessages = messages.filter((m) => m._id !== messageId);
+        set({ messages: updatedMessages });
+      }
+      const updatedChats = chats.map((c) => {
+        if (c._id === chatId && c.latestMessage?._id === messageId) {
+          return {
+            ...c,
+            latestMessage: {
+              ...c.latestMessage,
+              content: "Message deleted",
+              messageType: "text"
+            }
+          };
+        }
+        return c;
+      });
+      set({ chats: updatedChats });
+    });
+
+    // ── Chat marked unread ────────────────────────────────────────────────
+    socket.on('chatMarkedUnread', ({ chatId }) => {
+      const { unreadCounts } = get();
+      const newUnread = { ...unreadCounts, [chatId]: (unreadCounts[chatId] || 0) + 1 };
+      set({ unreadCounts: newUnread });
+    });
+
     // ── Online status ─────────────────────────────────────────────────────
     socket.on('friendStatusUpdate', ({ userId, isOnline, lastSeen }) => {
       const { chats, selectedChat } = get();
@@ -371,6 +401,38 @@ export const useChatStore = create((set, get) => ({
       toast.success('Conversation deleted successfully');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error deleting conversation');
+    }
+  },
+
+  deleteMessage: async (messageId) => {
+    try {
+      await axiosInstance.delete(`/chat/message/${messageId}`);
+      const { messages } = get();
+      set({ messages: messages.filter((m) => m._id !== messageId) });
+      toast.success('Message deleted');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error deleting message');
+    }
+  },
+
+  reportMessage: async (messageId, reason, details) => {
+    try {
+      await axiosInstance.post(`/chat/message/${messageId}/report`, { reason, details });
+      toast.success('Message reported successfully');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error reporting message');
+    }
+  },
+
+  markChatAsUnread: async (chatId) => {
+    try {
+      await axiosInstance.post(`/chat/${chatId}/unread`);
+      const { unreadCounts } = get();
+      const newUnread = { ...unreadCounts, [chatId]: (unreadCounts[chatId] || 0) + 1 };
+      set({ unreadCounts: newUnread });
+      toast.success('Conversation marked as unread');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error marking conversation as unread');
     }
   },
 

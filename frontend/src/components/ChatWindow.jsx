@@ -17,7 +17,10 @@ export default function ChatWindow({ onBack }) {
     socket, 
     markViewOnceOpened, 
     updateVanishMode,
-    markChatAsSeen
+    markChatAsSeen,
+    deleteChat,
+    markChatAsUnread,
+    reportMessage
   } = useChatStore();
   const { user } = useAuthStore();
   const { setActiveCall } = useLayoutStore();
@@ -26,6 +29,9 @@ export default function ChatWindow({ onBack }) {
   const [isTyping, setIsTyping] = useState(false);
   const [viewingMessage, setViewingMessage] = useState(null);
   const [showVanishDropdown, setShowVanishDropdown] = useState(false);
+  const [showChatActionsDropdown, setShowChatActionsDropdown] = useState(false);
+  const [replyToMessage, setReplyToMessage] = useState(null);
+  const [reportingMessage, setReportingMessage] = useState(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -180,13 +186,14 @@ export default function ChatWindow({ onBack }) {
     return users[0]?._id === loggedUser?._id ? users[1]?.profilePic : users[0]?.profilePic;
   };
 
-  const handleSendMessage = (content, mediaUrl = null, messageType = 'text') => {
+  const handleSendMessage = (content, mediaUrl = null, messageType = 'text', replyToId = null) => {
     sendMessage({
       content,
       chatId: selectedChat._id,
       mediaUrl,
       messageType,
-      isViewOnce: selectedChat.vanishMode === 'VIEW ONCE'
+      isViewOnce: selectedChat.vanishMode === 'VIEW ONCE',
+      replyTo: replyToId
     });
   };
 
@@ -299,9 +306,52 @@ export default function ChatWindow({ onBack }) {
           <button onClick={() => triggerCall('voice')} className="p-1 hover:text-on-surface transition-colors cursor-pointer" title="Voice Call">
             <Phone size={20} strokeWidth={2.5} />
           </button>
-          <button className="p-1 hover:text-on-surface transition-colors border-l border-outline-variant/60 pl-4 ml-1">
-            <MoreVertical size={20} strokeWidth={2.5} />
-          </button>
+          <div className="relative shrink-0">
+            <button 
+              onClick={() => setShowChatActionsDropdown(!showChatActionsDropdown)}
+              className="p-1 hover:text-on-surface transition-colors border-l border-outline-variant/60 pl-4 ml-1 cursor-pointer"
+              title="Chat Actions"
+            >
+              <MoreVertical size={20} strokeWidth={2.5} />
+            </button>
+
+            {showChatActionsDropdown && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setShowChatActionsDropdown(false)}
+                />
+                <div className="absolute right-0 mt-2 w-48 bg-surface border border-outline-variant/60 rounded-2xl shadow-xl z-50 p-2 animate-in slide-in-from-top-2 duration-150">
+                  <div className="flex flex-col gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        markChatAsUnread(selectedChat._id);
+                        setShowChatActionsDropdown(false);
+                        onBack();
+                      }}
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-surface-container text-on-surface text-xs font-bold transition-all text-left w-full cursor-pointer"
+                    >
+                      <span>Mark as Unread</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowChatActionsDropdown(false);
+                        if (window.confirm("Are you sure you want to delete this entire conversation?")) {
+                          deleteChat(selectedChat._id);
+                          onBack();
+                        }
+                      }}
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-red-500/10 text-red-600 text-xs font-bold transition-all text-left w-full cursor-pointer"
+                    >
+                      <span>Delete Conversation</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -337,6 +387,8 @@ export default function ChatWindow({ onBack }) {
               isFirstInGroup={!prevIsSame}
               isLastInGroup={!nextIsSame}
               onViewMessage={() => handleViewMessage(m)}
+              setReplyToMessage={setReplyToMessage}
+              onReportMessage={setReportingMessage}
             />
           );
         })}
@@ -349,7 +401,13 @@ export default function ChatWindow({ onBack }) {
       </div>
 
       {/* Chat Input Area */}
-      <ChatInput onSendMessage={handleSendMessage} socket={socket} selectedChat={selectedChat} />
+      <ChatInput 
+        onSendMessage={handleSendMessage} 
+        socket={socket} 
+        selectedChat={selectedChat} 
+        replyToMessage={replyToMessage}
+        setReplyToMessage={setReplyToMessage}
+      />
 
       {/* View Once Modal */}
       {viewingMessage && (
@@ -377,14 +435,45 @@ export default function ChatWindow({ onBack }) {
         </div>
       )}
 
+      {/* Report Modal */}
+      {reportingMessage && (
+        <ReportModal 
+          message={reportingMessage}
+          onClose={() => setReportingMessage(null)}
+          onSubmit={async (reason, details) => {
+            await reportMessage(reportingMessage._id, reason, details);
+            setReportingMessage(null);
+          }}
+        />
+      )}
+
     </div>
   );
 }
 
-function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGroup, message, onViewMessage }) {
+function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGroup, message, onViewMessage, setReplyToMessage, onReportMessage }) {
+  const { deleteMessage } = useChatStore();
+  const [showMenu, setShowMenu] = useState(false);
+  const longPressTimer = useRef(null);
+
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    setShowMenu(true);
+  };
+
+  const handleTouchStart = () => {
+    longPressTimer.current = setTimeout(() => {
+      setShowMenu(true);
+    }, 600);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  };
+
   const roundedClasses = isOwn 
-    ? `rounded-2xl \${!isFirstInGroup && !isLastInGroup ? 'rounded-tr-md rounded-br-md' : isFirstInGroup && !isLastInGroup ? 'rounded-br-md' : !isFirstInGroup && isLastInGroup ? 'rounded-tr-md' : ''}`
-    : `rounded-2xl \${!isFirstInGroup && !isLastInGroup ? 'rounded-tl-md rounded-bl-md' : isFirstInGroup && !isLastInGroup ? 'rounded-bl-md' : !isFirstInGroup && isLastInGroup ? 'rounded-tl-md' : ''}`;
+    ? `rounded-2xl ${!isFirstInGroup && !isLastInGroup ? 'rounded-tr-md rounded-br-md' : isFirstInGroup && !isLastInGroup ? 'rounded-br-md' : !isFirstInGroup && isLastInGroup ? 'rounded-tr-md' : ''}`
+    : `rounded-2xl ${!isFirstInGroup && !isLastInGroup ? 'rounded-tl-md rounded-bl-md' : isFirstInGroup && !isLastInGroup ? 'rounded-bl-md' : !isFirstInGroup && isLastInGroup ? 'rounded-tl-md' : ''}`;
     
   // Check for specialized message styles
   const isVoice = text?.startsWith('[Voice Message');
@@ -424,8 +513,93 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
   if (isExpired || timeRemaining === 0) return null;
 
   return (
-    <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} w-full ${isFirstInGroup ? 'mt-3' : 'mt-1'}`}>
-      <div className={`relative max-w-[70%] shadow-sm flex flex-col overflow-hidden ${roundedClasses} ${isOwn ? 'bg-primary text-white font-medium' : 'bg-surface-container-low text-on-surface border border-outline-variant/30'}`}>
+    <div id={`msg-${message._id}`} className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} w-full ${isFirstInGroup ? 'mt-3' : 'mt-1'}`}>
+      <div 
+        className={`relative max-w-[70%] shadow-sm flex flex-col overflow-hidden ${roundedClasses} ${isOwn ? 'bg-primary text-white font-medium' : 'bg-surface-container-low text-on-surface border border-outline-variant/30'}`}
+        onContextMenu={handleContextMenu}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Dropdown context menu overlay */}
+        {showMenu && (
+          <>
+            <div className="fixed inset-0 z-40 bg-transparent" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
+            <div className={`absolute z-50 bg-surface border border-outline-variant/60 rounded-2xl shadow-xl p-1.5 flex flex-col gap-1 w-32 ${
+              isOwn ? 'right-2 top-2' : 'left-2 top-2'
+            }`}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setReplyToMessage(message);
+                  setShowMenu(false);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-surface-container text-on-surface text-xs font-bold transition-all text-left w-full cursor-pointer"
+              >
+                Reply
+              </button>
+              {!isOwn && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReportMessage(message);
+                    setShowMenu(false);
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-red-500/10 text-red-600 text-xs font-bold transition-all text-left w-full cursor-pointer"
+                >
+                  Report
+                </button>
+              )}
+              {isOwn && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMenu(false);
+                    if (window.confirm("Are you sure you want to delete this message?")) {
+                      deleteMessage(message._id);
+                    }
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-red-500/10 text-red-600 text-xs font-bold transition-all text-left w-full cursor-pointer"
+                >
+                  Delete
+                </button>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Reply Indicator if message is replying to another message */}
+        {message.replyTo && (
+          <div 
+            className={`mx-3 mt-2.5 px-3 py-1.5 rounded-xl text-xs flex flex-col border-l-4 ${
+              isOwn ? 'border-white/60 bg-white/10' : 'border-primary bg-primary/5'
+            } cursor-pointer max-w-full truncate`}
+            onClick={() => {
+              const targetEl = document.getElementById(`msg-${message.replyTo._id}`);
+              if (targetEl) {
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Briefly flash a subtle background color
+                const bubbleEl = targetEl.querySelector('.shadow-sm');
+                if (bubbleEl) {
+                  const originalClass = bubbleEl.className;
+                  bubbleEl.className = originalClass + ' ring-4 ring-primary/45 scale-[1.02] transition-all duration-300';
+                  setTimeout(() => {
+                    bubbleEl.className = originalClass;
+                  }, 1200);
+                }
+              }
+            }}
+          >
+            <span className={`font-bold text-[10px] uppercase tracking-wider ${isOwn ? 'text-white' : 'text-primary'}`}>
+              {message.replyTo.sender?.displayName || 'User'}
+            </span>
+            <span className={`opacity-80 truncate text-[11px] mt-0.5 ${isOwn ? 'text-white/90 font-medium' : 'text-on-surface-variant font-medium'}`}>
+              {message.replyTo.messageType === 'image' ? '📷 Image' : message.replyTo.content}
+            </span>
+          </div>
+        )}
         
         {/* Content */}
         <div className="relative px-4 py-3 flex flex-col justify-between">
@@ -590,6 +764,84 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ReportModal({ message, onClose, onSubmit }) {
+  const [reason, setReason] = useState('Spam');
+  const [details, setDetails] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await onSubmit(reason, details);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-surface border border-outline-variant/60 rounded-3xl max-w-md w-full shadow-2xl p-6 relative flex flex-col gap-4 animate-in scale-in-95 duration-150 text-on-surface">
+        <h3 className="text-lg font-black tracking-tight text-on-surface">Report Message</h3>
+        <p className="text-xs text-on-surface-variant/85 leading-relaxed">
+          Help us keep Blink safe. Please select a reason for reporting this message:
+        </p>
+
+        {/* Message Preview */}
+        <div className="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-3 text-xs italic text-on-surface-variant max-h-24 overflow-y-auto">
+          "{message.content || '[Image/Media Message]'}"
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/75">Reason</label>
+            <select
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="bg-surface-container border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-primary text-on-surface cursor-pointer"
+            >
+              <option value="Spam">Spam</option>
+              <option value="Harassment">Harassment</option>
+              <option value="Hate Speech">Hate Speech</option>
+              <option value="Inappropriate Content">Inappropriate Content</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/75">Details (Optional)</label>
+            <textarea
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              placeholder="Provide additional details..."
+              rows={3}
+              className="bg-surface-container border border-outline-variant/60 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary text-on-surface resize-none"
+            />
+          </div>
+
+          <div className="flex gap-3 justify-end pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="px-4 py-2.5 border border-outline-variant/60 rounded-xl text-xs font-bold hover:bg-surface-container-low transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+            >
+              {isSubmitting ? 'Reporting...' : 'Submit Report'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

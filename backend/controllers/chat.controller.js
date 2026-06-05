@@ -1,6 +1,7 @@
 import Chat from '../models/Chat.js';
 import Message from '../models/Message.js';
 import User from '../models/User.js';
+import Report from '../models/Report.js';
 import cloudinary from '../utils/cloudinary.js';
 
 export const accessChat = async (req, res) => {
@@ -108,7 +109,7 @@ export const fetchChats = async (req, res) => {
 };
 
 export const sendMessage = async (req, res) => {
-  const { content, chatId, mediaUrl, messageType, isViewOnce } = req.body;
+  const { content, chatId, mediaUrl, messageType, isViewOnce, replyTo } = req.body;
 
   if (!chatId || (!content && !mediaUrl)) {
     return res.status(400).json({ message: "Invalid data passed into request" });
@@ -172,13 +173,18 @@ export const sendMessage = async (req, res) => {
       mediaUrl: secureMediaUrl,
       isViewOnce: isViewOnce || false,
       status,
-      expiresAt
+      expiresAt,
+      replyTo: replyTo || null
     };
 
     let message = await Message.create(newMessage);
 
     message = await message.populate("sender", "displayName profilePic");
     message = await message.populate("chat");
+    message = await message.populate({
+      path: "replyTo",
+      populate: { path: "sender", select: "displayName profilePic" }
+    });
     message = await User.populate(message, {
       path: "chat.participants",
       select: "displayName profilePic email",
@@ -205,7 +211,11 @@ export const fetchMessages = async (req, res) => {
 
     const messages = await Message.find({ chat: chatId })
       .populate("sender", "displayName profilePic email")
-      .populate("chat");
+      .populate("chat")
+      .populate({
+        path: "replyTo",
+        populate: { path: "sender", select: "displayName profilePic" }
+      });
 
     res.json(messages);
   } catch (error) {
@@ -379,6 +389,104 @@ export const deleteChat = async (req, res) => {
     res.status(200).json({ message: "Chat deleted successfully", chatId });
   } catch (error) {
     console.error("Error in deleteChat:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const reportMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { reason, details } = req.body;
+    const reporterId = req.user._id;
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    const existingReport = await Report.findOne({ reporter: reporterId, reportedMessage: messageId });
+    if (existingReport) {
+      return res.status(400).json({ message: "You have already reported this message." });
+    }
+
+    const report = await Report.create({
+      reporter: reporterId,
+      reportedMessage: messageId,
+      reportedUser: message.sender,
+      reason: reason || 'Other',
+      details: details || ''
+    });
+
+    res.status(201).json({ message: "Message reported successfully", report });
+  } catch (error) {
+    console.error("Error in reportMessage:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const deleteMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const loggedInUserId = req.user._id;
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    // Only sender can delete their message
+    if (message.sender.toString() !== loggedInUserId.toString()) {
+      return res.status(403).json({ message: "You can only delete your own messages." });
+    }
+
+    await Message.findByIdAndDelete(messageId);
+
+    // Emit socket event to notify other clients in the chat room
+    if (req.io) {
+      const chat = await Chat.findById(message.chat);
+      if (chat) {
+        chat.participants.forEach(participantId => {
+          req.io.to(participantId.toString()).emit('messageDeleted', { messageId, chatId: message.chat.toString() });
+        });
+      }
+    }
+
+    res.status(200).json({ message: "Message deleted successfully", messageId });
+  } catch (error) {
+    console.error("Error in deleteMessage:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const markChatAsUnread = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const loggedInUserId = req.user._id;
+
+    const chat = await Chat.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found" });
+    }
+
+    // Find the latest message in this chat from the other user
+    const latestMsgFromOther = await Message.findOne({
+      chat: chatId,
+      sender: { $ne: loggedInUserId }
+    }).sort({ createdAt: -1 });
+
+    if (latestMsgFromOther) {
+      latestMsgFromOther.status = 'delivered'; // mark as not seen
+      await latestMsgFromOther.save();
+      
+      // Notify the client to show as unread
+      if (req.io) {
+        req.io.to(loggedInUserId.toString()).emit('chatMarkedUnread', { chatId });
+      }
+    }
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Error in markChatAsUnread:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

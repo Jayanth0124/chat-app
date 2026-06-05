@@ -23,6 +23,7 @@ import Analytics from './components/admin/Analytics';
 import ReportsCenter from './components/admin/ReportsCenter';
 import SecurityCenter from './components/admin/SecurityCenter';
 import NotificationCenter from './components/admin/NotificationCenter';
+import ChatModeration from './components/admin/ChatModeration';
 
 export default function App() {
   const { isAuthenticated, user, checkAuth, isCheckingAuth } = useAuthStore();
@@ -81,7 +82,7 @@ export default function App() {
             <Route path="reports" element={<ReportsCenter />} />
             <Route path="security" element={<SecurityCenter />} />
             <Route path="notifications" element={<NotificationCenter />} />
-            <Route path="moderation" element={<ReportsCenter />} />
+            <Route path="moderation" element={<ChatModeration />} />
           </Route>
         )}
 

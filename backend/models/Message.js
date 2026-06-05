@@ -46,6 +46,11 @@ const messageSchema = new mongoose.Schema({
   expiresAt: {
     type: Date,
     default: undefined
+  },
+  replyTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Message',
+    default: null
   }
 }, { timestamps: true });
 

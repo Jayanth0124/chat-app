@@ -1,32 +1,51 @@
 import { useState, useEffect } from 'react';
 import { axiosInstance } from '../lib/axios';
 import toast from 'react-hot-toast';
-import { Loader2, ShieldBan, Trash2, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Loader2, 
+  ShieldBan, 
+  Trash2, 
+  FileText, 
+  AlertCircle, 
+  Shield, 
+  RefreshCw, 
+  Clock, 
+  MessageCircle, 
+  Users, 
+  Check, 
+  X,
+  ChevronRight
+} from 'lucide-react';
 
 export default function AdminDashboard() {
-  const [statusFilter, setStatusFilter] = useState('All Status');
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
+    onlineUsers: 0,
+    messagesSent: 0,
+    friendRequests: 0,
+    reportsSubmitted: 0,
     bannedUsers: 0,
-    totalChats: 0,
-    totalMessages: 0
+    totalChats: 0
   });
-  const [users, setUsers] = useState([]);
+  
   const [auditLogs, setAuditLogs] = useState([]);
+  const [reports, setReports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
-      const [statsRes, usersRes, logsRes] = await Promise.all([
+      const [statsRes, logsRes, reportsRes] = await Promise.all([
         axiosInstance.get('/admin/stats'),
-        axiosInstance.get('/admin/users'),
-        axiosInstance.get('/admin/audit-logs')
+        axiosInstance.get('/admin/audit-logs'),
+        axiosInstance.get('/admin/reports')
       ]);
       setStats(statsRes.data);
-      setUsers(usersRes.data);
       setAuditLogs(logsRes.data);
+      setReports(reportsRes.data);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to fetch admin dashboard data');
     } finally {
@@ -38,280 +57,273 @@ export default function AdminDashboard() {
     fetchDashboardData();
   }, []);
 
-  const handleToggleBan = async (userId) => {
+  const handleUpdateReportStatus = async (reportId, status) => {
     try {
-      const res = await axiosInstance.put(`/admin/users/${userId}/ban`);
-      toast.success(res.data.message);
-      fetchDashboardData(); // Refresh page metrics and list
+      const res = await axiosInstance.put(`/admin/reports/${reportId}/status`, { status });
+      toast.success(res.data.message || `Report marked as ${status}`);
+      fetchDashboardData();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to toggle user status');
+      toast.error(error.response?.data?.message || 'Failed to update report status');
     }
   };
 
-  const filteredUsers = statusFilter === 'All Status' 
-    ? users 
-    : users.filter(u => {
-        if (statusFilter === 'Active') return u.status === 'active';
-        if (statusFilter === 'Suspended') return u.status === 'banned';
-        return true;
-      });
+  const handleDeleteMessage = async (messageId, reportId) => {
+    if (!window.confirm("Are you sure you want to delete this message administratively?")) return;
+    try {
+      await axiosInstance.delete(`/admin/messages/${messageId}`);
+      if (reportId) {
+        await axiosInstance.put(`/admin/reports/${reportId}/status`, { status: 'resolved' });
+      }
+      toast.success('Message deleted successfully');
+      fetchDashboardData();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete message');
+    }
+  };
 
   const getLogIcon = (action) => {
     switch (action) {
       case 'BAN_USER': return <ShieldBan size={16} className="text-red-500" />;
       case 'UNBAN_USER': return <ShieldBan size={16} className="text-emerald-500" />;
+      case 'RESOLVE_REPORT': return <Check size={16} className="text-blue-500" />;
+      case 'DISMISS_REPORT': return <X size={16} className="text-on-surface-variant" />;
+      case 'MODERATION_DELETE_MESSAGE': return <Trash2 size={16} className="text-red-600" />;
       default: return <FileText size={16} className="text-primary" />;
     }
   };
 
+  const pendingReports = reports.filter(r => r.status === 'pending').slice(0, 3);
+  const recentLogs = auditLogs.slice(0, 5);
+
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-background h-full">
+      <div className="flex-grow flex items-center justify-center bg-background h-full">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col bg-background overflow-y-auto w-full text-on-surface font-sans border-l border-outline-variant/60">
+    <div className="p-8 max-w-7xl mx-auto w-full font-sans text-on-surface">
       
-      {/* Top Header */}
-      <div className="h-[60px] bg-surface flex items-center justify-between px-6 shrink-0 border-b border-outline-variant/60 sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-bold tracking-tight">Admin Portal</h2>
+      {/* Top Title Bar */}
+      <div className="flex justify-between items-end mb-8 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-on-surface flex items-center gap-2">
+            <Shield className="text-primary" /> System Overview
+          </h1>
+          <p className="text-on-surface-variant text-[15px] mt-1">Operational state, active connections, and latest pending actions.</p>
         </div>
-        
-        {/* Search */}
-        <div className="hidden md:flex flex-1 max-w-xs mx-4">
-          <div className="relative w-full">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
-            <input 
-              className="w-full pl-9 pr-4 py-1.5 bg-surface-container border border-outline-variant rounded-lg text-xs focus:outline-none focus:border-primary transition-all" 
-              placeholder="Search users..." 
-              type="text"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={fetchDashboardData}
-            className="text-on-surface-variant hover:text-on-surface transition-colors p-1.5 rounded-full hover:bg-surface-container"
-          >
-            <span className="material-symbols-outlined !text-[20px]">refresh</span>
-          </button>
-        </div>
+        <button 
+          onClick={fetchDashboardData}
+          className="p-2.5 bg-surface hover:bg-surface-container border border-outline-variant/60 rounded-xl text-on-surface-variant hover:text-on-surface transition-all shadow-sm cursor-pointer"
+          title="Refresh Overview"
+        >
+          <RefreshCw size={16} />
+        </button>
       </div>
 
-      {/* Main Canvas */}
-      <div className="p-6 max-w-7xl mx-auto w-full space-y-6">
+      {/* Metrics Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         
-        {/* Row 1: Greeting & Action */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">System Overview</h2>
-            <p className="text-sm text-on-surface-variant mt-1">System health, auditing and key platform metrics.</p>
+        {/* Total Users */}
+        <div 
+          onClick={() => navigate('/admin/users')}
+          className="bg-surface border border-outline-variant/60 rounded-2xl p-5 shadow-sm hover:bg-surface-container-low transition-colors cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[110px] group"
+        >
+          <div className="flex justify-between items-start">
+            <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Total Users</h3>
+            <Users size={16} className="text-blue-500" />
           </div>
-          <div>
-            <button 
-              onClick={fetchDashboardData}
-              className="px-4 py-2 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant rounded-lg text-xs font-semibold transition-colors shadow-sm cursor-pointer"
-            >
-              Refresh Dashboard
-            </button>
-          </div>
-        </div>
-
-        {/* Stats Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1 */}
-          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-primary"></div>
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Total Users</h3>
-              <span className="material-symbols-outlined text-outline">group</span>
-            </div>
-            <div className="flex items-baseline gap-2 mt-4">
-              <span className="text-2xl font-black">{stats.totalUsers}</span>
-            </div>
-          </div>
-
-          {/* Card 2 */}
-          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-secondary"></div>
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Messages Sent</h3>
-              <span className="material-symbols-outlined text-outline">chat</span>
-            </div>
-            <div className="flex items-baseline gap-2 mt-4">
-              <span className="text-2xl font-black">{stats.totalMessages}</span>
-            </div>
-          </div>
-
-          {/* Card 3 */}
-          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-tertiary"></div>
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Chats/Channels</h3>
-              <span className="material-symbols-outlined text-outline">forum</span>
-            </div>
-            <div className="flex items-baseline gap-2 mt-4">
-              <span className="text-2xl font-black">{stats.totalChats}</span>
-            </div>
-          </div>
-
-          {/* Card 4 */}
-          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-error"></div>
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Banned Users</h3>
-              <span className="material-symbols-outlined text-outline">warning</span>
-            </div>
-            <div className="flex items-baseline gap-2 mt-4">
-              <span className="text-2xl font-black text-red-500">{stats.bannedUsers}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Mid Row: Charts and Audit Logs */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Growth Chart Panel */}
-          <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant/60 rounded-xl shadow-sm flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-outline-variant/60 flex justify-between items-center bg-surface">
-              <h3 className="text-sm font-bold">Growth &amp; Activity</h3>
-            </div>
-            <div className="p-6 flex-grow min-h-[260px] flex flex-col justify-center items-center relative bg-surface-container-lowest">
-              <p className="text-on-surface-variant/80 font-bold text-sm mb-4">Total Platform Registrations: {stats.totalUsers}</p>
-              <div className="w-full h-3 bg-surface-container rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary" 
-                  style={{ width: `${stats.totalUsers > 0 ? ((stats.totalUsers - stats.bannedUsers) / stats.totalUsers) * 100 : 0}%` }}
-                ></div>
-              </div>
-              <div className="flex justify-between w-full mt-2 text-xs text-on-surface-variant/70 font-semibold">
-                <span>Active Users ({stats.totalUsers - stats.bannedUsers})</span>
-                <span>Banned Users ({stats.bannedUsers})</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Audit Logs */}
-          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl shadow-sm flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-outline-variant/60 flex justify-between items-center bg-surface">
-              <h3 className="text-sm font-bold">System Audit Log</h3>
-            </div>
-            <div className="p-0 overflow-y-auto max-h-[300px] flex-grow">
-              <ul className="divide-y divide-outline-variant/60">
-                {auditLogs.length === 0 ? (
-                  <div className="text-center py-12 text-xs text-on-surface-variant">No actions logged yet.</div>
-                ) : (
-                  auditLogs.slice(0, 5).map((log) => (
-                    <li key={log._id} className="p-4 hover:bg-surface-container transition-colors flex gap-3 items-start">
-                      <div className="p-1.5 rounded-full mt-0.5 flex items-center justify-center bg-primary/10 text-primary">
-                        {getLogIcon(log.action)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-on-surface truncate">@{log.adminId?.username || 'admin'}</p>
-                        <p className="text-[10px] text-on-surface-variant mt-0.5 break-all">{log.details}</p>
-                        <p className="text-[9px] text-outline mt-1 font-semibold">
-                          {new Date(log.createdAt).toLocaleString()}
-                        </p>
-                      </div>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* User Management Section */}
-        <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-outline-variant/60 flex justify-between items-center bg-surface">
-            <h3 className="text-sm font-bold">Recent Users</h3>
+          <div className="mt-4 flex justify-between items-end">
             <div>
-              <select 
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-1 bg-surface border border-outline-variant rounded-lg text-xs font-semibold focus:outline-none cursor-pointer"
-              >
-                <option>All Status</option>
-                <option>Active</option>
-                <option>Suspended</option>
-              </select>
+              <span className="text-3xl font-black">{stats.totalUsers}</span>
+              <span className="text-[9px] text-on-surface-variant/70 font-semibold block mt-1">Registered accounts</span>
+            </div>
+            <ChevronRight size={16} className="text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        </div>
+
+        {/* Online Sockets */}
+        <div 
+          onClick={() => navigate('/admin/analytics')}
+          className="bg-surface border border-outline-variant/60 rounded-2xl p-5 shadow-sm hover:bg-surface-container-low transition-colors cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[110px] group"
+        >
+          <div className="flex justify-between items-start">
+            <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Online Users</h3>
+            <div className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+              <span className="text-[9px] font-extrabold text-green-500">LIVE</span>
             </div>
           </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-surface border-b border-outline-variant/60 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
-                  <th className="p-4">User</th>
-                  <th className="p-4">Role</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Last Active</th>
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/60 text-xs">
-                {filteredUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="p-8 text-center text-on-surface-variant font-medium">No users found</td>
-                  </tr>
-                ) : (
-                  filteredUsers.map((item) => (
-                    <tr key={item._id} className="hover:bg-surface-container/30 transition-colors">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs uppercase shadow-sm">
-                            {(item.displayName || item.username)[0]}
-                          </div>
-                          <div>
-                            <p className="font-bold text-on-surface">{item.displayName || item.username}</p>
-                            <p className="text-[10px] text-on-surface-variant">@{item.username} - {item.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4 align-middle font-semibold text-on-surface-variant uppercase tracking-wider text-[10px]">{item.role}</td>
-                      <td className="p-4 align-middle">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          item.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-                        }`}>
-                          {item.status}
-                        </span>
-                      </td>
-                      <td className="p-4 align-middle text-on-surface-variant font-medium">
-                        {item.isOnline ? (
-                          <span className="text-green-500 font-semibold">Online</span>
-                        ) : item.lastSeen ? (
-                          `Last seen ${new Date(item.lastSeen).toLocaleDateString()}`
-                        ) : (
-                          'Offline'
-                        )}
-                      </td>
-                      <td className="p-4 align-middle text-right">
-                        {item.role !== 'admin' && (
-                          <button 
-                            onClick={() => handleToggleBan(item._id)}
-                            className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-colors ${
-                              item.status === 'active' 
-                                ? 'bg-red-100 hover:bg-red-200 text-red-700' 
-                                : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-700'
-                            }`}
-                          >
-                            {item.status === 'active' ? 'Ban User' : 'Unban User'}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          <div className="mt-4 flex justify-between items-end">
+            <div>
+              <span className="text-3xl font-black">{stats.onlineUsers}</span>
+              <span className="text-[9px] text-on-surface-variant/70 font-semibold block mt-1">Active sockets</span>
+            </div>
+            <ChevronRight size={16} className="text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        </div>
+
+        {/* Message volume */}
+        <div 
+          onClick={() => navigate('/admin/analytics')}
+          className="bg-surface border border-outline-variant/60 rounded-2xl p-5 shadow-sm hover:bg-surface-container-low transition-colors cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[110px] group"
+        >
+          <div className="flex justify-between items-start">
+            <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Messages Sent</h3>
+            <MessageCircle size={16} className="text-violet-500" />
+          </div>
+          <div className="mt-4 flex justify-between items-end">
+            <div>
+              <span className="text-3xl font-black">{stats.messagesSent}</span>
+              <span className="text-[9px] text-on-surface-variant/70 font-semibold block mt-1">Routed messages</span>
+            </div>
+            <ChevronRight size={16} className="text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        </div>
+
+        {/* Reports submitted */}
+        <div 
+          onClick={() => navigate('/admin/reports')}
+          className="bg-surface border border-outline-variant/60 rounded-2xl p-5 shadow-sm hover:bg-surface-container-low transition-colors cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[110px] group"
+        >
+          <div className="flex justify-between items-start">
+            <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Pending Reports</h3>
+            <AlertCircle size={16} className="text-red-500" />
+          </div>
+          <div className="mt-4 flex justify-between items-end">
+            <div>
+              <span className={`text-3xl font-black ${reports.filter(r => r.status === 'pending').length > 0 ? 'text-red-500' : ''}`}>
+                {reports.filter(r => r.status === 'pending').length}
+              </span>
+              <span className="text-[9px] text-on-surface-variant/70 font-semibold block mt-1">Flagged reports</span>
+            </div>
+            <ChevronRight size={16} className="text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         </div>
 
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Left Bento: Actionable Pending Reports */}
+        <div className="bg-surface border border-outline-variant/60 rounded-2xl p-5 shadow-sm flex flex-col justify-between min-h-[400px]">
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
+                <AlertCircle size={16} className="text-red-500" /> Urgent Action Items
+              </h3>
+              <button 
+                onClick={() => navigate('/admin/reports')}
+                className="text-[11px] font-bold text-primary hover:underline flex items-center gap-0.5 cursor-pointer"
+              >
+                View All Reports <ChevronRight size={12} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {pendingReports.length === 0 ? (
+                <div className="text-center py-12 text-on-surface-variant/70">
+                  <Check size={28} className="mx-auto text-emerald-500 mb-2" />
+                  <p className="text-xs font-semibold">Inbox is clear</p>
+                  <p className="text-[10px]">No pending user reports need review.</p>
+                </div>
+              ) : (
+                pendingReports.map(report => (
+                  <div key={report._id} className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 flex flex-col gap-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 bg-amber-500/10 text-amber-600 rounded">
+                        {report.reason}
+                      </span>
+                      <span className="text-[9px] text-on-surface-variant">
+                        {new Date(report.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    {report.reportedMessage ? (
+                      <p className="text-xs font-semibold italic text-on-surface truncate">
+                        "{report.reportedMessage.content || 'Image Message'}"
+                      </p>
+                    ) : (
+                      <p className="text-[10px] italic text-red-500 font-semibold">[Message Deleted]</p>
+                    )}
+
+                    <div className="flex items-center gap-2 justify-end pt-1">
+                      <button 
+                        onClick={() => handleUpdateReportStatus(report._id, 'dismissed')}
+                        className="px-2 py-1 bg-surface-container-high hover:bg-outline-variant/20 text-on-surface-variant hover:text-on-surface rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                      >
+                        Dismiss
+                      </button>
+                      
+                      {report.reportedMessage && (
+                        <button 
+                          onClick={() => handleDeleteMessage(report.reportedMessage._id, report._id)}
+                          className="px-2 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-600 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                        >
+                          Delete Message
+                        </button>
+                      )}
+
+                      <button 
+                        onClick={() => handleUpdateReportStatus(report._id, 'resolved')}
+                        className="px-2 py-1 bg-primary text-white hover:opacity-90 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                      >
+                        Resolve
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Bento: Latest System Audit Feed */}
+        <div className="bg-surface border border-outline-variant/60 rounded-2xl p-5 shadow-sm flex flex-col justify-between min-h-[400px]">
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
+                <Shield size={16} className="text-primary" /> Recent System Logs
+              </h3>
+              <button 
+                onClick={() => navigate('/admin/moderation')}
+                className="text-[11px] font-bold text-primary hover:underline flex items-center gap-0.5 cursor-pointer"
+              >
+                View Audit Panel <ChevronRight size={12} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {recentLogs.length === 0 ? (
+                <div className="text-center py-12 text-on-surface-variant/70">
+                  <FileText className="mx-auto text-on-surface-variant/30 mb-2" size={28} />
+                  <p className="text-xs font-semibold">No logs available</p>
+                </div>
+              ) : (
+                recentLogs.map(log => (
+                  <div key={log._id} className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-start gap-3.5">
+                    <div className="p-1.5 bg-surface rounded-lg border border-outline-variant/40 shrink-0">
+                      {getLogIcon(log.action)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-on-surface leading-tight truncate">
+                        {log.details}
+                      </p>
+                      <span className="text-[9px] text-on-surface-variant/80 flex items-center gap-0.5 mt-1">
+                        <Clock size={8} /> {new Date(log.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+      </div>
+
     </div>
   );
 }

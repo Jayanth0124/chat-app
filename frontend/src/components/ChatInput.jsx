@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Paperclip, Send, Smile, Mic, Camera, X, Check, FileText, MapPin, Image } from 'lucide-react';
 
-export default function ChatInput({ onSendMessage, socket, selectedChat }) {
+export default function ChatInput({ onSendMessage, socket, selectedChat, replyToMessage, setReplyToMessage }) {
   const [message, setMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showEmojiMenu, setShowEmojiMenu] = useState(false);
@@ -51,8 +51,9 @@ export default function ChatInput({ onSendMessage, socket, selectedChat }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (message.trim()) {
-      onSendMessage(message);
+      onSendMessage(message, null, 'text', replyToMessage?._id);
       setMessage('');
+      setReplyToMessage?.(null);
       setShowEmojiMenu(false);
       setShowAttachMenu(false);
       if (socket && selectedChat) {
@@ -73,7 +74,8 @@ export default function ChatInput({ onSendMessage, socket, selectedChat }) {
       const s = sec % 60;
       return `${m}:${s < 10 ? '0' : ''}${s}`;
     };
-    onSendMessage(`[Voice Message (${formatTime(recordingSeconds)})]`);
+    onSendMessage(`[Voice Message (${formatTime(recordingSeconds)})]`, null, 'text', replyToMessage?._id);
+    setReplyToMessage?.(null);
     setIsRecording(false);
   };
 
@@ -82,7 +84,8 @@ export default function ChatInput({ onSendMessage, socket, selectedChat }) {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        onSendMessage('', reader.result, 'image');
+        onSendMessage('', reader.result, 'image', replyToMessage?._id);
+        setReplyToMessage?.(null);
       };
       reader.readAsDataURL(file);
     }
@@ -98,6 +101,28 @@ export default function ChatInput({ onSendMessage, socket, selectedChat }) {
   return (
     <div className="px-6 py-4 bg-background flex flex-col items-center justify-center gap-2 z-10 shrink-0 relative">
       
+      {/* Reply Preview Bar */}
+      {replyToMessage && (
+        <div className="flex w-full items-center justify-between gap-3 max-w-[900px] bg-surface-container border border-outline-variant/60 rounded-2xl px-5 py-3 animate-in slide-in-from-bottom-2 duration-150 mb-1 z-10">
+          <div className="flex flex-col min-w-0">
+            <span className="text-[11px] font-bold text-primary uppercase tracking-wider">
+              Replying to {replyToMessage.sender?.displayName || 'User'}
+            </span>
+            <span className="text-xs text-on-surface-variant truncate font-medium mt-0.5">
+              {replyToMessage.messageType === 'image' ? '📷 Image' : replyToMessage.content}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setReplyToMessage(null)}
+            className="p-1.5 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface rounded-full transition-colors cursor-pointer"
+            title="Cancel Reply"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Emoji Menu Overlay */}
       {showEmojiMenu && (
         <div className="absolute bottom-20 left-10 bg-surface border border-outline-variant/60 p-3 rounded-2xl shadow-xl z-50 grid grid-cols-5 gap-2 animate-in slide-in-from-bottom-2 duration-150">

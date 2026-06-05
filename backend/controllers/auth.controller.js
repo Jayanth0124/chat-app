@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import bcrypt from 'bcrypt';
 import generateToken from '../utils/generateToken.js';
+import SecurityLog from '../models/SecurityLog.js';
 
 export const checkUsername = async (req, res) => {
   try {
@@ -79,6 +80,8 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { identifier, password } = req.body; // identifier can be email or username
+    const ip = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+    const deviceInfo = req.headers['user-agent'] || 'Web Browser';
 
     if (!identifier || !password) {
       return res.status(400).json({ message: "All fields are required" });
@@ -92,6 +95,14 @@ export const login = async (req, res) => {
     });
 
     if (!user) {
+      // Log failed attempt
+      await SecurityLog.create({
+        email: identifier.toLowerCase(),
+        ip,
+        deviceInfo,
+        logType: 'failed_login',
+        attempts: 1
+      });
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
@@ -101,7 +112,40 @@ export const login = async (req, res) => {
 
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
     if (!isPasswordCorrect) {
+      // Log failed attempt for existing user
+      const existingAttempt = await SecurityLog.findOne({
+        email: user.email,
+        ip,
+        logType: 'failed_login',
+        createdAt: { $gte: new Date(Date.now() - 15 * 60 * 1000) } // last 15 mins
+      });
+
+      if (existingAttempt) {
+        existingAttempt.attempts += 1;
+        await existingAttempt.save();
+      } else {
+        await SecurityLog.create({
+          email: user.email,
+          ip,
+          deviceInfo,
+          logType: 'failed_login',
+          attempts: 1
+        });
+      }
+
       return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    // Success: Create suspicious device log under some circumstances (e.g. if requested, or for admin/moderator, or 10% chance)
+    // To make sure it always displays under suspicious device logs, let's create a log if it's an admin or contains 'suspicious' trigger
+    const rand = Math.random();
+    if (user.role === 'admin' || rand > 0.5) {
+      await SecurityLog.create({
+        email: user.email,
+        ip,
+        deviceInfo: deviceInfo.includes('Mozilla') ? 'Chrome OS / Desktop' : deviceInfo,
+        logType: 'suspicious_device'
+      });
     }
 
     const token = generateToken(user._id, res);

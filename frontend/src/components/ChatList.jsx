@@ -6,7 +6,7 @@ import { useFriendStore } from '../store/useFriendStore';
 import { useNavigate } from 'react-router-dom';
 
 export default function ChatList({ activeChat, setActiveChat }) {
-  const { chats, fetchChats, isChatsLoading, selectedChat, setSelectedChat, accessChat, deleteChat } = useChatStore();
+  const { chats, fetchChats, isChatsLoading, selectedChat, setSelectedChat, accessChat, deleteChat, unreadCounts } = useChatStore();
   const { searchUsers, searchResults, isSearching, getFriends, friends, isLoading: isFriendsLoading } = useFriendStore();
   const { user } = useAuthStore();
   const [filter, setFilter] = useState('all'); // all, snaps, groups, starred
@@ -38,9 +38,7 @@ export default function ChatList({ activeChat, setActiveChat }) {
   }, [showUsersModal, getFriends]);
 
   useEffect(() => {
-    if (selectedChat) {
-      setActiveChat(selectedChat._id);
-    }
+    setActiveChat(selectedChat ? selectedChat._id : null);
   }, [selectedChat, setActiveChat]);
 
   // Handle live query searching
@@ -225,30 +223,8 @@ export default function ChatList({ activeChat, setActiveChat }) {
         ) : (
           /* Normal Conversations List Mode */
           <>
-            {/* Filter Pills */}
-            <div className="px-5 py-2 flex gap-2 overflow-x-auto no-scrollbar pb-4 border-b border-outline-variant/60 select-none">
-              <button 
-                onClick={() => setFilter('all')}
-                className={`px-4 py-1.5 rounded-full text-[13px] font-semibold transition-all flex items-center gap-1.5 shrink-0 ${filter === 'all' ? 'bg-primary/10 text-primary' : 'bg-surface-container-low text-on-surface hover:bg-surface-container-high'}`}
-              >
-                All
-              </button>
-              <button 
-                onClick={() => setFilter('snaps')}
-                className={`px-4 py-1.5 rounded-full text-[13px] font-semibold transition-all flex items-center gap-1.5 shrink-0 ${filter === 'snaps' ? 'bg-primary/10 text-primary' : 'bg-surface-container-low text-on-surface hover:bg-surface-container-high'}`}
-              >
-                🔥 Snaps
-              </button>
-              <button 
-                onClick={() => setFilter('groups')}
-                className={`px-4 py-1.5 rounded-full text-[13px] font-semibold transition-all flex items-center gap-1.5 shrink-0 ${filter === 'groups' ? 'bg-primary/10 text-primary' : 'bg-surface-container-low text-on-surface hover:bg-surface-container-high'}`}
-              >
-                Groups
-              </button>
-            </div>
-
             {/* Chat List Items */}
-            <div className="flex-1 overflow-y-auto bg-surface p-3">
+            <div className="flex-1 overflow-y-auto bg-surface p-3 border-t border-outline-variant/60">
               {isChatsLoading ? (
                 <div className="flex items-center justify-center h-20">
                   <Loader2 className="w-6 h-6 animate-spin text-on-surface-variant" />
@@ -261,7 +237,7 @@ export default function ChatList({ activeChat, setActiveChat }) {
                 filteredChats.map((chat) => {
                   const otherParticipant = !chat.isGroupChat ? chat.participants?.find(p => p._id !== user?._id) : null;
                   const isOnline = otherParticipant?.isOnline || false;
-                                  return (
+                  return (
                     <div 
                       key={chat._id}
                       onClick={() => setSelectedChat(chat)}
@@ -299,9 +275,9 @@ export default function ChatList({ activeChat, setActiveChat }) {
                           </div>
                           
                           {/* Unread Badge (only show if unreadCount exists and is greater than 0) */}
-                          {chat.unreadCount > 0 && (
+                          {unreadCounts[chat._id] > 0 && (
                             <div className="w-5 h-5 rounded-full bg-primary text-white text-[11px] font-bold flex items-center justify-center shrink-0 shadow-sm group-hover/item:opacity-0 transition-opacity">
-                              {chat.unreadCount}
+                              {unreadCounts[chat._id]}
                             </div>
                           )}
                         </div>
