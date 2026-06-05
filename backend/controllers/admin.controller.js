@@ -5,6 +5,7 @@ import AuditLog from '../models/AuditLog.js';
 import Report from '../models/Report.js';
 import SecurityLog from '../models/SecurityLog.js';
 import Broadcast from '../models/Broadcast.js';
+import { sendPushNotification } from '../utils/webPush.js';
 
 export const getDashboardStats = async (req, res) => {
   try {
@@ -230,6 +231,27 @@ export const sendBroadcast = async (req, res) => {
         sender: req.user.displayName || req.user.username,
         createdAt: broadcastRecord.createdAt
       });
+    }
+
+    // Trigger push notifications for the broadcast in the background
+    try {
+      let userQuery = {};
+      if (audience === 'Moderators') {
+        userQuery = { role: { $in: ['moderator', 'admin'] } };
+      }
+      const recipients = await User.find(userQuery).select('_id');
+      recipients.forEach(async (u) => {
+        // Don't send push to the sending admin themselves
+        if (u._id.toString() !== req.user._id.toString()) {
+          await sendPushNotification(u._id.toString(), {
+            title: `📣 Announcement (${audience || 'All Users'})`,
+            body: message.trim(),
+            icon: '/logo.png'
+          });
+        }
+      });
+    } catch (pushErr) {
+      console.error("Failed to dispatch broadcast push notifications:", pushErr);
     }
 
     // Log admin audit

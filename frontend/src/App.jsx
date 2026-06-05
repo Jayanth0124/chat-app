@@ -25,6 +25,7 @@ import SecurityCenter from './components/admin/SecurityCenter';
 import NotificationCenter from './components/admin/NotificationCenter';
 import ChatModeration from './components/admin/ChatModeration';
 import InAppNotification from './components/InAppNotification';
+import { subscribeUserToPush, unsubscribeUserFromPush } from './lib/pushSubscription';
 
 export default function App() {
   const { isAuthenticated, user, checkAuth, isCheckingAuth } = useAuthStore();
@@ -46,8 +47,10 @@ export default function App() {
   useEffect(() => {
     if (user) {
       connectSocket(user);
+      subscribeUserToPush();
     } else {
       disconnectSocket();
+      unsubscribeUserFromPush();
     }
   }, [user, connectSocket, disconnectSocket]);
 

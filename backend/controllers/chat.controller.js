@@ -3,6 +3,7 @@ import Message from '../models/Message.js';
 import User from '../models/User.js';
 import Report from '../models/Report.js';
 import cloudinary from '../utils/cloudinary.js';
+import { sendPushNotification } from '../utils/webPush.js';
 
 export const accessChat = async (req, res) => {
   const { userId } = req.body;
@@ -191,6 +192,24 @@ export const sendMessage = async (req, res) => {
     });
 
     await Chat.findByIdAndUpdate(chatId, { latestMessage: message });
+
+    // Send background push notifications to other participants in parallel
+    if (message.chat && message.chat.participants) {
+      message.chat.participants.forEach(async (participant) => {
+        const participantId = participant._id.toString();
+        if (participantId !== loggedInUserId.toString()) {
+          await sendPushNotification(participantId, {
+            title: message.sender.displayName || 'New Message',
+            body: message.messageType === 'image' ? '📷 Photo' : message.content,
+            icon: message.sender.profilePic || '/logo.png',
+            data: {
+              url: `/chat/${chatId}`,
+              chatId
+            }
+          });
+        }
+      });
+    }
 
     res.json(message);
   } catch (error) {
