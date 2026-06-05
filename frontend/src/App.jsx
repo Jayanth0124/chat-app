@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
@@ -30,8 +30,17 @@ export default function App() {
   const { isAuthenticated, user, checkAuth, isCheckingAuth } = useAuthStore();
   const { connectSocket, disconnectSocket } = useChatStore();
 
+  const [showSplash, setShowSplash] = useState(true);
+
   useEffect(() => {
     checkAuth();
+    
+    // Enforce 2 second minimum display duration for splash screen
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
   }, [checkAuth]);
 
   useEffect(() => {
@@ -42,7 +51,7 @@ export default function App() {
     }
   }, [user, connectSocket, disconnectSocket]);
 
-  if (isCheckingAuth) {
+  if (isCheckingAuth || showSplash) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-neutral-950 text-white font-sans overflow-hidden">
         <div className="relative flex flex-col items-center select-none animate-in fade-in zoom-in duration-700">
