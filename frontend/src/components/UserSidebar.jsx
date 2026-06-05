@@ -31,7 +31,7 @@ export default function UserSidebar() {
       icon: <Users size={22} />,
       label: 'Friends',
       type: 'link',
-      badge: incomingRequests.length > 0 ? incomingRequests.length : null,
+      badge: incomingRequests?.length > 0 ? incomingRequests.length : null,
     },
     { to: '/settings', icon: <Settings size={22} />, label: 'Settings', type: 'link' },
   ];

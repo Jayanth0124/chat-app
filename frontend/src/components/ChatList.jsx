@@ -360,12 +360,12 @@ export default function ChatList({ activeChat, setActiveChat }) {
                 <div className="text-center text-on-surface-variant py-6">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
                 </div>
-              ) : friends.length === 0 ? (
+              ) : (friends || []).length === 0 ? (
                 <div className="text-center text-on-surface-variant py-6 text-sm">
                   You don't have any friends yet.<br/>Go to Contacts to add some!
                 </div>
               ) : (
-                friends.map((u) => (
+                (friends || []).map((u) => (
                   <div 
                     key={u._id} 
                     onClick={() => handleStartChat(u._id)}

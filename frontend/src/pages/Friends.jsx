@@ -99,10 +99,10 @@ export default function Friends() {
     toast.success('Request cancelled');
   };
 
-  const isFriend = (userId) => friends.some((f) => f._id === userId);
-  const hasSentRequest = (userId) => outgoingRequests.some((r) => r._id === userId);
+  const isFriend = (userId) => (friends || []).some((f) => f && f._id === userId);
+  const hasSentRequest = (userId) => (outgoingRequests || []).some((r) => r && r._id === userId);
 
-  const totalRequestsCount = incomingRequests.length;
+  const totalRequestsCount = (incomingRequests || []).length;
 
   return (
     <div className="flex-1 h-full flex flex-col w-full bg-background overflow-hidden border-l border-outline-variant/60 font-sans text-on-surface">
@@ -129,7 +129,7 @@ export default function Friends() {
               : 'text-on-surface-variant hover:bg-surface-container-low'
           }`}
         >
-          My Friends ({friends.length})
+          My Friends ({(friends || []).length})
         </button>
         <button
           onClick={() => setActiveTab('search-friends')}
@@ -172,7 +172,7 @@ export default function Friends() {
             <div className="space-y-4">
               <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-4 pl-1">All Friends</h3>
               
-              {friends.length === 0 ? (
+              {(friends || []).length === 0 ? (
                 <div className="text-center py-16 bg-surface rounded-2xl border border-outline-variant/60 shadow-sm">
                   <Users className="mx-auto text-on-surface-variant/30 mb-3" size={36} />
                   <p className="text-sm font-bold">No friends yet</p>
@@ -180,7 +180,7 @@ export default function Friends() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {friends.map((friend) => (
+                  {(friends || []).map((friend) => (
                     <div
                       key={friend._id}
                       className="bg-surface border border-outline-variant/60 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
@@ -273,7 +273,7 @@ export default function Friends() {
                 <div className="flex justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
-              ) : searchResults.length === 0 ? (
+              ) : (searchResults || []).length === 0 ? (
                 <div className="text-center py-16 bg-surface rounded-2xl border border-outline-variant/60 shadow-sm">
                   <Inbox className="mx-auto text-on-surface-variant/40 mb-3" size={32} />
                   <p className="text-sm font-bold">No results found</p>
@@ -281,8 +281,8 @@ export default function Friends() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {searchResults.map((userItem) => {
-                    const alreadyFriend = isFriend(userItem._id);
+                  {(searchResults || []).map((userItem) => {
+                    const alreadyFriend = isFriend(userItem?._id);
                     const requestSent = hasSentRequest(userItem._id);
 
                     return (
@@ -341,14 +341,14 @@ export default function Friends() {
               {/* Incoming Requests */}
               <div>
                 <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3 pl-1 flex items-center gap-1.5">
-                  <UserPlus size={13} className="text-green-500" /> Incoming Requests ({incomingRequests.length})
+                  <UserPlus size={13} className="text-green-500" /> Incoming Requests ({(incomingRequests || []).length})
                 </h4>
 
-                {incomingRequests.length === 0 ? (
+                {(incomingRequests || []).length === 0 ? (
                   <p className="text-xs text-on-surface-variant/70 pl-1 italic">No pending incoming requests</p>
                 ) : (
                   <div className="space-y-3">
-                    {incomingRequests.map((req) => (
+                    {(incomingRequests || []).map((req) => (
                       <div
                         key={req._id}
                         className="flex items-center justify-between p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-sm"
@@ -400,14 +400,14 @@ export default function Friends() {
               {/* Outgoing Requests */}
               <div className="pt-6 border-t border-outline-variant/40">
                 <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3 pl-1 flex items-center gap-1.5">
-                  <Clock size={13} className="text-amber-500" /> Sent Requests ({outgoingRequests.length})
+                  <Clock size={13} className="text-amber-500" /> Sent Requests ({(outgoingRequests || []).length})
                 </h4>
 
-                {outgoingRequests.length === 0 ? (
+                {(outgoingRequests || []).length === 0 ? (
                   <p className="text-xs text-on-surface-variant/70 pl-1 italic">No pending sent requests</p>
                 ) : (
                   <div className="space-y-3">
-                    {outgoingRequests.map((req) => (
+                    {(outgoingRequests || []).map((req) => (
                       <div
                         key={req._id}
                         className="flex items-center justify-between p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-sm"

@@ -1,4 +1,12 @@
 {
+  "name": "chat-app-root",
+  "version": "1.0.0",
+  "description": "Root of Blink chat app",
+  "scripts": {
+    "postinstall": "npm install --prefix backend",
+    "build": "npm run build --prefix backend",
+    "start": "npm start --prefix backend"
+  },
   "dependencies": {
     "dns": "^0.2.2"
   }

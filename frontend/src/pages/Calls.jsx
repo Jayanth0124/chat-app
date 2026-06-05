@@ -84,9 +84,9 @@ export default function Calls() {
     return `${Math.floor(s / 60)}m ${s % 60}s`;
   };
 
-  const filteredHistory = callHistory.filter((call) => {
+  const filteredHistory = (callHistory || []).filter((call) => {
     if (activeTab === 'missed') {
-      return call.status === 'missed' && call.caller?._id !== user?._id;
+      return call && call.status === 'missed' && call.caller?._id !== user?._id;
     }
     return true;
   });
@@ -150,7 +150,7 @@ export default function Calls() {
                 <div className="flex justify-center py-12">
                   <Loader2 className="animate-spin text-primary w-6 h-6" />
                 </div>
-              ) : friends.length === 0 ? (
+              ) : (friends || []).length === 0 ? (
                 <div className="text-center py-12 bg-surface rounded-2xl border border-outline-variant/60 shadow-sm">
                   <UserPlus className="mx-auto text-on-surface-variant/40 mb-3" size={32} />
                   <p className="text-sm font-bold">No friends available</p>
@@ -158,7 +158,7 @@ export default function Calls() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {friends.map((friend) => (
+                  {(friends || []).map((friend) => (
                     <div
                       key={friend._id}
                       className="flex items-center justify-between p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-sm"
@@ -188,7 +188,7 @@ export default function Calls() {
             </div>
           ) : (
             <div>
-              <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-4 pl-1">
+               <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-4 pl-1">
                 {activeTab === 'missed' ? 'Missed Calls' : 'Recent Calls'}
               </h3>
 
@@ -196,7 +196,7 @@ export default function Calls() {
                 <div className="flex justify-center py-12">
                   <Loader2 className="animate-spin text-primary w-6 h-6" />
                 </div>
-              ) : filteredHistory.length === 0 ? (
+              ) : (filteredHistory || []).length === 0 ? (
                 <div className="text-center py-16 bg-surface rounded-2xl border border-outline-variant/60 shadow-sm">
                   <Clock className="mx-auto text-on-surface-variant/30 mb-3" size={36} />
                   <p className="text-sm font-bold">No call history</p>
@@ -204,7 +204,7 @@ export default function Calls() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {filteredHistory.map((call) => {
+                  {(filteredHistory || []).map((call) => {
                     const isOutgoing = call.caller?._id === user?._id;
                     const other = isOutgoing ? call.receiver : call.caller;
                     const label = call.status === 'missed' ? 'Missed' : isOutgoing ? 'Outgoing' : 'Incoming';
