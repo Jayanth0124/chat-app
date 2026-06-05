@@ -63,15 +63,15 @@ export default function SecurityCenter() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto w-full font-sans text-on-surface">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto w-full font-sans text-on-surface">
       
       {/* Header */}
-      <div className="flex justify-between items-end mb-8 gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 sm:mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-on-surface flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface flex items-center gap-2">
             <ShieldAlert className="text-primary" /> Security Center
           </h1>
-          <p className="text-on-surface-variant text-[15px] mt-1">Audit failed login traces, monitor active device connections, and restrict offending IPs.</p>
+          <p className="text-on-surface-variant text-[13px] sm:text-[15px] mt-1">Audit failed login traces, monitor active device connections, and restrict offending IPs.</p>
         </div>
         <button 
           onClick={fetchLogs}

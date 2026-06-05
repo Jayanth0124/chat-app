@@ -49,7 +49,7 @@ export default function UserManagement() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto w-full font-sans text-on-surface">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto w-full font-sans text-on-surface">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-on-surface">User Management</h1>

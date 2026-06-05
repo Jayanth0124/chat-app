@@ -74,15 +74,15 @@ export default function ReportsCenter() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto w-full font-sans text-on-surface">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto w-full font-sans text-on-surface">
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-on-surface flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface flex items-center gap-2">
             <AlertTriangle className="text-red-500" /> Reports Center
           </h1>
-          <p className="text-on-surface-variant text-[15px] mt-1">Review flagged messages and resolve user behavior violations.</p>
+          <p className="text-on-surface-variant text-[13px] sm:text-[15px] mt-1">Review flagged messages and resolve user behavior violations.</p>
         </div>
         
         {/* Filter Pill Controls */}

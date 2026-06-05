@@ -64,19 +64,19 @@ export default function Analytics() {
     : 0;
 
   return (
-    <div className="p-8 max-w-7xl mx-auto w-full font-sans text-on-surface">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto w-full font-sans text-on-surface">
       
       {/* Header */}
-      <div className="flex justify-between items-end mb-8 gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 sm:mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-on-surface flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface flex items-center gap-2">
             <BarChart2 className="text-primary" /> Advanced Analytics
           </h1>
-          <p className="text-on-surface-variant text-[15px] mt-1">Real-time statistics, active connections, and activity telemetry.</p>
+          <p className="text-on-surface-variant text-[13px] sm:text-[15px] mt-1">Real-time statistics, active connections, and activity telemetry.</p>
         </div>
         <button 
           onClick={fetchStats}
-          className="p-2.5 bg-surface hover:bg-surface-container border border-outline-variant/60 rounded-xl text-on-surface-variant hover:text-on-surface transition-all shadow-sm cursor-pointer"
+          className="self-end sm:self-auto p-2.5 bg-surface hover:bg-surface-container border border-outline-variant/60 rounded-xl text-on-surface-variant hover:text-on-surface transition-all shadow-sm cursor-pointer"
           title="Refresh Statistics"
         >
           <RefreshCw size={16} />

@@ -60,7 +60,7 @@ export default function NotificationCenter() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto w-full font-sans text-on-surface grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto w-full font-sans text-on-surface grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
       {/* Compose & Send Form */}
       <div className="lg:col-span-5 bg-surface p-6 rounded-2xl border border-outline-variant/60 shadow-sm h-fit">
         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
