@@ -725,7 +725,9 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
               <span>{time}</span>
               {isOwn && (
                 <span className="inline-block -mb-[1px]">
-                  {status === 'sent' ? (
+                  {status === 'sending' ? (
+                    <Clock size={11} className="text-white/70 animate-pulse" />
+                  ) : status === 'sent' ? (
                     <Check size={13} strokeWidth={3} className="text-white/80" />
                   ) : (
                     <CheckCheck 
@@ -750,7 +752,9 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
               <span>{time}</span>
               {isOwn && (
                 <span className="inline-block -mb-[1px]">
-                  {status === 'sent' ? (
+                  {status === 'sending' ? (
+                    <Clock size={11} className="text-white/70 animate-pulse" />
+                  ) : status === 'sent' ? (
                     <Check size={13} strokeWidth={3} className="text-white/85" />
                   ) : (
                     <CheckCheck 

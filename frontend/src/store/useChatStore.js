@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { axiosInstance } from '../lib/axios';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
+import { useAuthStore } from './useAuthStore';
 
 export const useChatStore = create((set, get) => ({
   users: [],
@@ -327,33 +328,74 @@ export const useChatStore = create((set, get) => ({
   },
 
   sendMessage: async (messageData) => {
+    const tempId = `temp-${Date.now()}`;
+    const currentUser = useAuthStore.getState().user;
+    const chatId = messageData.chatId;
+
+    // Create a high-fidelity temporary message for optimistic rendering
+    const tempMessage = {
+      _id: tempId,
+      sender: {
+        _id: currentUser?._id,
+        displayName: currentUser?.displayName || 'Me',
+        profilePic: currentUser?.profilePic || null
+      },
+      content: messageData.content || "",
+      chat: chatId,
+      messageType: messageData.messageType || "text",
+      mediaUrl: messageData.mediaUrl || null,
+      status: 'sending',
+      createdAt: new Date().toISOString(),
+      replyTo: messageData.replyToId ? get().messages.find(m => m._id === messageData.replyToId) : null,
+      isViewOnce: messageData.isViewOnce || false
+    };
+
+    // 1. Immediately append to message list
+    set((state) => ({ messages: [...state.messages, tempMessage] }));
+
+    // 2. Immediately update the latestMessage and bubble chat to top
+    const { chats } = get();
+    const updatedChats = chats.map((c) =>
+      c._id === chatId
+        ? { ...c, latestMessage: tempMessage, updatedAt: new Date().toISOString() }
+        : c
+    );
+    const idx = updatedChats.findIndex((c) => c._id === chatId);
+    if (idx > 0) {
+      const [moved] = updatedChats.splice(idx, 1);
+      updatedChats.unshift(moved);
+    }
+    set({ chats: updatedChats });
+
+    // 3. Make HTTP request in background
     try {
       const res = await axiosInstance.post('/chat/message', messageData);
-      set((state) => ({ messages: [...state.messages, res.data] }));
 
-      // Update latestMessage in chat list
-      const { chats } = get();
-      const chatId = messageData.chatId;
-      const updatedChats = chats.map((c) =>
-        c._id === chatId
-          ? { ...c, latestMessage: res.data, updatedAt: new Date().toISOString() }
+      // 4. Swap temp message with real backend message
+      set((state) => ({
+        messages: state.messages.map((m) => (m._id === tempId ? res.data : m))
+      }));
+
+      // 5. Update the latestMessage with real backend message
+      const { chats: currentChats } = get();
+      const finalChats = currentChats.map((c) =>
+        c._id === chatId && c.latestMessage?._id === tempId
+          ? { ...c, latestMessage: res.data }
           : c
       );
-      // Bubble to top
-      const idx = updatedChats.findIndex((c) => c._id === chatId);
-      if (idx > 0) {
-        const [moved] = updatedChats.splice(idx, 1);
-        updatedChats.unshift(moved);
-      }
-      set({ chats: updatedChats });
+      set({ chats: finalChats });
 
-      // Emit to other participants via socket
+      // 6. Emit via socket
       const socket = get().socket;
       if (socket) {
         socket.emit('new message', res.data);
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error sending message');
+      // Remove the failed temporary message
+      set((state) => ({
+        messages: state.messages.filter((m) => m._id !== tempId)
+      }));
     }
   },
 
