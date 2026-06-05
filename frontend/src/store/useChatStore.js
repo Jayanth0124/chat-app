@@ -19,10 +19,8 @@ export const useChatStore = create((set, get) => ({
   connectSocket: (user) => {
     if (!user || get().socket?.connected) return;
 
-    const socket = io(
-      import.meta.env.MODE === 'development' ? 'http://localhost:5000' : '/',
-      { withCredentials: true }
-    );
+    const socketUrl = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'development' ? 'http://localhost:5000' : '/');
+    const socket = io(socketUrl, { withCredentials: true });
     socket.connect();
     socket.emit('setup', user);
     set({ socket });

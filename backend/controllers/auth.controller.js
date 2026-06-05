@@ -130,8 +130,12 @@ export const logout = async (req, res) => {
   try {
     // If the client sends the authorization header, we can manually look them up to set offline
     // Wait, logout clears cookie. To set offline, we probably need auth middleware first.
-    // For now just clear cookie. Real online status is handled by WebSockets.
-    res.cookie("jwt", "", { maxAge: 0 });
+    res.cookie("jwt", "", { 
+      maxAge: 0,
+      httpOnly: true,
+      sameSite: process.env.NODE_ENV !== 'development' ? 'none' : 'lax',
+      secure: process.env.NODE_ENV !== 'development',
+    });
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.error("Error in logout controller:", error);
