@@ -4,6 +4,7 @@ import Message from '../models/Message.js';
 import AuditLog from '../models/AuditLog.js';
 import Report from '../models/Report.js';
 import SecurityLog from '../models/SecurityLog.js';
+import Broadcast from '../models/Broadcast.js';
 
 export const getDashboardStats = async (req, res) => {
   try {
@@ -213,12 +214,21 @@ export const sendBroadcast = async (req, res) => {
       return res.status(400).json({ message: "Message content is required" });
     }
 
+    // Save in DB
+    const broadcastRecord = await Broadcast.create({
+      sender: req.user._id,
+      audience: audience || 'All Users',
+      message: message.trim()
+    });
+
     // Emit broadcast notification via socket
     if (req.io) {
       req.io.emit('broadcastNotification', {
-        message,
+        id: broadcastRecord._id,
+        message: message.trim(),
         audience: audience || 'All Users',
-        sender: req.user.displayName || req.user.username
+        sender: req.user.displayName || req.user.username,
+        createdAt: broadcastRecord.createdAt
       });
     }
 
@@ -226,14 +236,26 @@ export const sendBroadcast = async (req, res) => {
     await AuditLog.create({
       adminId: req.user._id,
       action: 'SEND_BROADCAST',
-      targetId: req.user._id,
+      targetId: broadcastRecord._id,
       targetModel: 'User',
       details: `Admin sent broadcast to [${audience || 'All Users'}]: "${message.substring(0, 60)}"`
     });
 
-    res.status(200).json({ message: "Broadcast sent successfully to all active client sockets" });
+    res.status(200).json({ message: "Broadcast sent successfully to all active client sockets", broadcast: broadcastRecord });
   } catch (error) {
     console.error("Error in sendBroadcast:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getBroadcasts = async (req, res) => {
+  try {
+    const broadcasts = await Broadcast.find()
+      .populate('sender', 'displayName username profilePic')
+      .sort({ createdAt: -1 });
+    res.status(200).json(broadcasts);
+  } catch (error) {
+    console.error("Error in getBroadcasts:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

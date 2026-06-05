@@ -3,17 +3,6 @@ import { Link } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 
-// Inlined Blink SVG logo
-const BlinkLogo = ({ className = "w-10 h-10" }) => (
-  <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <rect width="200" height="200" rx="40" fill="var(--primary)"/>
-    <path d="M60 100C60 100 80 65 100 65C120 65 140 100 140 100C140 100 120 135 100 135C80 135 60 100 60 100Z" stroke="white" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round"/>
-    <circle cx="100" cy="100" r="18" fill="white"/>
-    <path d="M145 55L155 45" stroke="white" strokeWidth="8" strokeLinecap="round"/>
-    <path d="M155 75L165 70" stroke="white" strokeWidth="8" strokeLinecap="round"/>
-  </svg>
-);
-
 export default function Login() {
   const [formData, setFormData] = useState({
     identifier: '',
@@ -43,15 +32,15 @@ export default function Login() {
         <div className="absolute inset-0 z-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 80%, var(--primary-container) 0%, transparent 50%)' }}></div>
         
         <div className="z-10 flex items-center gap-4">
-          <BlinkLogo className="w-10 h-10 shadow-sm" />
-          <span className="text-2xl font-black text-primary tracking-tight">Blink</span>
+          <img src="/logo.png" className="w-10 h-10 rounded-xl object-cover shadow-sm" alt="Orbit Logo" />
+          <span className="text-2xl font-black text-primary tracking-tight">Orbit</span>
         </div>
         
         <div className="z-10 max-w-md my-auto">
           <div className="w-full aspect-square rounded-2xl bg-surface-container-lowest mb-6 border border-outline-variant/60 shadow-sm overflow-hidden relative p-4 flex items-center justify-center">
             <img 
               className="w-full h-full object-cover rounded-xl" 
-              alt="Blink Connection Illustration" 
+              alt="Orbit Connection Illustration" 
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9DpIUrpMc9GiR67Q-6JWiUP_Qb4h0JqY4D09x4Tdlx9T97VHUnqHf7YQFdnx5NpXAW9DYz6KKMPTYotEuJjgpAvDzoSh6VRlO6GR9ts8IQWQHaelHdjky9iMXH6HnTuQ8evky2oc8tJ3qE-rD4QldnsvpufjynJRDAX6iC6_KKT8rxgtfaUgVZ-NFzWk1aANoBhhV0nvwgX1qYB1WOKSq_e1pgxWXUYOhKHuDSDmXHuqw_-cs1uhli_aNuCeuRURTXr_Odun6vJ-y"
             />
           </div>
@@ -60,7 +49,7 @@ export default function Login() {
         </div>
         
         <div className="z-10 text-xs text-on-surface-variant/70">
-          © 2026 Blink Technologies Inc.
+          © 2026 Orbit Technologies Inc.
         </div>
       </div>
 
@@ -68,8 +57,8 @@ export default function Login() {
       <div className="w-full md:w-1/2 flex items-center justify-center p-6 bg-surface-container-lowest overflow-y-auto">
         {/* Mobile Logo (Visible only on mobile) */}
         <div className="md:hidden absolute top-6 left-6 flex items-center gap-3">
-          <BlinkLogo className="w-8 h-8 shadow-sm" />
-          <span className="text-lg font-black text-primary tracking-tight">Blink</span>
+          <img src="/logo.png" className="w-8 h-8 rounded-lg object-cover shadow-sm" alt="Orbit Logo" />
+          <span className="text-lg font-black text-primary tracking-tight">Orbit</span>
         </div>
 
         {/* Auth Card */}

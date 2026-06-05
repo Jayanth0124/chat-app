@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import UserSidebar from '../components/UserSidebar';
-import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Video, VideoOff, PhoneOff, PhoneIncoming, Check, Loader2 } from 'lucide-react';
+import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Video, VideoOff, PhoneOff, PhoneIncoming, Check, Loader2, Bell, Trash2, ShieldAlert } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 import { useChatStore } from '../store/useChatStore';
+import { useNotificationStore } from '../store/useNotificationStore';
 import { axiosInstance } from '../lib/axios';
 import toast from 'react-hot-toast';
 
@@ -14,6 +15,7 @@ export default function UserLayout() {
   const { user, logout } = useAuthStore();
   const { 
     isLogoutOpen, setLogoutOpen,
+    isNotificationsOpen, setNotificationsOpen,
     activeCall, setActiveCall 
   } = useLayoutStore();
 
@@ -28,6 +30,13 @@ export default function UserLayout() {
   const callTimerRef = useState(null);
 
   const { socket } = useChatStore();
+  const { notifications, clearAll, removeNotification, markAllRead } = useNotificationStore();
+
+  useEffect(() => {
+    if (isNotificationsOpen) {
+      markAllRead();
+    }
+  }, [isNotificationsOpen, markAllRead]);
 
   // WebRTC Audio Connection Setup
   const pcRef = useRef(null);
@@ -453,6 +462,95 @@ export default function UserLayout() {
               >
                 Sign Out
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GLOBAL OVERLAY 3.5: NOTIFICATIONS CENTER DRAWER */}
+      {isNotificationsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-end bg-black/45 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md h-[90vh] md:h-full bg-surface border border-outline-variant/60 shadow-2xl rounded-2xl md:rounded-l-2xl md:rounded-r-none flex flex-col animate-in slide-in-from-right duration-300">
+            {/* Header */}
+            <div className="p-4 border-b border-outline-variant/60 flex justify-between items-center bg-surface-container-low">
+              <div className="flex items-center gap-2">
+                <Bell size={20} className="text-primary animate-bounce" />
+                <h3 className="font-bold text-lg text-on-surface">System Notifications</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                {notifications.length > 0 && (
+                  <button 
+                    onClick={clearAll}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-red-500 hover:bg-red-500/10 rounded-lg font-semibold transition-colors"
+                  >
+                    <Trash2 size={13} />
+                    Clear All
+                  </button>
+                )}
+                <button 
+                  onClick={() => setNotificationsOpen(false)}
+                  className="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {notifications.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3">
+                    <Bell size={22} />
+                  </div>
+                  <h4 className="font-bold text-sm">No new notifications</h4>
+                  <p className="text-xs text-on-surface-variant/80 mt-1 max-w-xs">System alerts and system-wide broadcast updates will show up here.</p>
+                </div>
+              ) : (
+                notifications.map((notif) => {
+                  const isSystem = notif.type === 'system';
+                  return (
+                    <div 
+                      key={notif.id}
+                      className={`p-3.5 rounded-xl border flex gap-3 transition-colors ${
+                        isSystem 
+                          ? 'bg-red-500/5 border-red-500/20 hover:bg-red-500/10' 
+                          : 'bg-surface-container-low border-outline-variant/50 hover:bg-surface-container-high'
+                      }`}
+                    >
+                      {/* Icon / Avatar */}
+                      <div className="shrink-0">
+                        {notif.avatar ? (
+                          <img src={notif.avatar} className="w-9 h-9 rounded-full object-cover border border-outline-variant/30" alt="" />
+                        ) : (
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white ${isSystem ? 'bg-red-500' : 'bg-primary'}`}>
+                            {isSystem ? <ShieldAlert size={16} /> : <Bell size={16} />}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start gap-2">
+                          <p className="font-bold text-[13px] text-on-surface leading-tight truncate">{notif.title}</p>
+                          <span className="text-[10px] text-on-surface-variant/70 shrink-0 font-medium font-sans">
+                            {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-[12px] text-on-surface-variant leading-relaxed mt-1 break-words">{notif.body}</p>
+                      </div>
+
+                      {/* Remove item */}
+                      <button 
+                        onClick={() => removeNotification(notif.id)}
+                        className="p-1 rounded-full text-on-surface-variant/50 hover:text-on-surface-variant hover:bg-surface-container-high transition-all shrink-0 h-fit"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

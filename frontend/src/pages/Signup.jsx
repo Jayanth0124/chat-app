@@ -5,17 +5,6 @@ import useDebounce from '../hooks/useDebounce';
 import { useAuthStore } from '../store/useAuthStore';
 import { axiosInstance } from '../lib/axios';
 
-// Inlined Blink SVG logo
-const BlinkLogo = ({ className = "w-10 h-10" }) => (
-  <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <rect width="200" height="200" rx="40" fill="var(--primary)"/>
-    <path d="M60 100C60 100 80 65 100 65C120 65 140 100 140 100C140 100 120 135 100 135C80 135 60 100 60 100Z" stroke="white" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round"/>
-    <circle cx="100" cy="100" r="18" fill="white"/>
-    <path d="M145 55L155 45" stroke="white" strokeWidth="8" strokeLinecap="round"/>
-    <path d="M155 75L165 70" stroke="white" strokeWidth="8" strokeLinecap="round"/>
-  </svg>
-);
-
 export default function Signup() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -102,9 +91,9 @@ export default function Signup() {
         
         {/* Header */}
         <div className="px-8 pt-8 pb-6 flex flex-col items-center border-b border-outline-variant bg-surface">
-          <BlinkLogo className="h-12 w-12 rounded-lg mb-4 shadow-sm" />
+          <img src="/logo.png" className="h-12 w-12 rounded-lg mb-4 shadow-sm object-cover" alt="Orbit Logo" />
           <h1 className="text-xl font-bold text-on-surface mb-1 text-center">Create your account</h1>
-          <p className="text-sm text-on-surface-variant text-center">Join Blink for premium messaging.</p>
+          <p className="text-sm text-on-surface-variant text-center">Join Orbit for premium messaging.</p>
         </div>
 
         {/* Progress Indicator */}

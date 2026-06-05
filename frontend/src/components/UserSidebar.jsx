@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { MessageSquare, Phone, Settings, LogOut, Search, Users } from 'lucide-react';
+import { MessageSquare, Phone, Settings, LogOut, Search, Users, Bell } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 import { useFriendStore } from '../store/useFriendStore';
+import { useNotificationStore } from '../store/useNotificationStore';
 import { useEffect } from 'react';
 
 export default function UserSidebar() {
@@ -14,9 +15,11 @@ export default function UserSidebar() {
     setLogoutOpen,
     setSearchFriendsOpen,
     setManageFriendsOpen,
+    setNotificationsOpen,
   } = useLayoutStore();
 
   const { incomingRequests, getRequests } = useFriendStore();
+  const { unreadCount } = useNotificationStore();
 
   // Poll for incoming requests badge on mount
   useEffect(() => {
@@ -32,6 +35,13 @@ export default function UserSidebar() {
       label: 'Friends',
       type: 'link',
       badge: incomingRequests?.length > 0 ? incomingRequests.length : null,
+    },
+    {
+      icon: <Bell size={22} />,
+      label: 'Notifications',
+      type: 'button',
+      onClick: () => setNotificationsOpen(true),
+      badge: unreadCount > 0 ? unreadCount : null,
     },
     { to: '/settings', icon: <Settings size={22} />, label: 'Settings', type: 'link' },
   ];
@@ -85,8 +95,8 @@ export default function UserSidebar() {
       {/* Top: Branding + Nav */}
       <div className="flex flex-col gap-6 w-full items-center flex-1">
         {/* Logo */}
-        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white font-black shadow-md shadow-primary/10 select-none">
-          B
+        <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md shadow-primary/10 select-none">
+          <img src="/logo.png" alt="Orbit Logo" className="w-full h-full object-cover" />
         </div>
 
         {/* Nav Items */}

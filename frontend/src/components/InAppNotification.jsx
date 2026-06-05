@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, MessageSquare, UserPlus, UserCheck, Phone, Video } from 'lucide-react';
+import { X, MessageSquare, UserPlus, UserCheck, Phone, Video, ShieldAlert } from 'lucide-react';
 import { useNotificationStore } from '../store/useNotificationStore';
 
 const ICONS = {
@@ -8,6 +8,7 @@ const ICONS = {
   friendAccepted: UserCheck,
   callIncoming: Phone,
   callVideo: Video,
+  system: ShieldAlert,
 };
 
 const COLORS = {
@@ -16,6 +17,7 @@ const COLORS = {
   friendAccepted: 'bg-green-500',
   callIncoming: 'bg-emerald-500',
   callVideo: 'bg-blue-500',
+  system: 'bg-red-500',
 };
 
 function ToastItem({ notif, onDismiss }) {

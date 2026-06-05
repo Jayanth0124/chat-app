@@ -11,11 +11,11 @@ export default function AdminSidebar() {
         {/* Branding Profile/Logo */}
         <div className="h-16 flex items-center justify-center lg:justify-start px-4 border-b border-outline-variant/60 mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold shadow-sm shrink-0">
-              B
+            <div className="w-8 h-8 rounded-lg overflow-hidden shadow-sm shrink-0">
+              <img src="/logo.png" alt="Orbit Logo" className="w-full h-full object-cover" />
             </div>
             <h1 className="hidden lg:block text-on-surface font-bold text-[16px] tracking-tight">
-              Blink Admin
+              Orbit Admin
             </h1>
           </div>
         </div>

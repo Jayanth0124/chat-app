@@ -10,7 +10,8 @@ import {
   deleteMessageByAdmin,
   getSecurityLogs,
   blockIP,
-  sendBroadcast
+  sendBroadcast,
+  getBroadcasts
 } from '../controllers/admin.controller.js';
 
 const router = express.Router();
@@ -28,5 +29,6 @@ router.delete('/messages/:messageId', deleteMessageByAdmin);
 router.get('/security-logs', getSecurityLogs);
 router.post('/security/block-ip', blockIP);
 router.post('/notifications/broadcast', sendBroadcast);
+router.get('/notifications/broadcast', getBroadcasts);
 
 export default router;

@@ -117,6 +117,18 @@ export const useChatStore = create((set, get) => ({
       }
     });
 
+    // ── Broadcast notification ────────────────────────────────────────────
+    socket.on('broadcastNotification', ({ message, audience, sender }) => {
+      getNotifStore().then((ns) => {
+        ns.addNotification({
+          type: 'system',
+          title: `Announcement (${audience})`,
+          body: message,
+          avatar: null
+        });
+      });
+    });
+
     // ── Chat deleted ──────────────────────────────────────────────────────
     socket.on('chatDeleted', ({ chatId }) => {
       const { chats, selectedChat } = get();

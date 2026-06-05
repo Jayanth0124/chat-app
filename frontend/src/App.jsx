@@ -24,6 +24,7 @@ import ReportsCenter from './components/admin/ReportsCenter';
 import SecurityCenter from './components/admin/SecurityCenter';
 import NotificationCenter from './components/admin/NotificationCenter';
 import ChatModeration from './components/admin/ChatModeration';
+import InAppNotification from './components/InAppNotification';
 
 export default function App() {
   const { isAuthenticated, user, checkAuth, isCheckingAuth } = useAuthStore();
@@ -43,8 +44,34 @@ export default function App() {
 
   if (isCheckingAuth) {
     return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center h-screen bg-neutral-950 text-white font-sans overflow-hidden">
+        <div className="relative flex flex-col items-center select-none animate-in fade-in zoom-in duration-700">
+          <div className="relative w-28 h-28 flex items-center justify-center mb-6">
+            <div className="absolute inset-0 rounded-full border border-dashed border-primary/30 animate-[spin_12s_linear_infinite]"></div>
+            <div className="absolute -inset-3 rounded-full border border-primary/10 animate-[spin_8s_linear_infinite_reverse]"></div>
+            <img 
+              src="/logo.png" 
+              alt="Orbit Logo" 
+              className="w-20 h-20 rounded-2xl object-cover shadow-2xl relative z-10 animate-[pulse_2s_ease-in-out_infinite]"
+            />
+          </div>
+          <h1 className="text-3xl font-black tracking-tight text-white uppercase mt-2">
+            Orbit
+          </h1>
+          <p className="text-neutral-400 text-xs tracking-wider uppercase mt-1">
+            Premium Secured Messenger
+          </p>
+          <div className="w-32 h-[3px] bg-neutral-800 rounded-full overflow-hidden mt-8">
+            <div className="h-full bg-primary rounded-full animate-[loading-bar_1.5s_infinite_ease-in-out]"></div>
+          </div>
+        </div>
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes loading-bar {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+          }
+        `}} />
       </div>
     );
   }
@@ -90,6 +117,7 @@ export default function App() {
         <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
       </Routes>
       <Toaster position="top-center" />
+      <InAppNotification />
     </>
   );
 }

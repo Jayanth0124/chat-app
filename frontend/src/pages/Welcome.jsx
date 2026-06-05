@@ -1,16 +1,6 @@
 import { Link } from 'react-router-dom';
 import { MessageSquare, ShieldAlert, Sparkles, Zap, ArrowRight, EyeOff } from 'lucide-react';
 
-const BlinkLogo = ({ className = "w-12 h-12" }) => (
-  <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <rect width="200" height="200" rx="48" fill="var(--primary)"/>
-    <path d="M60 100C60 100 80 65 100 65C120 65 140 100 140 100C140 100 120 135 100 135C80 135 60 100 60 100Z" stroke="white" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round"/>
-    <circle cx="100" cy="100" r="18" fill="white"/>
-    <path d="M145 55L155 45" stroke="white" strokeWidth="8" strokeLinecap="round"/>
-    <path d="M155 75L165 70" stroke="white" strokeWidth="8" strokeLinecap="round"/>
-  </svg>
-);
-
 export default function Welcome() {
   return (
     <div className="min-h-screen w-full bg-background text-on-surface flex flex-col font-sans relative overflow-hidden select-none">
@@ -21,8 +11,8 @@ export default function Welcome() {
       {/* Navigation Header */}
       <header className="w-full h-20 px-6 md:px-12 flex items-center justify-between z-10 shrink-0 border-b border-outline-variant/30 bg-surface/30 backdrop-blur-md sticky top-0">
         <div className="flex items-center gap-3">
-          <BlinkLogo className="w-9 h-9" />
-          <span className="text-xl font-black text-primary tracking-tight">Blink</span>
+          <img src="/logo.png" className="w-9 h-9 rounded-lg object-cover" alt="Orbit Logo" />
+          <span className="text-xl font-black text-primary tracking-tight">Orbit</span>
         </div>
         <div className="flex items-center gap-4">
           <Link 
@@ -44,7 +34,7 @@ export default function Welcome() {
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 z-10 max-w-6xl mx-auto w-full">
         {/* Floating Tag */}
         <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/25 text-xs font-bold mb-8 animate-pulse shadow-sm">
-          <Sparkles size={12} /> Introducing Blink 2.0
+          <Sparkles size={12} /> Introducing Orbit 2.0
         </div>
 
         {/* Hero Headline */}
@@ -114,7 +104,7 @@ export default function Welcome() {
 
       {/* Footer */}
       <footer className="w-full h-16 border-t border-outline-variant/20 flex items-center justify-center text-xs text-on-surface-variant/60 z-10">
-        © 2026 Blink Technologies Inc. All rights reserved.
+        © 2026 Orbit Technologies Inc. All rights reserved.
       </footer>
     </div>
   );
