@@ -264,15 +264,29 @@ export const useChatStore = create((set, get) => ({
     });
 
     socket.on('call:answered', ({ callId }) => {
-      window.dispatchEvent(new CustomEvent('orbit:callAnswered', { detail: { callId } }));
+      import('./useLayoutStore').then(({ useLayoutStore }) => {
+        const { activeCall, setActiveCall } = useLayoutStore.getState();
+        if (activeCall && activeCall.callId === callId) {
+          setActiveCall({ ...activeCall, status: 'connected' });
+        }
+      });
     });
 
     socket.on('call:rejected', ({ callId }) => {
-      window.dispatchEvent(new CustomEvent('orbit:callRejected', { detail: { callId } }));
+      toast('Call was declined', { icon: '📵' });
+      import('./useLayoutStore').then(({ useLayoutStore }) => {
+        const { activeCall, setActiveCall, setIncomingCall } = useLayoutStore.getState();
+        if (activeCall && activeCall.callId === callId) setActiveCall(null);
+        setIncomingCall(null);
+      });
     });
 
     socket.on('call:ended', ({ callId, duration }) => {
-      window.dispatchEvent(new CustomEvent('orbit:callEnded', { detail: { callId, duration } }));
+      import('./useLayoutStore').then(({ useLayoutStore }) => {
+        const { activeCall, setActiveCall, setIncomingCall } = useLayoutStore.getState();
+        if (activeCall && activeCall.callId === callId) setActiveCall(null);
+        setIncomingCall(null);
+      });
     });
   },
 

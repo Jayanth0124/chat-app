@@ -326,37 +326,8 @@ export default function UserLayout() {
     }
   };
 
-  // Listen for incoming call events dispatched from useChatStore
-  useEffect(() => {
-    const handleIncoming = (e) => setIncomingCall(e.detail);
-    const handleAnswered = () => {
-      if (activeCall) {
-        setActiveCall({ ...activeCall, status: 'connected' });
-        setIncomingCall(null);
-      }
-    };
-    const handleRejected = () => {
-      toast('Call was declined', { icon: '📵' });
-      setActiveCall(null);
-      setIncomingCall(null);
-    };
-    const handleEnded = (e) => {
-      setActiveCall(null);
-      setIncomingCall(null);
-    };
-
-    window.addEventListener('orbit:incomingCall', handleIncoming);
-    window.addEventListener('orbit:callAnswered', handleAnswered);
-    window.addEventListener('orbit:callRejected', handleRejected);
-    window.addEventListener('orbit:callEnded', handleEnded);
-
-    return () => {
-      window.removeEventListener('orbit:incomingCall', handleIncoming);
-      window.removeEventListener('orbit:callAnswered', handleAnswered);
-      window.removeEventListener('orbit:callRejected', handleRejected);
-      window.removeEventListener('orbit:callEnded', handleEnded);
-    };
-  }, [activeCall, setActiveCall]);
+  // All socket events (incoming, answered, rejected, ended) are now handled directly 
+  // by useChatStore manipulating useLayoutStore state to avoid React listener race conditions.
 
   // Start/stop call timer when call status changes
   useEffect(() => {
