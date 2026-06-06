@@ -97,7 +97,7 @@ export default function DatabaseUsage() {
   const mostDocsCollection = [...collections].sort((a,b) => b.count - a.count)[0] || null;
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6">
       
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -120,7 +120,7 @@ export default function DatabaseUsage() {
         <HealthCard title="Socket.IO" status={systemHealth.socketio} />
         <HealthCard title="Cloudinary" status={systemHealth.cloudinary} />
         <HealthCard title="Core API" status={systemHealth.api} />
-        <div className="bg-surface border border-outline-variant/60 rounded-2xl p-4 flex flex-col justify-center shadow-sm">
+        <div className="bg-surface border border-outline-variant/60 rounded-2xl p-4 flex flex-col justify-center shadow-sm col-span-2 md:col-span-1 text-center md:text-left items-center md:items-start">
           <span className="text-on-surface-variant text-xs uppercase tracking-wider font-bold mb-1">Active Sockets</span>
           <span className="text-xl font-bold text-on-surface">{formatNumber(systemHealth.activeConnections)}</span>
         </div>
@@ -161,10 +161,10 @@ export default function DatabaseUsage() {
       </div>
 
       {/* Live Analytics Chart */}
-      <div className="bg-surface border border-outline-variant/60 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-surface border border-outline-variant/60 rounded-2xl p-4 md:p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
           <h2 className="text-lg font-bold text-on-surface">Live Database Growth</h2>
-          <div className="flex bg-surface-container-low rounded-lg p-1 border border-outline-variant/50">
+          <div className="flex bg-surface-container-low rounded-lg p-1 border border-outline-variant/50 self-start sm:self-auto">
             <button 
               onClick={() => setActiveTab('storage')} 
               className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${activeTab === 'storage' ? 'bg-primary text-white' : 'text-on-surface-variant'}`}
@@ -288,7 +288,7 @@ function HealthCard({ title, status }) {
   return (
     <div className="bg-surface border border-outline-variant/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 shadow-sm text-center">
       {getStatusIcon(status)}
-      <span className="text-on-surface-variant text-xs uppercase tracking-wider font-bold">{title}</span>
+      <span className="text-on-surface-variant text-[10px] sm:text-xs uppercase tracking-wider font-bold truncate w-full text-center">{title}</span>
     </div>
   );
 }

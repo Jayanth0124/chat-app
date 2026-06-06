@@ -1,65 +1,39 @@
+import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import AdminSidebar from '../components/admin/AdminSidebar';
-import { LayoutDashboard, Users, MessageSquare, AlertCircle, Shield, Activity, Bell } from 'lucide-react';
+import { LayoutDashboard, Users, MessageSquare, AlertCircle, Shield, Activity, Bell, Menu } from 'lucide-react';
 
 export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <div className="h-screen w-full flex flex-col md:flex-row bg-background text-on-surface overflow-hidden font-sans">
-      {/* Sidebar for Desktop/Tablet */}
-      <div className="hidden md:block h-full">
-        <AdminSidebar />
+      
+      {/* Mobile Top Header */}
+      <div className="md:hidden flex items-center justify-between h-14 px-4 bg-surface border-b border-outline-variant/60 shrink-0 z-30 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg overflow-hidden shadow-sm shrink-0">
+            <img src="/logo.png" alt="Orbit Logo" className="w-full h-full object-cover" />
+          </div>
+          <h1 className="font-bold text-[16px] tracking-tight">Orbit Admin</h1>
+        </div>
+        <button 
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="p-2 -mr-2 text-on-surface-variant hover:text-primary transition-colors"
+        >
+          <Menu size={24} />
+        </button>
       </div>
+
+      {/* Sidebar (Responsive) */}
+      <AdminSidebar isOpen={isMobileMenuOpen} setIsOpen={setIsMobileMenuOpen} />
 
       {/* Main Content Area */}
       <main className="flex-1 h-full relative flex flex-col bg-background overflow-y-auto">
         <Outlet />
       </main>
-
-      {/* Mobile Bottom Navigation Bar for Admin */}
-      <div className="md:hidden flex justify-around items-center bg-surface border-t border-outline-variant/60 px-2 py-1 shrink-0 pb-safe z-30">
-        <button 
-          onClick={() => navigate('/admin')} 
-          className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/admin' ? 'text-primary' : 'text-on-surface-variant/80'}`}
-        >
-          <LayoutDashboard size={20} />
-          <span className="text-[10px] font-semibold">Dashboard</span>
-        </button>
-
-        <button 
-          onClick={() => navigate('/admin/users')} 
-          className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/admin/users' ? 'text-primary' : 'text-on-surface-variant/80'}`}
-        >
-          <Users size={20} />
-          <span className="text-[10px] font-semibold">Users</span>
-        </button>
-
-        <button 
-          onClick={() => navigate('/admin/reports')} 
-          className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/admin/reports' ? 'text-primary' : 'text-on-surface-variant/80'}`}
-        >
-          <AlertCircle size={20} />
-          <span className="text-[10px] font-semibold">Reports</span>
-        </button>
-
-        <button 
-          onClick={() => navigate('/admin/moderation')} 
-          className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/admin/moderation' ? 'text-primary' : 'text-on-surface-variant/80'}`}
-        >
-          <MessageSquare size={20} />
-          <span className="text-[10px] font-semibold">Chats</span>
-        </button>
-
-        <button 
-          onClick={() => navigate('/admin/notifications')} 
-          className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/admin/notifications' ? 'text-primary' : 'text-on-surface-variant/80'}`}
-        >
-          <Bell size={20} />
-          <span className="text-[10px] font-semibold">Alerts</span>
-        </button>
-      </div>
     </div>
   );
 }
