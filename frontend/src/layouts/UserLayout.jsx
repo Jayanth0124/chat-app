@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import UserSidebar from '../components/UserSidebar';
-import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Video, VideoOff, PhoneOff, PhoneIncoming, Check, Loader2, Bell, Trash2, ShieldAlert, UserPlus, UserCheck } from 'lucide-react';
+import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Volume2, VolumeX, PhoneOff, PhoneIncoming, Check, Loader2, Bell, Trash2, ShieldAlert, UserPlus, UserCheck } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 import { useChatStore } from '../store/useChatStore';
@@ -28,7 +28,7 @@ export default function UserLayout() {
 
   // Audio/Video controls for active call
   const [isMuted, setIsMuted] = useState(false);
-  const [isCamOff, setIsCamOff] = useState(false);
+  const [isSpeakerOn, setIsSpeakerOn] = useState(true);
   const [callDuration, setCallDuration] = useState(0);
   const callTimerRef = useState(null);
 
@@ -124,6 +124,13 @@ export default function UserLayout() {
       }
     };
   }, []);
+
+  // Update volume based on speaker mode
+  useEffect(() => {
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.volume = isSpeakerOn ? 1.0 : 0.25;
+    }
+  }, [isSpeakerOn]);
 
   const cleanupWebRTC = () => {
     if (pcRef.current) {
@@ -633,7 +640,7 @@ export default function UserLayout() {
           {/* Top Status */}
           <div className="text-center">
             <span className="text-xs uppercase tracking-widest text-neutral-400 font-bold">
-              {activeCall.status === 'dialing' ? 'Dialing...' : `${activeCall.type === 'video' ? '📹' : '📞'} Connected`}
+              {activeCall.status === 'dialing' ? 'Dialing...' : '📞 Connected'}
             </span>
             <h3 className="text-3xl font-black mt-2">{activeCall.name}</h3>
             {activeCall.status === 'connected' && (
@@ -668,12 +675,13 @@ export default function UserLayout() {
                 {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
               </button>
               <button
-                onClick={() => setIsCamOff(!isCamOff)}
+                onClick={() => setIsSpeakerOn(!isSpeakerOn)}
                 className={`p-4 rounded-full transition-all cursor-pointer ${
-                  isCamOff ? 'bg-red-500 text-white' : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                  isSpeakerOn ? 'bg-primary text-white' : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                 }`}
+                title="Speaker Mode"
               >
-                {isCamOff ? <VideoOff size={22} /> : <Video size={22} />}
+                {isSpeakerOn ? <Volume2 size={22} /> : <VolumeX size={22} />}
               </button>
             </div>
             <button
@@ -705,7 +713,7 @@ export default function UserLayout() {
             <div className="flex-1 min-w-0">
               <p className="font-black text-sm">{incomingCall.callerName}</p>
               <p className="text-xs text-neutral-400">
-                {incomingCall.type === 'video' ? '📹 Video' : '📞 Voice'} Call incoming...
+                📞 Voice Call incoming...
               </p>
             </div>
           </div>

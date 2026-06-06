@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { ArrowLeft, MoreVertical, CheckCheck, Check, Video, Phone, Play, Pause, FileText, MapPin, Compass, Shield, Users, Search, Image as ImageIcon, Send, Clock, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, MoreVertical, CheckCheck, Check, Phone, Play, Pause, FileText, MapPin, Compass, Shield, Users, Search, Image as ImageIcon, Send, Clock, Eye, EyeOff } from 'lucide-react';
 import ChatInput from './ChatInput';
 import TypingIndicator from './shared/TypingIndicator';
 import { useChatStore } from '../store/useChatStore';
