@@ -13,6 +13,7 @@ import userRoutes from './routes/users.js';
 import chatRoutes from './routes/chat.js';
 import adminRoutes from './routes/admin.js';
 import callRoutes from './routes/calls.js';
+import cloudinary from './utils/cloudinary.js';
 
 dotenv.config();
 
@@ -34,8 +35,8 @@ app.use(cors({
   origin: (origin, callback) => callback(null, true),
   credentials: true
 }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
 
 // Middleware to attach Socket.io instance
@@ -70,9 +71,29 @@ mongoose.connect(process.env.MONGODB_URI, {
     // Periodic cleanup for expired messages and broadcasts (runs every 30 minutes)
     setInterval(async () => {
       try {
+        const expiredMessages = await Message.find({ expiresAt: { $lte: new Date() } });
+        
+        let deletedCloudinaryAssets = 0;
+        for (const msg of expiredMessages) {
+          if (msg.mediaUrl && msg.mediaUrl.includes('cloudinary.com')) {
+             try {
+               const urlParts = msg.mediaUrl.split('/');
+               const filename = urlParts[urlParts.length - 1];
+               const publicId = filename.split('.')[0];
+               
+               // Attempt to destroy. If it fails, we still delete the message.
+               const resourceType = msg.messageType === 'video' ? 'video' : (msg.messageType === 'document' ? 'raw' : 'image');
+               await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+               deletedCloudinaryAssets++;
+             } catch (e) {
+               console.error('Failed to delete asset from Cloudinary:', e);
+             }
+          }
+        }
+
         const deleted = await Message.deleteMany({ expiresAt: { $lte: new Date() } });
         if (deleted.deletedCount > 0) {
-          console.log(`[PRUNING] Cleaned up ${deleted.deletedCount} expired messages.`);
+          console.log(`[PRUNING] Cleaned up ${deleted.deletedCount} expired messages and ${deletedCloudinaryAssets} Cloudinary assets.`);
         }
 
         const deletedBroadcasts = await Broadcast.deleteMany({ expiresAt: { $ne: null, $lte: new Date() } });

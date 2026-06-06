@@ -156,13 +156,15 @@ export const sendMessage = async (req, res) => {
     let secureMediaUrl = mediaUrl || null;
     let computedMessageType = messageType || "text";
 
-    if (computedMessageType === "image" && secureMediaUrl && secureMediaUrl.startsWith("data:")) {
+    if (["image", "video", "document"].includes(computedMessageType) && secureMediaUrl && secureMediaUrl.startsWith("data:")) {
       try {
-        const uploadResponse = await cloudinary.uploader.upload(secureMediaUrl);
+        const uploadResponse = await cloudinary.uploader.upload(secureMediaUrl, {
+          resource_type: "auto"
+        });
         secureMediaUrl = uploadResponse.secure_url;
       } catch (err) {
         console.error("Cloudinary upload error:", err);
-        return res.status(500).json({ message: "Failed to upload image" });
+        return res.status(500).json({ message: "Failed to upload media" });
       }
     }
 

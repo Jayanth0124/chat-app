@@ -491,9 +491,9 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
     
   // Check for specialized message styles
   const isVoice = text?.startsWith('[Voice Message');
-  const isDoc = text?.startsWith('[Shared Document');
-  const isLoc = text?.startsWith('[Shared Location');
-  const isImg = text?.startsWith('[Shared Image') || text?.startsWith('[Shared Snap Image') || message?.messageType === 'image';
+  const isDoc = message?.messageType === 'document' || text?.startsWith('[Shared Document');
+  const isImg = message?.messageType === 'image' || text?.startsWith('[Shared Image') || text?.startsWith('[Shared Snap Image');
+  const isVideo = message?.messageType === 'video';
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(null);
@@ -598,8 +598,6 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
               const targetEl = document.getElementById(`msg-${message.replyTo._id}`);
               if (targetEl) {
                 targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                // Briefly flash a subtle background color
-                const bubbleEl = targetEl.querySelector('.shadow-sm');
                 if (bubbleEl) {
                   const originalClass = bubbleEl.className;
                   bubbleEl.className = originalClass + ' ring-4 ring-primary/45 scale-[1.02] transition-all duration-300';
@@ -690,35 +688,76 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
             </div>
           ) : isDoc ? (
             /* Styled Document Attach Message */
-            <div className="flex items-center gap-3 pr-2 min-w-[200px] py-1">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isOwn ? 'bg-white/15' : 'bg-primary/10 text-primary'}`}>
-                <FileText size={18} />
-              </div>
-              <div className="flex-1 flex flex-col">
-                <span className="text-[13px] font-bold truncate">Document.pdf</span>
-                <span className="text-[10px] opacity-75">1.2 MB • Click to View</span>
+            <div className="flex flex-col min-w-[200px] max-w-sm rounded-xl overflow-hidden py-1 relative group">
+              <div className="flex items-center gap-3 pr-2 py-1">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isOwn ? 'bg-white/15' : 'bg-primary/10 text-primary'}`}>
+                  <FileText size={18} />
+                </div>
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <span className="text-[13px] font-bold truncate">{text || 'Document'}</span>
+                  <span className="text-[10px] opacity-75">Click icon to download</span>
+                </div>
+                {message?.mediaUrl && (
+                  <a 
+                    href={message.mediaUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    download
+                    className={`ml-1 w-8 h-8 rounded-full flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity ${isOwn ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-primary/10 hover:bg-primary/20 text-primary'}`}
+                    title="Download Document"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  </a>
+                )}
               </div>
             </div>
-          ) : isLoc ? (
-            /* Styled Location Pin Message */
-            <div className="flex items-center gap-3 pr-2 min-w-[200px] py-1">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isOwn ? 'bg-white/15' : 'bg-primary/10 text-primary'}`}>
-                <MapPin size={18} />
-              </div>
-              <div className="flex-1 flex flex-col">
-                <span className="text-[13px] font-bold truncate">Google Maps Pin</span>
-                <span className="text-[10px] opacity-75">12.9806° N, 80.2520° E</span>
-              </div>
+          ) : isVideo ? (
+            /* Real Video Rendering */
+            <div className="flex flex-col min-w-[200px] max-w-sm rounded-xl overflow-hidden relative group">
+              {message?.mediaUrl ? (
+                <>
+                  <video 
+                    controls
+                    src={message.mediaUrl} 
+                    className="w-full max-w-[260px] h-auto rounded-xl border border-outline-variant/30 bg-black/10" 
+                  />
+                  <a 
+                    href={message.mediaUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    download
+                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-md"
+                    title="Save to Gallery"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  </a>
+                </>
+              ) : (
+                <span className="italic opacity-60">Video unavailable</span>
+              )}
+              {text && <span className="text-xs mt-1.5 font-semibold px-1">{text}</span>}
             </div>
           ) : isImg ? (
             /* Real image rendering / fallback */
-            <div className="flex flex-col min-w-[200px] max-w-sm rounded-xl overflow-hidden">
+            <div className="flex flex-col min-w-[200px] max-w-sm rounded-xl overflow-hidden relative group">
               {message?.mediaUrl ? (
-                <img 
-                  src={message.mediaUrl} 
-                  alt="Shared Media" 
-                  className="w-full h-auto max-h-[300px] object-cover rounded-xl border border-outline-variant/30" 
-                />
+                <>
+                  <img 
+                    src={message.mediaUrl} 
+                    alt="Shared Media" 
+                    className="w-full h-auto max-h-[300px] object-cover rounded-xl border border-outline-variant/30" 
+                  />
+                  <a 
+                    href={message.mediaUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    download
+                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-md"
+                    title="Save to Gallery"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  </a>
+                </>
               ) : (
                 <div className="w-full h-32 rounded-xl bg-gradient-to-tr from-violet-500/10 to-indigo-500/10 border border-outline-variant/35 flex items-center justify-center mb-1">
                   <span className="text-xs opacity-60 flex items-center gap-1.5 font-bold"><ImageIcon size={14} /> Shared Media</span>
@@ -733,7 +772,7 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
           )}
           
           {/* Metadata (Time & Ticks) inside bubble */}
-          {!isVoice && !isDoc && !isLoc && !isImg && (
+          {!isVoice && !isDoc && !isVideo && !isImg && (
             <div className={`flex items-center gap-1.5 self-end mt-1.5 text-[10px] font-bold \${isOwn ? 'text-white/80' : 'text-on-surface-variant/70'}`}>
               {timeRemaining !== null && timeRemaining > 0 && (
                 <span className="bg-red-500/20 text-red-500 px-1.5 py-0.5 rounded-full flex items-center gap-1 animate-pulse select-none mr-1">
@@ -760,7 +799,7 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
           )}
           
           {/* Floating Time/Ticks for Audio/Doc bubbles to layout perfectly */}
-          {(isVoice || isDoc || isLoc || isImg) && (
+          {(isVoice || isDoc || isVideo || isImg) && (
             <div className={`flex items-center gap-1.5 self-end mt-2 text-[10px] font-bold \${isOwn ? 'text-white/80' : 'text-on-surface-variant/70'}`}>
               {timeRemaining !== null && timeRemaining > 0 && (
                 <span className="bg-red-500/20 text-red-500 px-1.5 py-0.5 rounded-full flex items-center gap-1 animate-pulse select-none mr-1">

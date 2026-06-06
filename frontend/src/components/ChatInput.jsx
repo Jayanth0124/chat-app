@@ -85,21 +85,29 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (file.size > 50 * 1024 * 1024) {
+        toast?.error("File size must be less than 50MB");
+        e.target.value = null;
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onloadend = () => {
-        setAdjustingImage(reader.result);
-        setIsAdjustOpen(true);
+        if (file.type.startsWith('image/')) {
+          setAdjustingImage(reader.result);
+          setIsAdjustOpen(true);
+        } else if (file.type.startsWith('video/')) {
+          onSendMessage(file.name, reader.result, 'video', replyToMessage?._id);
+          setReplyToMessage?.(null);
+        } else {
+          onSendMessage(file.name, reader.result, 'document', replyToMessage?._id);
+          setReplyToMessage?.(null);
+        }
       };
       reader.readAsDataURL(file);
     }
     e.target.value = null;
     setShowAttachMenu(false);
-  };
-
-  const attachMockFile = (type) => {
-    setMessage(`[Shared ${type}]`);
-    setShowAttachMenu(false);
-    inputRef.current?.focus();
   };
 
   return (
@@ -155,17 +163,10 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
           </button>
           <button 
             type="button"
-            onClick={() => attachMockFile('Document')}
-            className="flex items-center gap-3 px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container rounded-xl transition-colors text-left"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-3 px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container rounded-xl transition-colors text-left w-full cursor-pointer"
           >
             <FileText size={16} className="text-purple-500" /> Document
-          </button>
-          <button 
-            type="button"
-            onClick={() => attachMockFile('Location')}
-            className="flex items-center gap-3 px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container rounded-xl transition-colors text-left"
-          >
-            <MapPin size={16} className="text-emerald-500" /> Location
           </button>
         </div>
       )}
@@ -237,12 +238,12 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
                 className="flex-1 bg-transparent text-[15px] text-on-surface placeholder-on-surface-variant/50 font-medium outline-none h-full"
               />
 
-              {/* Hidden File Input for Real Image Uploads */}
+              {/* Hidden File Input for Real Image/Video/Doc Uploads */}
               <input 
                 type="file" 
                 ref={fileInputRef} 
                 className="hidden" 
-                accept="image/*" 
+                accept="image/*,video/*,application/*,text/*" 
                 onChange={handleFileChange} 
               />
             </div>
