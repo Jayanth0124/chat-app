@@ -28,6 +28,7 @@ export default function ChatWindow({ onBack }) {
   const navigate = useNavigate();
 
   const [isTyping, setIsTyping] = useState(false);
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [viewingMessage, setViewingMessage] = useState(null);
   const [showVanishDropdown, setShowVanishDropdown] = useState(false);
   const [showChatActionsDropdown, setShowChatActionsDropdown] = useState(false);
@@ -49,8 +50,29 @@ export default function ChatWindow({ onBack }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedChat?._id]);
 
+  const isInitialMount = useRef(true);
+
+  // Reset scroll behavior when changing chats
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    isInitialMount.current = true;
+  }, [selectedChat?._id]);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      const behavior = isInitialMount.current ? 'auto' : 'smooth';
+      messagesEndRef.current?.scrollIntoView({ behavior, block: 'end' });
+      
+      if (isInitialMount.current) {
+        // Fallback for image loading pushing the scroll up
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+        }, 150);
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+        }, 500);
+        isInitialMount.current = false;
+      }
+    }
   }, [messages]);
 
   useEffect(() => {
@@ -58,10 +80,14 @@ export default function ChatWindow({ onBack }) {
     
     socket.on('typing', () => setIsTyping(true));
     socket.on('stop typing', () => setIsTyping(false));
+    socket.on('voice_recording_start', () => setIsRecordingVoice(true));
+    socket.on('voice_recording_stop', () => setIsRecordingVoice(false));
 
     return () => {
       socket.off('typing');
       socket.off('stop typing');
+      socket.off('voice_recording_start');
+      socket.off('voice_recording_stop');
     };
   }, [socket]);
 
@@ -402,14 +428,18 @@ export default function ChatWindow({ onBack }) {
         <div ref={messagesEndRef} className="h-4" />
       </div>
 
-      {/* Typing Indicator (Fixed above composer) */}
-      {isTyping && (
+      {/* Typing/Recording Indicator (Fixed above composer) */}
+      {(isTyping || isRecordingVoice) && (
         <div className={`px-[5%] py-2 flex items-center shrink-0 border-t border-outline-variant/10 backdrop-blur-sm ${activeVanishMode ? 'bg-black/80' : 'bg-surface/80'}`}>
-          <div className="bg-surface-container px-4 py-2 rounded-2xl border border-outline-variant/30 shadow-sm">
-            <TypingIndicator />
+          <div className="bg-surface-container px-4 py-2 rounded-2xl border border-outline-variant/30 shadow-sm flex items-center gap-2">
+            {isRecordingVoice ? (
+              <span className="text-red-500 animate-pulse text-lg">🎤</span>
+            ) : (
+              <TypingIndicator />
+            )}
           </div>
           <span className="text-xs ml-3 font-medium text-on-surface-variant animate-pulse">
-            {otherParticipant?.displayName || 'Someone'} is typing...
+            {otherParticipant?.displayName || 'Someone'} is {isRecordingVoice ? 'recording voice message...' : 'typing...'}
           </span>
         </div>
       )}
@@ -514,13 +544,29 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
     : `rounded-2xl ${!isFirstInGroup && !isLastInGroup ? 'rounded-tl-md rounded-bl-md' : isFirstInGroup && !isLastInGroup ? 'rounded-bl-md' : !isFirstInGroup && isLastInGroup ? 'rounded-tl-md' : ''}`;
     
   // Check for specialized message styles
-  const isVoice = text?.startsWith('[Voice Message');
+  const isVoice = message?.messageType === 'audio' || text?.startsWith('[Voice Message');
   const isDoc = message?.messageType === 'document' || text?.startsWith('[Shared Document');
   const isImg = message?.messageType === 'image' || text?.startsWith('[Shared Image') || text?.startsWith('[Shared Snap Image');
   const isVideo = message?.messageType === 'video';
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(null);
+  const audioRef = useRef(null);
+
+  const togglePlay = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play();
+        setIsPlaying(true);
+      }
+    } else {
+      // Fallback for simulated messages without real audio URLs
+      setIsPlaying(!isPlaying);
+    }
+  };
 
   useEffect(() => {
     if (message?.status === 'seen' && message?.expiresAt) {
@@ -647,8 +693,16 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
           {isVoice ? (
             /* Styled voice note note message */
             <div className="flex items-center gap-3 pr-2 min-w-[220px] py-1">
+              {message?.mediaUrl && (
+                <audio 
+                  ref={audioRef} 
+                  src={message.mediaUrl} 
+                  onEnded={() => setIsPlaying(false)} 
+                  className="hidden" 
+                />
+              )}
               <button 
-                onClick={() => setIsPlaying(!isPlaying)}
+                onClick={togglePlay}
                 className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
                   isOwn ? 'bg-white text-primary' : 'bg-primary text-white'
                 }`}

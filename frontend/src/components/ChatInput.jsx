@@ -9,9 +9,11 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
   const [showEmojiMenu, setShowEmojiMenu] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   
-  // Voice Recording Simulator State
+  // Voice Recording State
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   const inputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -72,15 +74,68 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
     inputRef.current?.focus();
   };
 
-  const sendVoiceNote = () => {
-    const formatTime = (sec) => {
-      const m = Math.floor(sec / 60);
-      const s = sec % 60;
-      return `${m}:${s < 10 ? '0' : ''}${s}`;
-    };
-    onSendMessage(`[Voice Message (${formatTime(recordingSeconds)})]`, null, 'text', replyToMessage?._id);
-    setReplyToMessage?.(null);
-    setIsRecording(false);
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          const base64Audio = reader.result;
+          const formatTime = (sec) => {
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+          };
+          onSendMessage(`[Voice Message (${formatTime(recordingSeconds)})]`, base64Audio, 'audio', replyToMessage?._id);
+          setReplyToMessage?.(null);
+        };
+        // Stop all tracks to release microphone
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      if (socket && selectedChat) socket.emit('voice_recording_start', selectedChat._id);
+    } catch (err) {
+      console.error('Error accessing microphone:', err);
+      alert('Microphone access is required to send voice notes.');
+    }
+  };
+
+  const stopRecordingAndSend = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (socket && selectedChat) socket.emit('voice_recording_stop', selectedChat._id);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      // Discard chunks
+      audioChunksRef.current = [];
+      mediaRecorderRef.current.onstop = () => {
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      };
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (socket && selectedChat) socket.emit('voice_recording_stop', selectedChat._id);
+    } else {
+      setIsRecording(false);
+      if (socket && selectedChat) socket.emit('voice_recording_stop', selectedChat._id);
+    }
   };
 
   const handleFileChange = (e) => {
@@ -185,7 +240,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
             <div className="flex items-center gap-2">
               <button 
                 type="button" 
-                onClick={() => setIsRecording(false)} 
+                onClick={cancelRecording} 
                 className="p-2 hover:bg-surface-container text-on-surface-variant hover:text-red-500 rounded-full transition-colors cursor-pointer"
                 title="Discard"
               >
@@ -193,7 +248,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
               </button>
               <button 
                 type="button" 
-                onClick={sendVoiceNote} 
+                onClick={stopRecordingAndSend} 
                 className="p-2 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 rounded-full transition-colors cursor-pointer"
                 title="Send Voice Note"
               >
@@ -264,12 +319,12 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
                 <Send size={22} strokeWidth={2.5} className="ml-1" />
               </button>
             ) : (
-              <button 
-                type="button" 
-                onClick={() => setIsRecording(true)}
-                className="w-[50px] h-[50px] rounded-full bg-surface-container-low border border-outline-variant/60 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high flex items-center justify-center shadow-sm transition-all cursor-pointer"
-                title="Record Audio"
-              >
+                <button 
+                  type="button" 
+                  onClick={startRecording}
+                  className="w-[46px] h-[46px] rounded-full bg-surface-container border border-outline-variant/60 flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-colors shadow-sm cursor-pointer"
+                  title="Voice Note"
+                >
                 <Mic size={22} strokeWidth={2} />
               </button>
             )}

@@ -36,17 +36,17 @@ export const useChatStore = create((set, get) => ({
     socket.on('message received', async (newMessage) => {
       const { selectedChat, chats, unreadCounts } = get();
       const chatId = newMessage.chat?._id || newMessage.chat;
-      const isCurrentChat = selectedChat && selectedChat._id === chatId;
+      const isCurrentChat = selectedChat && String(selectedChat._id) === String(chatId);
 
       // Update the chat's latestMessage in the list
       const updatedChats = chats.map((c) => {
-        if (c._id === chatId) {
+        if (String(c._id) === String(chatId)) {
           return { ...c, latestMessage: newMessage, updatedAt: new Date().toISOString() };
         }
         return c;
       });
       // Move updated chat to top
-      const chatIndex = updatedChats.findIndex((c) => c._id === chatId);
+      const chatIndex = updatedChats.findIndex((c) => String(c._id) === String(chatId));
       if (chatIndex > 0) {
         const [moved] = updatedChats.splice(chatIndex, 1);
         updatedChats.unshift(moved);
@@ -83,7 +83,7 @@ export const useChatStore = create((set, get) => ({
     // ── Delivery receipt ──────────────────────────────────────────────────
     socket.on('messageDelivered', ({ messageId, chatId }) => {
       const { messages, selectedChat } = get();
-      if (selectedChat?._id === chatId) {
+      if (selectedChat && String(selectedChat._id) === String(chatId)) {
         const updatedMessages = messages.map((m) =>
           m._id === messageId && m.status === 'sent'
             ? { ...m, status: 'delivered' }
@@ -96,7 +96,7 @@ export const useChatStore = create((set, get) => ({
     // ── Seen receipt ──────────────────────────────────────────────────────
     socket.on('messagesSeen', ({ chatId, seenBy, updatedMessages }) => {
       const { messages, selectedChat } = get();
-      if (selectedChat && selectedChat._id === chatId) {
+      if (selectedChat && String(selectedChat._id) === String(chatId)) {
         const updated = messages.map((m) => {
           const found = updatedMessages?.find((u) => u._id === m._id);
           if (found) {
@@ -381,11 +381,11 @@ export const useChatStore = create((set, get) => ({
     // 2. Immediately update the latestMessage and bubble chat to top
     const { chats } = get();
     const updatedChats = chats.map((c) =>
-      c._id === chatId
+      String(c._id) === String(chatId)
         ? { ...c, latestMessage: tempMessage, updatedAt: new Date().toISOString() }
         : c
     );
-    const idx = updatedChats.findIndex((c) => c._id === chatId);
+    const idx = updatedChats.findIndex((c) => String(c._id) === String(chatId));
     if (idx > 0) {
       const [moved] = updatedChats.splice(idx, 1);
       updatedChats.unshift(moved);
@@ -404,7 +404,7 @@ export const useChatStore = create((set, get) => ({
       // 5. Update the latestMessage with real backend message
       const { chats: currentChats } = get();
       const finalChats = currentChats.map((c) =>
-        c._id === chatId && c.latestMessage?._id === tempId
+        String(c._id) === String(chatId) && String(c.latestMessage?._id) === String(tempId)
           ? { ...c, latestMessage: res.data }
           : c
       );

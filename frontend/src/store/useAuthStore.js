@@ -58,13 +58,32 @@ export const useAuthStore = create((set) => ({
   logout: async () => {
     try {
       await axiosInstance.post('/auth/logout');
-      localStorage.removeItem('token');
-      set({ user: null, isAuthenticated: false });
-      toast.success('Logged out successfully');
     } catch (error) {
+      console.error('Error logging out on server:', error);
+    } finally {
+      // 1. Purge LocalStorage
       localStorage.removeItem('token');
+      
+      // 2. Clear Auth State
       set({ user: null, isAuthenticated: false });
-      toast.error(error.response?.data?.message || 'Error logging out');
+      
+      // 3. Disconnect Sockets safely via dynamic import to avoid circular dependencies
+      import('./useChatStore').then(({ useChatStore }) => {
+        useChatStore.getState().disconnectSocket();
+        useChatStore.setState({ chats: [], messages: [], selectedChat: null, unreadCounts: {} });
+      });
+
+      // 4. Purge Notifications
+      import('./useNotificationStore').then(({ useNotificationStore }) => {
+        useNotificationStore.setState({ notifications: [], unreadCount: 0 });
+      });
+
+      // 5. Purge Layout State
+      import('./useLayoutStore').then(({ useLayoutStore }) => {
+        useLayoutStore.setState({ activeCall: null, incomingCall: null });
+      });
+
+      toast.success('Logged out successfully');
     }
   },
 

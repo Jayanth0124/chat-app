@@ -156,7 +156,7 @@ export const sendMessage = async (req, res) => {
     let secureMediaUrl = mediaUrl || null;
     let computedMessageType = messageType || "text";
 
-    if (["image", "video", "document"].includes(computedMessageType) && secureMediaUrl && secureMediaUrl.startsWith("data:")) {
+    if (["image", "video", "document", "audio"].includes(computedMessageType) && secureMediaUrl && secureMediaUrl.startsWith("data:")) {
       try {
         const uploadResponse = await cloudinary.uploader.upload(secureMediaUrl, {
           resource_type: "auto"
