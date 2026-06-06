@@ -136,8 +136,8 @@ export default function App() {
           // Clear any incoming call UI if the app happened to be open
           window.dispatchEvent(new CustomEvent('orbit:callEnded', { detail: { callId: callData.callId } }));
         } else if (action === 'view_call') {
-          // Trigger the incoming call UI
-          window.dispatchEvent(new CustomEvent('orbit:incomingCall', { detail: callData }));
+          // Trigger the incoming call UI directly via store
+          useLayoutStore.getState().setIncomingCall(callData);
         }
       }
     };

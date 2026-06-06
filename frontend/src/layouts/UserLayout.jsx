@@ -18,13 +18,13 @@ export default function UserLayout() {
     isLogoutOpen, setLogoutOpen,
     isNotificationsOpen, setNotificationsOpen,
     activeCall, setActiveCall,
+    incomingCall, setIncomingCall,
     isManageFriendsOpen, setManageFriendsOpen,
     activeAnnouncement, setActiveAnnouncement
   } = useLayoutStore();
 
   const [callHistory, setCallHistory] = useState([]);
   const [callHistoryLoading, setCallHistoryLoading] = useState(false);
-  const [incomingCall, setIncomingCall] = useState(null); // { callId, callerId, callerName, callerPic, type }
 
   // Audio/Video controls for active call
   const [isMuted, setIsMuted] = useState(false);

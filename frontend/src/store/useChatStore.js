@@ -249,8 +249,8 @@ export const useChatStore = create((set, get) => ({
     // ── Incoming call ─────────────────────────────────────────────────────
     socket.on('call:incoming', (callData) => {
       // callData: { callId, callerId, callerName, callerPic, type }
-      const { setActiveCall } = (get()._layoutRef || {});
-
+      const layoutStore = get()._layoutRef || {};
+      
       getNotifStore().then((ns) => ns.addNotification({
         type: callData.type === 'video' ? 'callVideo' : 'callIncoming',
         title: `Incoming ${callData.type === 'video' ? 'Video' : 'Voice'} Call`,
@@ -258,8 +258,13 @@ export const useChatStore = create((set, get) => ({
         avatar: callData.callerPic,
       }));
 
-      // Store incoming call in layout store via event — App.jsx listens
-      window.dispatchEvent(new CustomEvent('orbit:incomingCall', { detail: callData }));
+      // Store incoming call in layout store directly
+      if (layoutStore.setIncomingCall) {
+        layoutStore.setIncomingCall(callData);
+      } else {
+        // Fallback
+        window.dispatchEvent(new CustomEvent('orbit:incomingCall', { detail: callData }));
+      }
     });
 
     socket.on('call:answered', ({ callId }) => {
