@@ -101,11 +101,13 @@ export default function App() {
     if (user) {
       connectSocket(user);
       subscribeUserToPush();
-    } else {
+    } else if (!isCheckingAuth) {
+      // Only disconnect and unsubscribe if we are CERTAIN the user is logged out
+      // (not just because the app is still initially checking auth on load)
       disconnectSocket();
       unsubscribeUserFromPush();
     }
-  }, [user, connectSocket, disconnectSocket]);
+  }, [user, isCheckingAuth, connectSocket, disconnectSocket]);
 
   const { setActiveCall } = useLayoutStore();
 

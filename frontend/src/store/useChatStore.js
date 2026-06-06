@@ -249,7 +249,6 @@ export const useChatStore = create((set, get) => ({
     // ── Incoming call ─────────────────────────────────────────────────────
     socket.on('call:incoming', (callData) => {
       // callData: { callId, callerId, callerName, callerPic, type }
-      const layoutStore = get()._layoutRef || {};
       
       getNotifStore().then((ns) => ns.addNotification({
         type: callData.type === 'video' ? 'callVideo' : 'callIncoming',
@@ -259,12 +258,9 @@ export const useChatStore = create((set, get) => ({
       }));
 
       // Store incoming call in layout store directly
-      if (layoutStore.setIncomingCall) {
-        layoutStore.setIncomingCall(callData);
-      } else {
-        // Fallback
-        window.dispatchEvent(new CustomEvent('orbit:incomingCall', { detail: callData }));
-      }
+      import('./useLayoutStore').then(({ useLayoutStore }) => {
+        useLayoutStore.getState().setIncomingCall(callData);
+      });
     });
 
     socket.on('call:answered', ({ callId }) => {
