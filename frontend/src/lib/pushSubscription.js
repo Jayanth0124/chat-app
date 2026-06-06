@@ -40,7 +40,7 @@ export async function subscribeUserToPush() {
     const registration = await navigator.serviceWorker.ready;
     
     // 1. Get VAPID public key from backend
-    const { data } = await axiosInstance.get('/user/push/vapid-key');
+    const { data } = await axiosInstance.get('/users/push/vapid-key');
     if (!data || !data.publicKey) {
       console.warn('[PUSH] No VAPID public key returned from backend.');
       return;
@@ -63,7 +63,7 @@ export async function subscribeUserToPush() {
     console.log('[PUSH] User subscribed successfully:', subscription);
 
     // 4. Save subscription on backend
-    await axiosInstance.post('/user/push/subscribe', { subscription });
+    await axiosInstance.post('/users/push/subscribe', { subscription: subscription.toJSON() });
   } catch (error) {
     console.error('[PUSH] Failed to subscribe user:', error);
   }
@@ -78,7 +78,7 @@ export async function unsubscribeUserFromPush() {
     
     if (subscription) {
       // 1. Notify backend
-      await axiosInstance.post('/user/push/unsubscribe', { endpoint: subscription.endpoint });
+      await axiosInstance.post('/users/push/unsubscribe', { endpoint: subscription.endpoint });
       // 2. Unsubscribe locally
       await subscription.unsubscribe();
       console.log('[PUSH] Unsubscribed successfully.');

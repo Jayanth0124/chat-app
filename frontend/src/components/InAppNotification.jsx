@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { X, MessageSquare, UserPlus, UserCheck, Phone, Video, ShieldAlert } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from '../store/useNotificationStore';
+import { useChatStore } from '../store/useChatStore';
+import { useLayoutStore } from '../store/useLayoutStore';
 
 const ICONS = {
   message: MessageSquare,
@@ -22,6 +25,10 @@ const COLORS = {
 
 function ToastItem({ notif, onDismiss }) {
   const [visible, setVisible] = useState(false);
+  const navigate = useNavigate();
+  const { chats, setSelectedChat, accessChat } = useChatStore();
+  const { setManageFriendsOpen, setActiveAnnouncement } = useLayoutStore();
+  const { removeNotification } = useNotificationStore();
 
   useEffect(() => {
     // Animate in
@@ -42,9 +49,27 @@ function ToastItem({ notif, onDismiss }) {
   const iconBg = COLORS[notif.type] || 'bg-primary';
 
   const handleClick = () => {
-    if (notif.onClick) notif.onClick();
     setVisible(false);
     setTimeout(() => onDismiss(notif.id), 300);
+
+    // Trigger action
+    if (notif.type === 'message' && notif.chatId) {
+      const chat = chats.find((c) => c._id === notif.chatId);
+      if (chat) {
+        setSelectedChat(chat);
+      } else if (notif.from) {
+        accessChat(notif.from);
+      }
+      navigate('/');
+    } else if (notif.type === 'friendRequest' || notif.type === 'friendAccepted') {
+      setManageFriendsOpen(true);
+    } else if (notif.type === 'system') {
+      setActiveAnnouncement({
+        title: notif.title,
+        body: notif.body,
+        createdAt: notif.createdAt || new Date().toISOString()
+      });
+    }
   };
 
   return (
@@ -94,10 +119,15 @@ function ToastItem({ notif, onDismiss }) {
 }
 
 export default function InAppNotification() {
-  const { notifications, removeNotification } = useNotificationStore();
+  const { notifications } = useNotificationStore();
+  const [shownIds, setShownIds] = useState([]);
 
-  // Only show the most recent 4 toasts at once
-  const visible = notifications.slice(0, 4);
+  const handleDismiss = (id) => {
+    setShownIds((prev) => [...prev, id]);
+  };
+
+  // Only show the most recent 4 notifications that have not been shown/dismissed as toasts
+  const visible = notifications.filter((notif) => !shownIds.includes(notif.id)).slice(0, 4);
 
   if (visible.length === 0) return null;
 
@@ -105,7 +135,7 @@ export default function InAppNotification() {
     <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
       {visible.map((notif) => (
         <div key={notif.id} className="pointer-events-auto">
-          <ToastItem notif={notif} onDismiss={removeNotification} />
+          <ToastItem notif={notif} onDismiss={handleDismiss} />
         </div>
       ))}
     </div>

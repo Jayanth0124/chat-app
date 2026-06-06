@@ -75,6 +75,7 @@ export const useChatStore = create((set, get) => ({
           body: preview,
           avatar: senderPic,
           chatId,
+          from: newMessage.sender?._id || newMessage.sender,
         }));
       }
     });
@@ -122,14 +123,23 @@ export const useChatStore = create((set, get) => ({
     });
 
     // ── Broadcast notification ────────────────────────────────────────────
-    socket.on('broadcastNotification', ({ message, audience, sender }) => {
+    socket.on('broadcastNotification', ({ id, message, audience, sender, isPermanent, expiresAt }) => {
       getNotifStore().then((ns) => {
         ns.addNotification({
+          id,
           type: 'system',
           title: `Announcement (${audience})`,
           body: message,
-          avatar: null
+          avatar: null,
+          isPermanent: !!isPermanent,
+          expiresAt
         });
+      });
+    });
+
+    socket.on('broadcastDeleted', ({ id }) => {
+      getNotifStore().then((ns) => {
+        ns.removeNotification(id);
       });
     });
 

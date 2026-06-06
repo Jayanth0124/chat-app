@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import Broadcast from '../models/Broadcast.js';
 import cloudinary from '../utils/cloudinary.js';
 
 export const getUsersForSidebar = async (req, res) => {
@@ -113,5 +114,43 @@ export const getUserById = async (req, res) => {
   } catch (error) {
     console.error("Error in getUserById:", error.message);
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getActiveBroadcasts = async (req, res) => {
+  try {
+    const userRole = req.user.role;
+    
+    // Build query
+    const query = {
+      $or: [
+        { audience: 'All Users' },
+        { audience: 'Active Users (Last 24h)' }
+      ]
+    };
+
+    if (userRole === 'admin' || userRole === 'moderator') {
+      query.$or.push({ audience: 'Moderators Only' });
+      query.$or.push({ audience: 'Moderators' });
+    }
+
+    // Exclude expired broadcasts
+    query.$and = [
+      {
+        $or: [
+          { expiresAt: null },
+          { expiresAt: { $gt: new Date() } }
+        ]
+      }
+    ];
+
+    const broadcasts = await Broadcast.find(query)
+      .populate('sender', 'displayName username profilePic')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(broadcasts);
+  } catch (error) {
+    console.error("Error in getActiveBroadcasts:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };

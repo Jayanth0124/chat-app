@@ -9,6 +9,7 @@ export const useLayoutStore = create((set) => ({
   isManageFriendsOpen: false,
   isNotificationsOpen: false,
   activeCall: null, // { name: '', type: 'voice' | 'video', status: 'dialing' | 'connected' }
+  activeAnnouncement: null, // { title, body, createdAt }
 
   setProfileOpen: (isOpen) => set({ isProfileOpen: isOpen }),
   setCallsOpen: (isOpen) => set({ isCallsOpen: isOpen }),
@@ -18,4 +19,5 @@ export const useLayoutStore = create((set) => ({
   setManageFriendsOpen: (isOpen) => set({ isManageFriendsOpen: isOpen }),
   setNotificationsOpen: (isOpen) => set({ isNotificationsOpen: isOpen }),
   setActiveCall: (call) => set({ activeCall: call }),
+  setActiveAnnouncement: (announcement) => set({ activeAnnouncement: announcement }),
 }));

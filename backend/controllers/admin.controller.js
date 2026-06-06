@@ -210,48 +210,70 @@ export const blockIP = async (req, res) => {
 
 export const sendBroadcast = async (req, res) => {
   try {
-    const { audience, message } = req.body;
+    const { audience, message, isPermanent } = req.body;
     if (!message) {
       return res.status(400).json({ message: "Message content is required" });
     }
+
+    const expiresAt = isPermanent 
+      ? null 
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     // Save in DB
     const broadcastRecord = await Broadcast.create({
       sender: req.user._id,
       audience: audience || 'All Users',
-      message: message.trim()
+      message: message.trim(),
+      isPermanent: !!isPermanent,
+      expiresAt
     });
 
-    // Emit broadcast notification via socket
-    if (req.io) {
-      req.io.emit('broadcastNotification', {
-        id: broadcastRecord._id,
-        message: message.trim(),
-        audience: audience || 'All Users',
-        sender: req.user.displayName || req.user.username,
-        createdAt: broadcastRecord.createdAt
+    // Retrieve target recipients based on audience
+    let recipients = [];
+    try {
+      let userQuery = {};
+      if (audience === 'Moderators Only' || audience === 'Moderators') {
+        userQuery = { role: { $in: ['moderator', 'admin'] } };
+      } else if (audience === 'Active Users (Last 24h)') {
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        userQuery = { updatedAt: { $gte: oneDayAgo } };
+      }
+      recipients = await User.find(userQuery).select('_id');
+    } catch (dbErr) {
+      console.error("Failed to retrieve broadcast recipients:", dbErr);
+    }
+
+    // Emit broadcast notification via socket to target audience only
+    if (req.io && recipients.length > 0) {
+      recipients.forEach((recipient) => {
+        req.io.to(recipient._id.toString()).emit('broadcastNotification', {
+          id: broadcastRecord._id,
+          message: message.trim(),
+          audience: audience || 'All Users',
+          sender: req.user.displayName || req.user.username,
+          createdAt: broadcastRecord.createdAt,
+          isPermanent: broadcastRecord.isPermanent,
+          expiresAt: broadcastRecord.expiresAt
+        });
       });
     }
 
     // Trigger push notifications for the broadcast in the background
-    try {
-      let userQuery = {};
-      if (audience === 'Moderators') {
-        userQuery = { role: { $in: ['moderator', 'admin'] } };
+    if (recipients.length > 0) {
+      try {
+        recipients.forEach(async (u) => {
+          // Don't send push to the sending admin themselves
+          if (u._id.toString() !== req.user._id.toString()) {
+            await sendPushNotification(u._id.toString(), {
+              title: `📣 Announcement (${audience || 'All Users'})`,
+              body: message.trim(),
+              icon: '/logo.png'
+            });
+          }
+        });
+      } catch (pushErr) {
+        console.error("Failed to dispatch broadcast push notifications:", pushErr);
       }
-      const recipients = await User.find(userQuery).select('_id');
-      recipients.forEach(async (u) => {
-        // Don't send push to the sending admin themselves
-        if (u._id.toString() !== req.user._id.toString()) {
-          await sendPushNotification(u._id.toString(), {
-            title: `📣 Announcement (${audience || 'All Users'})`,
-            body: message.trim(),
-            icon: '/logo.png'
-          });
-        }
-      });
-    } catch (pushErr) {
-      console.error("Failed to dispatch broadcast push notifications:", pushErr);
     }
 
     // Log admin audit
@@ -278,6 +300,35 @@ export const getBroadcasts = async (req, res) => {
     res.status(200).json(broadcasts);
   } catch (error) {
     console.error("Error in getBroadcasts:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const deleteBroadcast = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Broadcast.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Broadcast not found" });
+    }
+
+    // Log admin audit
+    await AuditLog.create({
+      adminId: req.user._id,
+      action: 'DELETE_BROADCAST',
+      targetId: id,
+      targetModel: 'User',
+      details: `Admin deleted broadcast: "${deleted.message.substring(0, 60)}"`
+    });
+
+    // Emit broadcast deleted via socket
+    if (req.io) {
+      req.io.emit('broadcastDeleted', { id });
+    }
+
+    res.status(200).json({ message: "Broadcast deleted successfully" });
+  } catch (error) {
+    console.error("Error in deleteBroadcast:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

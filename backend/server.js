@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import { handleSockets } from './sockets/socketHandler.js';
 import Message from './models/Message.js';
+import Broadcast from './models/Broadcast.js';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import chatRoutes from './routes/chat.js';
@@ -66,12 +67,17 @@ mongoose.connect(process.env.MONGODB_URI, {
   .then(() => {
     console.log('Connected to MongoDB');
 
-    // Periodic cleanup for expired messages (runs every 30 minutes)
+    // Periodic cleanup for expired messages and broadcasts (runs every 30 minutes)
     setInterval(async () => {
       try {
         const deleted = await Message.deleteMany({ expiresAt: { $lte: new Date() } });
         if (deleted.deletedCount > 0) {
           console.log(`[PRUNING] Cleaned up ${deleted.deletedCount} expired messages.`);
+        }
+
+        const deletedBroadcasts = await Broadcast.deleteMany({ expiresAt: { $ne: null, $lte: new Date() } });
+        if (deletedBroadcasts.deletedCount > 0) {
+          console.log(`[PRUNING] Cleaned up ${deletedBroadcasts.deletedCount} expired broadcasts.`);
         }
       } catch (err) {
         console.error('Failed to run periodic pruning:', err);

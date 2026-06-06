@@ -1,14 +1,18 @@
 import { useEffect, useState, useRef } from 'react';
-import { Search, Loader2, MessageSquarePlus, MoreVertical, Users, Trash2, Clock, Inbox } from 'lucide-react';
+import { Search, Loader2, MessageSquarePlus, MoreVertical, Users, Trash2, Clock, Inbox, Bell } from 'lucide-react';
 import { useChatStore } from '../store/useChatStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useFriendStore } from '../store/useFriendStore';
+import { useLayoutStore } from '../store/useLayoutStore';
+import { useNotificationStore } from '../store/useNotificationStore';
 import { useNavigate } from 'react-router-dom';
 
 export default function ChatList({ activeChat, setActiveChat }) {
   const { chats, fetchChats, isChatsLoading, selectedChat, setSelectedChat, accessChat, deleteChat, unreadCounts } = useChatStore();
   const { searchUsers, searchResults, isSearching, getFriends, friends, isLoading: isFriendsLoading } = useFriendStore();
   const { user } = useAuthStore();
+  const { setNotificationsOpen } = useLayoutStore();
+  const { unreadCount } = useNotificationStore();
   const [filter, setFilter] = useState('all'); // all, snaps, groups, starred
   
   // Search states
@@ -124,6 +128,18 @@ export default function ChatList({ activeChat, setActiveChat }) {
         <div className="px-6 pt-6 pb-4 flex justify-between items-center select-none">
           <h2 className="text-[24px] font-black tracking-tight text-on-surface">Chats</h2>
           <div className="flex gap-2 text-on-surface-variant">
+            {/* Mobile-only notifications drawer trigger */}
+            <button 
+              onClick={() => setNotificationsOpen(true)} 
+              className="relative p-2 hover:bg-surface-container-low rounded-full transition-colors cursor-pointer md:hidden" 
+              title="Notifications"
+            >
+              <Bell size={20} strokeWidth={2} />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary rounded-full ring-2 ring-surface animate-pulse" />
+              )}
+            </button>
+
             <button onClick={() => setShowUsersModal(true)} className="p-2 hover:bg-surface-container-low rounded-full transition-colors cursor-pointer" title="New Chat">
               <MessageSquarePlus size={20} strokeWidth={2} />
             </button>

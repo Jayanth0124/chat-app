@@ -1,6 +1,6 @@
 import express from 'express';
 import { protectRoute } from '../middleware/auth.middleware.js';
-import { getUsersForSidebar, updateProfile, changeUsername, getUserById } from '../controllers/user.controller.js';
+import { getUsersForSidebar, updateProfile, changeUsername, getUserById, getActiveBroadcasts } from '../controllers/user.controller.js';
 import { 
   searchUsers, 
   sendFriendRequest, 
@@ -18,6 +18,7 @@ router.get('/', protectRoute, getUsersForSidebar);
 router.put('/profile', protectRoute, updateProfile);
 router.put('/update-profile', protectRoute, updateProfile);
 router.put('/change-username', protectRoute, changeUsername);
+router.get('/notifications/broadcasts', protectRoute, getActiveBroadcasts);
 // Friend System Routes
 router.get('/search', protectRoute, searchUsers);
 router.get('/friends', protectRoute, getFriends);
@@ -27,9 +28,6 @@ router.post('/accept/:userId', protectRoute, acceptFriendRequest);
 router.post('/reject/:userId', protectRoute, rejectFriendRequest);
 router.delete('/remove/:userId', protectRoute, removeFriend);
 router.post('/block/:userId', protectRoute, blockUser);
-
-// Retrieve user by ID (defined after static routes to avoid shadowing)
-router.get('/:id', protectRoute, getUserById);
 
 // Web Push Notification Routing
 import { getPublicKey } from '../utils/webPush.js';
@@ -69,8 +67,10 @@ router.post('/push/unsubscribe', protectRoute, async (req, res) => {
     res.json({ message: "Unsubscribed successfully from background notifications" });
   } catch (error) {
     console.error("Error unsubscribing from push notifications:", error);
-    res.status(500).json({ message: error.message });
   }
 });
+
+// Retrieve user by ID (defined at the very end to avoid shadowing static routes)
+router.get('/:id', protectRoute, getUserById);
 
 export default router;

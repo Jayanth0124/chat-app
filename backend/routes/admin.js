@@ -11,7 +11,8 @@ import {
   getSecurityLogs,
   blockIP,
   sendBroadcast,
-  getBroadcasts
+  getBroadcasts,
+  deleteBroadcast
 } from '../controllers/admin.controller.js';
 
 const router = express.Router();
@@ -30,5 +31,6 @@ router.get('/security-logs', getSecurityLogs);
 router.post('/security/block-ip', blockIP);
 router.post('/notifications/broadcast', sendBroadcast);
 router.get('/notifications/broadcast', getBroadcasts);
+router.delete('/notifications/broadcast/:id', deleteBroadcast);
 
 export default router;

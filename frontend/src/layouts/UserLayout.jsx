@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import UserSidebar from '../components/UserSidebar';
-import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Video, VideoOff, PhoneOff, PhoneIncoming, Check, Loader2, Bell, Trash2, ShieldAlert } from 'lucide-react';
+import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Video, VideoOff, PhoneOff, PhoneIncoming, Check, Loader2, Bell, Trash2, ShieldAlert, UserPlus, UserCheck } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 import { useChatStore } from '../store/useChatStore';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { axiosInstance } from '../lib/axios';
 import toast from 'react-hot-toast';
+import ManageFriends from '../components/ManageFriends';
 
 export default function UserLayout() {
   const location = useLocation();
@@ -16,7 +17,9 @@ export default function UserLayout() {
   const { 
     isLogoutOpen, setLogoutOpen,
     isNotificationsOpen, setNotificationsOpen,
-    activeCall, setActiveCall 
+    activeCall, setActiveCall,
+    isManageFriendsOpen, setManageFriendsOpen,
+    activeAnnouncement, setActiveAnnouncement
   } = useLayoutStore();
 
   const [callHistory, setCallHistory] = useState([]);
@@ -29,14 +32,68 @@ export default function UserLayout() {
   const [callDuration, setCallDuration] = useState(0);
   const callTimerRef = useState(null);
 
-  const { socket, selectedChat } = useChatStore();
+  const { socket, selectedChat, chats, setSelectedChat, accessChat } = useChatStore();
   const { notifications, clearAll, removeNotification, markAllRead } = useNotificationStore();
+
+  const handleNotificationClick = (notif) => {
+    // 1. Close drawer
+    setNotificationsOpen(false);
+
+    // 3. Action based on type
+    if (notif.type === 'message' && notif.chatId) {
+      const chat = chats.find((c) => c._id === notif.chatId);
+      if (chat) {
+        setSelectedChat(chat);
+      } else if (notif.from) {
+        accessChat(notif.from);
+      }
+      navigate('/');
+    } else if (notif.type === 'friendRequest' || notif.type === 'friendAccepted') {
+      setManageFriendsOpen(true);
+    } else if (notif.type === 'system') {
+      setActiveAnnouncement({
+        title: notif.title,
+        body: notif.body,
+        createdAt: notif.createdAt || new Date().toISOString()
+      });
+    }
+  };
 
   useEffect(() => {
     if (isNotificationsOpen) {
       markAllRead();
     }
   }, [isNotificationsOpen, markAllRead]);
+
+  // Fetch active system announcements/broadcasts on mount
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      try {
+        const res = await axiosInstance.get('/users/notifications/broadcasts');
+        const { addHistoricalNotifications, cleanupExpired } = useNotificationStore.getState();
+        
+        // 1. Run 24h cleanup on mount
+        cleanupExpired();
+
+        // 2. Add historical announcements to store
+        if (Array.isArray(res.data)) {
+          addHistoricalNotifications(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch system announcements:", err);
+      }
+    };
+
+    fetchAnnouncements();
+
+    // Run 24h cleanup every 5 minutes
+    const interval = setInterval(() => {
+      const { cleanupExpired } = useNotificationStore.getState();
+      cleanupExpired();
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // WebRTC Audio Connection Setup
   const pcRef = useRef(null);
@@ -514,7 +571,8 @@ export default function UserLayout() {
                   return (
                     <div 
                       key={notif.id}
-                      className={`p-3.5 rounded-xl border flex gap-3 transition-colors ${
+                      onClick={() => handleNotificationClick(notif)}
+                      className={`p-3.5 rounded-xl border flex gap-3 transition-colors cursor-pointer ${
                         isSystem 
                           ? 'bg-red-500/5 border-red-500/20 hover:bg-red-500/10' 
                           : 'bg-surface-container-low border-outline-variant/50 hover:bg-surface-container-high'
@@ -525,8 +583,16 @@ export default function UserLayout() {
                         {notif.avatar ? (
                           <img src={notif.avatar} className="w-9 h-9 rounded-full object-cover border border-outline-variant/30" alt="" />
                         ) : (
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white ${isSystem ? 'bg-red-500' : 'bg-primary'}`}>
-                            {isSystem ? <ShieldAlert size={16} /> : <Bell size={16} />}
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white ${
+                            notif.type === 'system' ? 'bg-red-500' :
+                            notif.type === 'friendRequest' ? 'bg-violet-500' :
+                            notif.type === 'friendAccepted' ? 'bg-green-500' :
+                            notif.type === 'message' ? 'bg-primary' : 'bg-primary'
+                          }`}>
+                            {notif.type === 'system' ? <ShieldAlert size={16} /> :
+                             notif.type === 'friendRequest' ? <UserPlus size={16} /> :
+                             notif.type === 'friendAccepted' ? <UserCheck size={16} /> :
+                             notif.type === 'message' ? <MessageSquare size={16} /> : <Bell size={16} />}
                           </div>
                         )}
                       </div>
@@ -544,7 +610,10 @@ export default function UserLayout() {
 
                       {/* Remove item */}
                       <button 
-                        onClick={() => removeNotification(notif.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeNotification(notif.id);
+                        }}
                         className="p-1 rounded-full text-on-surface-variant/50 hover:text-on-surface-variant hover:bg-surface-container-high transition-all shrink-0 h-fit"
                       >
                         <X size={12} />
@@ -653,6 +722,41 @@ export default function UserLayout() {
             >
               <Phone size={15} /> Accept
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* GLOBAL OVERLAY 8: MANAGE FRIENDS DRAWER */}
+      {isManageFriendsOpen && <ManageFriends />}
+
+      {/* GLOBAL OVERLAY 9: ANNOUNCEMENT DETAIL MODAL */}
+      {activeAnnouncement && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-surface rounded-2xl border border-outline-variant/60 shadow-2xl overflow-hidden p-6 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 pb-4 border-b border-outline-variant/60 mb-4">
+              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Bell size={20} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-black text-on-surface leading-tight truncate">{activeAnnouncement.title}</h3>
+                <span className="text-[10px] text-on-surface-variant/70 font-medium font-sans">
+                  {new Date(activeAnnouncement.createdAt).toLocaleString()}
+                </span>
+              </div>
+            </div>
+            
+            <div className="text-sm text-on-surface-variant leading-relaxed max-h-[40vh] overflow-y-auto pr-2 mb-6 whitespace-pre-wrap break-words">
+              {activeAnnouncement.body}
+            </div>
+
+            <div className="flex justify-end">
+              <button 
+                onClick={() => setActiveAnnouncement(null)}
+                className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-sm transition-colors shadow-md shadow-primary/10 cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
         </div>
       )}

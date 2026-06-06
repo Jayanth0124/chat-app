@@ -13,7 +13,18 @@ const broadcastSchema = new mongoose.Schema({
   message: {
     type: String,
     required: true
+  },
+  isPermanent: {
+    type: Boolean,
+    default: false
+  },
+  expiresAt: {
+    type: Date,
+    default: null
   }
 }, { timestamps: true });
+
+// Auto-delete broadcast documents at their specific expiresAt date
+broadcastSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export default mongoose.model('Broadcast', broadcastSchema);

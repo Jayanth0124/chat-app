@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { axiosInstance } from '../../lib/axios';
 import toast from 'react-hot-toast';
-import { BellRing, Send, Loader2, Clock, Globe, ShieldAlert, Users, History } from 'lucide-react';
+import { BellRing, Send, Loader2, Clock, Globe, ShieldAlert, Users, History, Trash2 } from 'lucide-react';
 
 export default function NotificationCenter() {
   const [audience, setAudience] = useState('All Users');
   const [message, setMessage] = useState('');
+  const [isPermanent, setIsPermanent] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [history, setHistory] = useState([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
@@ -35,7 +36,8 @@ export default function NotificationCenter() {
     try {
       const res = await axiosInstance.post('/admin/notifications/broadcast', {
         audience,
-        message: message.trim()
+        message: message.trim(),
+        isPermanent
       });
       toast.success(res.data.message || "Broadcast announcement dispatched!");
       setMessage('');
@@ -44,6 +46,17 @@ export default function NotificationCenter() {
       toast.error(error.response?.data?.message || "Failed to dispatch broadcast");
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleDeleteBroadcast = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this broadcast? It will be removed from the database.")) return;
+    try {
+      await axiosInstance.delete(`/admin/notifications/broadcast/${id}`);
+      toast.success("Broadcast deleted successfully");
+      fetchHistory();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete broadcast");
     }
   };
 
@@ -79,6 +92,34 @@ export default function NotificationCenter() {
               <option value="Active Users (Last 24h)">Active Users (Last 24h)</option>
               <option value="Moderators Only">Moderators Only</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Notification Expiry</label>
+            <div className="grid grid-cols-2 gap-2 bg-surface-container-low p-1 rounded-xl border border-outline-variant/60">
+              <button
+                type="button"
+                onClick={() => setIsPermanent(false)}
+                className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  !isPermanent 
+                    ? 'bg-primary text-white shadow-sm' 
+                    : 'text-on-surface-variant hover:bg-surface-container-high'
+                }`}
+              >
+                24 Hours Expiry
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsPermanent(true)}
+                className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  isPermanent 
+                    ? 'bg-primary text-white shadow-sm' 
+                    : 'text-on-surface-variant hover:bg-surface-container-high'
+                }`}
+              >
+                Permanent
+              </button>
+            </div>
           </div>
 
           <div>
@@ -150,11 +191,27 @@ export default function NotificationCenter() {
                       {getAudienceIcon(item.audience)}
                       {item.audience}
                     </span>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider ${
+                      item.isPermanent 
+                        ? 'bg-green-500/10 text-green-600 border-green-500/20' 
+                        : 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20'
+                    }`}>
+                      {item.isPermanent ? 'Permanent' : '24h Expiry'}
+                    </span>
                   </div>
-                  <span className="text-[11px] text-on-surface-variant/85 font-medium flex items-center gap-1 shrink-0">
-                    <Clock size={11} />
-                    {new Date(item.createdAt).toLocaleString()}
-                  </span>
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <span className="text-[11px] text-on-surface-variant/85 font-medium flex items-center gap-1">
+                      <Clock size={11} />
+                      {new Date(item.createdAt).toLocaleString()}
+                    </span>
+                    <button 
+                      onClick={() => handleDeleteBroadcast(item._id)}
+                      className="p-1 rounded-md text-red-500 hover:bg-red-500/10 hover:text-red-600 transition-colors cursor-pointer"
+                      title="Delete Broadcast"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
                 
                 <p className="text-sm text-on-surface leading-relaxed font-medium break-words">
