@@ -29,7 +29,7 @@ export default function UserLayout() {
   const [callDuration, setCallDuration] = useState(0);
   const callTimerRef = useState(null);
 
-  const { socket } = useChatStore();
+  const { socket, selectedChat } = useChatStore();
   const { notifications, clearAll, removeNotification, markAllRead } = useNotificationStore();
 
   useEffect(() => {
@@ -393,7 +393,9 @@ export default function UserLayout() {
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
-      <div className="md:hidden flex justify-around items-center bg-surface border-t border-outline-variant/60 px-2 py-1 shrink-0 pb-safe">
+      <div className={`md:hidden flex justify-around items-center bg-surface border-t border-outline-variant/60 px-2 py-1 shrink-0 pb-safe ${
+        location.pathname === '/' && selectedChat ? 'hidden' : 'flex'
+      }`}>
         <button 
           onClick={() => navigate('/')} 
           className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/' ? 'text-primary' : 'text-on-surface-variant/80'}`}
