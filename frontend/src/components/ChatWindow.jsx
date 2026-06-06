@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { ArrowLeft, MoreVertical, CheckCheck, Check, Phone, Play, Pause, FileText, MapPin, Compass, Shield, Users, Search, Image as ImageIcon, Send, Clock, Eye, EyeOff } from 'lucide-react';
 import ChatInput from './ChatInput';
 import TypingIndicator from './shared/TypingIndicator';
@@ -526,19 +527,16 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
   if (isExpired || timeRemaining === 0) return null;
 
   return (
-    <div id={`msg-${message._id}`} className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} w-full ${isFirstInGroup ? 'mt-3' : 'mt-1'}`}>
-      <div 
-        className={`relative max-w-[70%] shadow-sm flex flex-col overflow-hidden ${roundedClasses} ${isOwn ? 'bg-primary text-white font-medium' : 'bg-surface-container-low text-on-surface border border-outline-variant/30'}`}
-        onContextMenu={handleContextMenu}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        {/* Dropdown context menu overlay */}
+    <div id={`msg-${message._id}`} className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} w-full ${isFirstInGroup ? 'mt-3' : 'mt-0.5'}`}>
+      {/* Wrapper to hold context menu without overflow hidden */}
+      <div className={`relative max-w-[85%] md:max-w-[70%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+        
+        {/* Dropdown context menu overlay - outside overflow-hidden */}
         {showMenu && (
           <>
             <div className="fixed inset-0 z-40 bg-transparent" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
             <div className={`absolute z-50 bg-surface border border-outline-variant/60 rounded-2xl shadow-xl p-1.5 flex flex-col gap-1 w-32 ${
-              isOwn ? 'right-2 top-2' : 'left-2 top-2'
+              isOwn ? 'right-full mr-2 top-0' : 'left-full ml-2 top-0'
             }`}>
               <button
                 type="button"
@@ -583,6 +581,13 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
           </>
         )}
 
+        <div 
+          className={`relative w-full shadow-sm flex flex-col overflow-hidden ${roundedClasses} ${isOwn ? 'bg-primary text-white font-medium' : 'bg-surface-container-low text-on-surface border border-outline-variant/30'}`}
+          onContextMenu={handleContextMenu}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+
         {/* Reply Indicator if message is replying to another message */}
         {message.replyTo && (
           <div 
@@ -615,7 +620,7 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
         )}
         
         {/* Content */}
-        <div className="relative px-4 py-3 flex flex-col justify-between">
+        <div className="relative px-3.5 pt-2 pb-1.5 flex flex-col justify-between">
           
           {message?.isViewOnce && !message?.isViewed ? (
             <div className="flex flex-col min-w-[200px]">
@@ -782,6 +787,7 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
           )}
         </div>
       </div>
+      </div>
     </div>
   );
 }
@@ -801,7 +807,7 @@ function ReportModal({ message, onClose, onSubmit }) {
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-surface border border-outline-variant/60 rounded-3xl max-w-md w-full shadow-2xl p-6 relative flex flex-col gap-4 animate-in scale-in-95 duration-150 text-on-surface">
         <h3 className="text-lg font-black tracking-tight text-on-surface">Report Message</h3>
@@ -860,6 +866,7 @@ function ReportModal({ message, onClose, onSubmit }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

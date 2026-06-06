@@ -123,7 +123,7 @@ export default function ChatList({ activeChat, setActiveChat }) {
 
   return (
     <>
-      <div className={`w-full md:w-[350px] lg:w-[400px] h-full flex flex-col bg-surface border-r border-outline-variant/60 shrink-0 z-10 ${activeChat ? 'hidden md:flex' : 'flex'}`}>
+      <div className={`w-full md:w-[350px] lg:w-[400px] h-full flex flex-col bg-surface border-r border-outline-variant/60 shrink-0 ${activeChat ? 'hidden md:flex' : 'flex'}`}>
         
         {/* Header */}
         <div className="px-6 pt-6 pb-4 flex justify-between items-center select-none">
