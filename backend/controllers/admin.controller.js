@@ -5,6 +5,7 @@ import AuditLog from '../models/AuditLog.js';
 import Report from '../models/Report.js';
 import SecurityLog from '../models/SecurityLog.js';
 import Broadcast from '../models/Broadcast.js';
+import Setting from '../models/Setting.js';
 import { sendPushNotification } from '../utils/webPush.js';
 
 export const getDashboardStats = async (req, res) => {
@@ -204,6 +205,35 @@ export const blockIP = async (req, res) => {
     res.status(200).json({ message: `IP address ${ip} successfully blocked` });
   } catch (error) {
     console.error("Error in blockIP:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getSettings = async (req, res) => {
+  try {
+    const settings = await Setting.find();
+    const settingsMap = settings.reduce((acc, setting) => {
+      acc[setting.key] = setting.value;
+      return acc;
+    }, {});
+    res.status(200).json(settingsMap);
+  } catch (error) {
+    console.log("Error in getSettings:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const updateSetting = async (req, res) => {
+  try {
+    const { key, value } = req.body;
+    await Setting.findOneAndUpdate(
+      { key },
+      { value },
+      { upsert: true, new: true }
+    );
+    res.status(200).json({ message: "Setting updated successfully" });
+  } catch (error) {
+    console.log("Error in updateSetting:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

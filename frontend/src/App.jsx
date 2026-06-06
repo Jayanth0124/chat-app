@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldAlert } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/useAuthStore';
 import { useChatStore } from './store/useChatStore';
+import { useSettingsStore } from './store/useSettingsStore';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Welcome from './pages/Welcome';
@@ -44,6 +45,57 @@ export default function App() {
 
     return () => clearTimeout(timer);
   }, [checkAuth]);
+
+  const { settings, fetchSettings } = useSettingsStore();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchSettings();
+    }
+  }, [isAuthenticated, fetchSettings]);
+
+  const [isScreenshotBlocked, setIsScreenshotBlocked] = useState(false);
+
+  useEffect(() => {
+    if (settings.screenCapturePrivacy !== true) return;
+
+    const handleKey = (e) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const isScreenshot = 
+        e.key === 'PrintScreen' || 
+        e.code === 'PrintScreen' ||
+        (isMac && e.metaKey && e.shiftKey && ['3', '4', '5'].includes(e.key)) ||
+        (!isMac && e.shiftKey && (e.metaKey || e.ctrlKey || e.key === 'Meta') && (e.key === 's' || e.key === 'S'));
+
+      if (isScreenshot) {
+        setIsScreenshotBlocked(true);
+        
+        // Zero-latency DOM manipulation to beat the OS screen freeze
+        const mask = document.getElementById('zero-latency-mask');
+        if (mask) {
+          mask.style.opacity = '1';
+          mask.style.pointerEvents = 'auto';
+        }
+        
+        // Hide content temporarily without showing any warning message
+        setTimeout(() => {
+          setIsScreenshotBlocked(false);
+          if (mask) {
+            mask.style.opacity = '0';
+            mask.style.pointerEvents = 'none';
+          }
+        }, 3000);
+      }
+    };
+
+    window.addEventListener('keydown', handleKey, { capture: true, passive: false });
+    window.addEventListener('keyup', handleKey, { capture: true, passive: false });
+    
+    return () => {
+      window.removeEventListener('keydown', handleKey, { capture: true });
+      window.removeEventListener('keyup', handleKey, { capture: true });
+    };
+  }, [settings.screenCapturePrivacy]);
 
   useEffect(() => {
     if (user) {
@@ -93,6 +145,18 @@ export default function App() {
 
   return (
     <>
+      {/* Zero Latency DOM Mask to beat OS screenshot freeze */}
+      <div 
+        id="zero-latency-mask" 
+        className="fixed inset-0 z-[10000] bg-black transition-opacity duration-75"
+        style={{ opacity: 0, pointerEvents: 'none' }}
+      ></div>
+
+      {/* React State Privacy Mask for screenshots (No messages or alerts) */}
+      {isScreenshotBlocked && (
+        <div className="fixed inset-0 z-[10000] bg-black"></div>
+      )}
+
       <Routes>
         {/* Welcome Page or Main Workspace */}
         <Route path="/" element={!isAuthenticated ? <Welcome /> : <UserLayout />}>

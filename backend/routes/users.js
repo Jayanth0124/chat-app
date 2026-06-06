@@ -1,6 +1,7 @@
 import express from 'express';
 import { protectRoute } from '../middleware/auth.middleware.js';
 import { getUsersForSidebar, updateProfile, changeUsername, getUserById, getActiveBroadcasts } from '../controllers/user.controller.js';
+import { getSettings } from '../controllers/admin.controller.js';
 import { 
   searchUsers, 
   sendFriendRequest, 
@@ -14,6 +15,7 @@ import {
 
 const router = express.Router();
 
+router.get('/settings', protectRoute, getSettings);
 router.get('/', protectRoute, getUsersForSidebar);
 router.put('/profile', protectRoute, updateProfile);
 router.put('/update-profile', protectRoute, updateProfile);

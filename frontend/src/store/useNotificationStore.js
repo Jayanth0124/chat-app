@@ -13,7 +13,7 @@ const loadSavedNotifications = () => {
       if (n.isPermanent) return true;
       const createdTime = new Date(n.createdAt).getTime();
       return now - createdTime < 24 * 60 * 60 * 1000;
-    });
+    }).map(n => ({ ...n, isHistorical: true }));
   } catch (err) {
     console.error("Failed to load notifications from localStorage:", err);
     return [];
@@ -81,7 +81,8 @@ export const useNotificationStore = create((set, get) => ({
         title: notif.title || `Announcement (${notif.audience})`,
         body: notif.message || notif.body,
         isPermanent: !!notif.isPermanent,
-        createdAt: notif.createdAt
+        createdAt: notif.createdAt,
+        isHistorical: true
       };
       updated.push(newNotif);
       addedAny = true;

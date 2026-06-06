@@ -1,318 +1,66 @@
-Plan 1: Refactor and Upgrade Chat Interface UI + Functionality
+Fix the following issues without changing existing working business logic, authentication flow, messaging flow, friend system, notifications architecture, or backend structure.
 
-Analyze the current chat interface and redesign it into a premium production-ready messaging experience. The current UI has multiple placeholder elements, non-functional buttons, empty states, weak layout hierarchy, and unfinished interactions.
+### Chat & Typing
 
-Goals:
+1. Typing indicator is currently appearing underneath or behind the message input area.
 
-* Improve usability
-* Improve visual hierarchy
-* Improve functionality
-* Remove placeholder behavior
-* Make the interface feel complete and realistic
+* Position it correctly above the message composer.
+* Ensure it remains visible while typing.
+* Prevent overlap with the input toolbar.
 
-Current Issues:
+### Mobile Responsiveness
 
-* Many buttons do nothing
-* Empty white space dominates the screen
-* Chat list feels unfinished
-* Sidebar icons lack purpose
-* No meaningful empty state
-* No clear navigation hierarchy
-* No modern messaging experience
-* Feels like a wireframe instead of a product
+2. Chat window is not responsive on mobile devices.
 
-Required Improvements:
+* Improve mobile layout completely.
+* Prevent UI elements from overlapping.
+* Ensure message bubbles, header, composer, menus, and chat list scale properly.
+* Make the experience feel similar to WhatsApp on mobile.
+* Remove cluttered spacing and improve touch usability.
 
-1. Sidebar Navigation
+### Chat List Menu
 
-Current icons appear disconnected.
+3. The three-dot menu in the chat list should be fully functional.
 
-Give every icon a purpose:
+* Enable all menu actions.
+* Ensure the menu opens correctly on both desktop and mobile.
+* Add proper interaction states and close behavior.
 
-Chats
+### Notifications
 
-* conversation list
+4. Announcement notifications are repeatedly showing every time the app opens.
 
-Calls
+* Only display unread announcements.
+* Once viewed, mark them as read.
+* Do not repeatedly show previously viewed announcements.
 
-* call history page
+### Profile Page
 
-Discover
+5. Simplify the profile UI.
 
-* search users
-* friend suggestions
+* Remove the cover photo section completely.
+* Show only the profile picture (DP).
+* Make the profile picture clickable.
+* Users should be able to view profile pictures in full-screen mode similar to WhatsApp.
+* Add smooth image viewer experience with zoom support.
 
-Friends
+### Screen Capture Protection
 
-* pending requests
-* accepted friends
+6. Improve privacy protection for sensitive screens.
 
-Settings
+* Implement available browser/mobile privacy measures where possible.
+* Blur or hide sensitive content when the page loses focus if appropriate.
+* Add warnings when screen-sharing is detected where supported.
 
-* account settings
+Important:
 
-Profile
+* Do not attempt to "block screenshots" or "force black screens" in browsers, because modern web applications cannot reliably prevent screenshots, screen recording software, browser extensions, operating-system capture tools, or external devices from capturing content.
+* Implement the maximum privacy protections realistically available for web applications without breaking usability.
 
-* user profile
+### General
 
-Logout
-
-* logout confirmation
-
-Add:
-
-* tooltips
-* active states
-* hover states
-* smooth transitions
-
----
-
-2. Chat List Panel
-
-Upgrade conversation list.
-
-Add:
-
-* profile image
-* online indicator
-* last message preview
-* unread count badge
-* timestamp
-* message status preview
-* typing indicator preview
-
-Make list feel alive.
-
----
-
-3. Search Experience
-
-Search should not be a static input.
-
-Create search states:
-
-Default:
-
-* recent searches
-
-Typing:
-
-* user search results
-
-No Results:
-
-* modern empty state
-
-Loading:
-
-* skeleton results
-
----
-
-4. Empty Chat State
-
-Current center section is mostly blank.
-
-Replace with a premium onboarding panel.
-
-Include:
-
-* modern illustration
-* app branding
-* feature highlights
-* recent activity cards
-* quick actions
-
-Example actions:
-
-* Start conversation
-* Search users
-* Add friends
-* Send first snap
-
----
-
-5. Chat Window
-
-When conversation selected:
-
-Show:
-
-Header:
-
-* profile image
-* online status
-* username
-* action buttons
-
-Messages:
-
-* proper bubbles
-* timestamps
-* seen status
-* reactions
-* grouping
-
-Composer:
-
-* emoji button
-* image upload
-* snap button
-* voice placeholder
-* send button
-
-All buttons should have UI interactions.
-
----
-
-6. Functional Buttons
-
-Replace placeholder buttons.
-
-Each button must:
-
-* open modal
-* open drawer
-* navigate
-* show action menu
-
-No dead buttons allowed.
-
-Examples:
-
-New Chat:
-
-* open user search modal
-
-More Menu:
-
-* open dropdown
-
-Profile:
-
-* open profile drawer
-
-Settings:
-
-* navigate to settings page
-
----
-
-7. Friend Request Experience
-
-Add:
-
-Pending Requests Card
-
-Sections:
-
-* Incoming Requests
-* Outgoing Requests
-* Suggestions
-
-Actions:
-
-* Accept
-* Reject
-* Cancel
-
-Use realistic dummy data.
-
----
-
-8. Discover Page
-
-Create modern user discovery screen.
-
-Include:
-
-* trending users
-* suggested friends
-* recently joined
-* mutual friends
-
-Card-based layout.
-
----
-
-9. Profile Drawer
-
-Clicking profile should open side drawer.
-
-Contains:
-
-* profile image
-* display name
-* username
-* bio
-* mutual friends
-* actions
-
----
-
-10. Visual Improvements
-
-Reduce blank space.
-
-Increase:
-
-* content density
-* information hierarchy
-* visual balance
-
-Improve:
-
-* spacing
-* typography
-* alignment
-* card design
-
----
-
-11. Animation Improvements
-
-Add:
-
-* page transitions
-* hover effects
-* chat animations
-* drawer animations
-* modal animations
-
-Subtle and professional.
-
----
-
-12. Responsiveness
-
-Desktop:
-
-* full experience
-
-Tablet:
-
-* collapsible chat list
-
-Mobile:
-
-* WhatsApp-style navigation
-
----
-
-13. Product Feel
-
-The interface should feel like:
-
-* a real messaging product
-* not a UI demo
-* not a wireframe
-* not a template
-
-Every visible component should either:
-
-* provide information
-* perform an action
-* guide the user
-
-Remove all placeholder behavior and create a realistic, interactive frontend experience using mock data and complete UI flows.
+* Keep all existing functionality intact.
+* Do not introduce dummy data.
+* Maintain real-time behavior.
+* Ensure all fixes work on desktop, tablet, mobile, and PWA installations.
+* Improve overall UI polish and responsiveness while preserving current application architecture.

@@ -126,8 +126,8 @@ export default function InAppNotification() {
     setShownIds((prev) => [...prev, id]);
   };
 
-  // Only show the most recent 4 notifications that have not been shown/dismissed as toasts
-  const visible = notifications.filter((notif) => !shownIds.includes(notif.id)).slice(0, 4);
+  // Only show the most recent 4 notifications that have not been shown/dismissed as toasts and are NOT historical
+  const visible = notifications.filter((notif) => !notif.isHistorical && !shownIds.includes(notif.id)).slice(0, 4);
 
   if (visible.length === 0) return null;
 

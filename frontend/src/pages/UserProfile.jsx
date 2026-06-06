@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Calendar, ShieldAlert, UserMinus, MessageSquare, Clock, Globe, UserPlus, UserCheck } from 'lucide-react';
+import { ArrowLeft, Loader2, Calendar, ShieldAlert, UserMinus, MessageSquare, Clock, Globe, UserPlus, UserCheck, X } from 'lucide-react';
 import { axiosInstance } from '../lib/axios';
 import { useFriendStore } from '../store/useFriendStore';
 import { useChatStore } from '../store/useChatStore';
@@ -12,6 +12,7 @@ export default function UserProfile() {
   const [profileUser, setProfileUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isFullscreenDp, setIsFullscreenDp] = useState(false);
 
   const { friends, outgoingRequests, sendRequest, removeFriend, blockUser, getFriends, getRequests } = useFriendStore();
   const { accessChat } = useChatStore();
@@ -137,20 +138,17 @@ export default function UserProfile() {
         {/* Profile Card */}
         <div className="bg-surface-container-lowest rounded-[2.5rem] overflow-hidden border border-outline-variant/60 shadow-sm relative flex flex-col">
           
-          {/* Cover Banner */}
-          <div className="h-44 bg-gradient-to-tr from-primary to-primary-variant relative shrink-0">
-            <div className="absolute inset-0 bg-black/5" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/15 via-transparent to-transparent" />
-          </div>
-
-          {/* Details & Avatar Overlay Container */}
-          <div className="px-8 pb-8 relative flex flex-col -mt-14 items-start">
+          {/* Details & Avatar Container (No Cover) */}
+          <div className="px-8 pb-8 relative flex flex-col pt-8 items-start">
             
             {/* Avatar Row */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between w-full gap-4 mb-6">
               <div className="relative shrink-0 group">
                 <div className="absolute -inset-0.5 bg-gradient-to-tr from-primary to-primary-variant rounded-full blur opacity-20 group-hover:opacity-40 transition duration-300" />
-                <div className="relative p-1.5 bg-surface-container-lowest rounded-full shadow-md border border-outline-variant/25">
+                <div 
+                  className="relative p-1.5 bg-surface-container-lowest rounded-full shadow-md border border-outline-variant/25 cursor-pointer hover:scale-105 transition-transform"
+                  onClick={() => setIsFullscreenDp(true)}
+                >
                   <img 
                     src={profileUser.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileUser.displayName)}&background=random`} 
                     alt={profileUser.displayName} 
@@ -275,10 +273,30 @@ export default function UserProfile() {
                 <span>Role: {profileUser.role === 'admin' ? 'Admin' : 'Orbit Member'}</span>
               </div>
             </div>
-
           </div>
         </div>
       </div>
+
+      {/* Fullscreen DP Viewer */}
+      {isFullscreenDp && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setIsFullscreenDp(false)}
+        >
+          <button 
+            className="absolute top-6 right-6 text-white/70 hover:text-white p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+            onClick={() => setIsFullscreenDp(false)}
+          >
+            <X size={24} />
+          </button>
+          <img 
+            src={profileUser.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileUser.displayName)}&background=random`} 
+            alt={profileUser.displayName}
+            className="max-w-full max-h-[90vh] object-contain select-none animate-in zoom-in-95 duration-300 shadow-2xl rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

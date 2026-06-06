@@ -253,12 +253,12 @@ export default function ChatWindow({ onBack }) {
           </div>
         </div>
         
-        <div className="flex items-center gap-5 text-on-surface-variant">
+        <div className="flex items-center gap-2 md:gap-5 text-on-surface-variant">
           {/* Custom Vanish Mode Dropdown */}
           <div className="relative shrink-0">
             <button
               onClick={() => setShowVanishDropdown(!showVanishDropdown)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-sm cursor-pointer ${
+              className={`flex items-center gap-2 px-2 md:px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-sm cursor-pointer ${
                 selectedChat.vanishMode && selectedChat.vanishMode !== 'OFF'
                   ? 'bg-primary/10 border-primary/30 text-primary hover:bg-primary/20'
                   : 'bg-surface-container-low border-outline-variant/60 hover:bg-surface-container-high text-on-surface-variant'
@@ -266,7 +266,7 @@ export default function ChatWindow({ onBack }) {
               title="Vanish Mode Settings"
             >
               <Clock size={14} />
-              <span>
+              <span className="hidden sm:inline">
                 Vanish: {selectedChat.vanishMode === 'OFF' || !selectedChat.vanishMode ? 'Off' : selectedChat.vanishMode}
               </span>
             </button>
@@ -398,13 +398,20 @@ export default function ChatWindow({ onBack }) {
             />
           );
         })}
-        {isTyping && (
-          <div className="mt-2 self-start bg-surface-container-low px-4 py-2 rounded-lg border border-outline-variant/30">
-            <TypingIndicator />
-          </div>
-        )}
         <div ref={messagesEndRef} className="h-4" />
       </div>
+
+      {/* Typing Indicator (Fixed above composer) */}
+      {isTyping && (
+        <div className={`px-[5%] py-2 flex items-center shrink-0 border-t border-outline-variant/10 backdrop-blur-sm ${activeVanishMode ? 'bg-black/80' : 'bg-surface/80'}`}>
+          <div className="bg-surface-container px-4 py-2 rounded-2xl border border-outline-variant/30 shadow-sm">
+            <TypingIndicator />
+          </div>
+          <span className="text-xs ml-3 font-medium text-on-surface-variant animate-pulse">
+            {otherParticipant?.displayName || 'Someone'} is typing...
+          </span>
+        </div>
+      )}
 
       {/* Chat Input Area */}
       <ChatInput 

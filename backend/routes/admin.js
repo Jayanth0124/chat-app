@@ -12,7 +12,9 @@ import {
   blockIP,
   sendBroadcast,
   getBroadcasts,
-  deleteBroadcast
+  deleteBroadcast,
+  getSettings,
+  updateSetting
 } from '../controllers/admin.controller.js';
 
 const router = express.Router();
@@ -32,5 +34,7 @@ router.post('/security/block-ip', blockIP);
 router.post('/notifications/broadcast', sendBroadcast);
 router.get('/notifications/broadcast', getBroadcasts);
 router.delete('/notifications/broadcast/:id', deleteBroadcast);
+router.get('/settings', getSettings);
+router.post('/settings', updateSetting);
 
 export default router;

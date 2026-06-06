@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { Loader2, Camera, ArrowLeft } from 'lucide-react';
+import { Loader2, Camera, ArrowLeft, ZoomIn, X } from 'lucide-react';
 import ImageAdjustModal from '../components/modals/ImageAdjustModal';
 
 export default function Profile() {
@@ -14,6 +14,7 @@ export default function Profile() {
   const [username, setUsername] = useState(user?.username || '');
   const [adjustingImage, setAdjustingImage] = useState(null);
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
+  const [isFullscreenDp, setIsFullscreenDp] = useState(false);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -76,13 +77,25 @@ export default function Profile() {
                   alt="Avatar" 
                   className="w-full h-full object-cover" 
                 />
-                <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-xs font-bold transition-opacity cursor-pointer">
-                  <Camera size={18} className="mb-1" />
-                  <span>Change</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                </label>
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
+                  <div className="flex gap-4 w-full h-full justify-center items-center">
+                    <button 
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); setIsFullscreenDp(true); }}
+                      className="flex flex-col items-center hover:text-primary transition-colors cursor-pointer"
+                    >
+                      <ZoomIn size={18} className="mb-1" />
+                      <span>View</span>
+                    </button>
+                    <label className="flex flex-col items-center hover:text-primary transition-colors cursor-pointer relative">
+                      <Camera size={18} className="mb-1" />
+                      <span>Change</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                    </label>
+                  </div>
+                </div>
               </div>
-              <p className="text-xs text-on-surface-variant">Click photo to upload a new avatar</p>
+              <p className="text-xs text-on-surface-variant">Hover to view or upload a new avatar</p>
             </div>
 
             {/* Fields */}
@@ -183,6 +196,27 @@ export default function Profile() {
           )}
         </div>
       </div>
+
+      {/* Fullscreen DP Viewer */}
+      {isFullscreenDp && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setIsFullscreenDp(false)}
+        >
+          <button 
+            className="absolute top-6 right-6 text-white/70 hover:text-white p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+            onClick={() => setIsFullscreenDp(false)}
+          >
+            <X size={24} />
+          </button>
+          <img 
+            src={profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName || 'User')}&background=random`} 
+            alt="Avatar"
+            className="max-w-full max-h-[90vh] object-contain select-none animate-in zoom-in-95 duration-300 shadow-2xl rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       <ImageAdjustModal
         isOpen={isAdjustOpen}

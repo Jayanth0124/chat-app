@@ -1,21 +1,14 @@
 import { useState, useEffect } from 'react';
 import { axiosInstance } from '../../lib/axios';
 import toast from 'react-hot-toast';
-import { 
-  ShieldAlert, 
-  LogIn, 
-  MonitorSmartphone, 
-  Loader2, 
-  Lock, 
-  Unlock, 
-  ShieldCheck, 
-  RefreshCw 
-} from 'lucide-react';
+import { ShieldAlert, LogIn, MonitorSmartphone, Loader2, Lock, Unlock, ShieldCheck, RefreshCw, EyeOff } from 'lucide-react';
+import { useSettingsStore } from '../../store/useSettingsStore';
 
 export default function SecurityCenter() {
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isBlocking, setIsBlocking] = useState(false);
+  const { settings, fetchSettings, updateSettingAdmin } = useSettingsStore();
 
   const fetchLogs = async () => {
     setIsLoading(true);
@@ -31,6 +24,7 @@ export default function SecurityCenter() {
 
   useEffect(() => {
     fetchLogs();
+    fetchSettings();
   }, []);
 
   const handleBlockIP = async (ip) => {
@@ -48,6 +42,16 @@ export default function SecurityCenter() {
       toast.error(error.response?.data?.message || 'Failed to block IP Address');
     } finally {
       setIsBlocking(false);
+    }
+  };
+
+  const handleTogglePrivacy = async () => {
+    try {
+      const newValue = !settings.screenCapturePrivacy;
+      await updateSettingAdmin('screenCapturePrivacy', newValue);
+      toast.success(`Screen Capture Privacy ${newValue ? 'Enabled' : 'Disabled'}`);
+    } catch (error) {
+      toast.error('Failed to update Screen Capture Privacy');
     }
   };
 
@@ -79,6 +83,30 @@ export default function SecurityCenter() {
           title="Refresh Logs"
         >
           <RefreshCw size={16} />
+        </button>
+      </div>
+
+      {/* Global Settings Panel */}
+      <div className="bg-surface border border-outline-variant/60 rounded-2xl p-6 shadow-sm mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-bold text-on-surface flex items-center gap-2 mb-1">
+            <EyeOff size={16} className={settings.screenCapturePrivacy ? "text-primary" : "text-on-surface-variant"} /> Screen Capture Privacy
+          </h3>
+          <p className="text-xs text-on-surface-variant/80">
+            Prevent screenshots and screen recordings globally. Disabling this allows screen captures for testing.
+          </p>
+        </div>
+        <button
+          onClick={handleTogglePrivacy}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer shrink-0 ${
+            settings.screenCapturePrivacy ? 'bg-primary' : 'bg-surface-container-highest border border-outline-variant/50'
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              settings.screenCapturePrivacy ? 'translate-x-6' : 'translate-x-1 shadow-sm'
+            }`}
+          />
         </button>
       </div>
 
