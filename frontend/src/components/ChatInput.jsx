@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Paperclip, Send, Smile, Mic, Camera, X, Check, FileText, MapPin, Image } from 'lucide-react';
 import ImageAdjustModal from './modals/ImageAdjustModal';
+import EmojiPicker from 'emoji-picker-react';
 
 export default function ChatInput({ onSendMessage, socket, selectedChat, replyToMessage, setReplyToMessage }) {
   const [message, setMessage] = useState('');
@@ -137,18 +138,20 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
 
       {/* Emoji Menu Overlay */}
       {showEmojiMenu && (
-        <div className="absolute bottom-20 left-10 bg-surface border border-outline-variant/60 p-3 rounded-2xl shadow-xl z-50 grid grid-cols-5 gap-2 animate-in slide-in-from-bottom-2 duration-150">
-          {['😊', '😂', '❤️', '👍', '🔥', '🎉', '👀', '✨', '🚀', '💯'].map((emoji) => (
-            <button
-              key={emoji}
-              type="button"
-              onClick={() => addEmoji(emoji)}
-              className="w-10 h-10 flex items-center justify-center text-xl hover:bg-surface-container rounded-lg transition-colors cursor-pointer"
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowEmojiMenu(false)} />
+          <div className="absolute bottom-20 left-4 z-50 animate-in slide-in-from-bottom-2 duration-150 shadow-2xl overflow-hidden rounded-2xl border border-outline-variant/60 max-w-[calc(100vw-32px)]">
+            <EmojiPicker 
+              theme="dark" 
+              emojiStyle="native" 
+              onEmojiClick={(emojiData) => addEmoji(emojiData.emoji)}
+              width={350}
+              height={400}
+              searchDisabled={false}
+              skinTonesDisabled
+            />
+          </div>
+        </>
       )}
 
       {/* Attachment Menu Overlay */}

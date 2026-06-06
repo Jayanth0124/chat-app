@@ -470,15 +470,39 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
   const [showMenu, setShowMenu] = useState(false);
   const longPressTimer = useRef(null);
 
-  const handleContextMenu = (e) => {
-    e.preventDefault();
-    setShowMenu(true);
+  const calculateMenuPosition = (x, y) => {
+    const MENU_WIDTH = 144; // w-36
+    const MENU_HEIGHT = isOwn ? 90 : 90; // Approx height for 2 buttons + padding
+    const PADDING = 16;
+    
+    let posX = x;
+    let posY = y;
+    
+    if (x + MENU_WIDTH + PADDING > window.innerWidth) {
+      posX = window.innerWidth - MENU_WIDTH - PADDING;
+    }
+    if (posX < PADDING) posX = PADDING;
+    
+    if (y + MENU_HEIGHT + PADDING > window.innerHeight) {
+      posY = y - MENU_HEIGHT;
+    }
+    
+    setShowMenu({ x: posX, y: posY });
   };
 
-  const handleTouchStart = () => {
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    calculateMenuPosition(e.clientX, e.clientY);
+  };
+
+  const handleTouchStart = (e) => {
+    const touch = e.touches[0];
+    const x = touch.clientX;
+    const y = touch.clientY;
+    
     longPressTimer.current = setTimeout(() => {
-      setShowMenu(true);
-    }, 600);
+      calculateMenuPosition(x, y);
+    }, 500);
   };
 
   const handleTouchEnd = () => {
@@ -534,10 +558,11 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
         {/* Dropdown context menu overlay - outside overflow-hidden */}
         {showMenu && (
           <>
-            <div className="fixed inset-0 z-40 bg-transparent" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
-            <div className={`absolute z-50 bg-surface border border-outline-variant/60 rounded-2xl shadow-xl p-1.5 flex flex-col gap-1 w-32 ${
-              isOwn ? 'right-full mr-2 top-0' : 'left-full ml-2 top-0'
-            }`}>
+            <div className="fixed inset-0 z-[100] bg-black/5" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
+            <div 
+              className="fixed z-[101] bg-surface border border-outline-variant/60 rounded-2xl shadow-2xl p-1.5 flex flex-col gap-1 w-36 animate-in fade-in zoom-in-95 duration-150"
+              style={{ top: showMenu.y, left: showMenu.x }}
+            >
               <button
                 type="button"
                 onClick={(e) => {
@@ -545,7 +570,7 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
                   setReplyToMessage(message);
                   setShowMenu(false);
                 }}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-surface-container text-on-surface text-xs font-bold transition-all text-left w-full cursor-pointer"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container text-on-surface text-sm font-bold transition-all text-left w-full cursor-pointer"
               >
                 Reply
               </button>
@@ -557,7 +582,7 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
                     onReportMessage(message);
                     setShowMenu(false);
                   }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-red-500/10 text-red-600 text-xs font-bold transition-all text-left w-full cursor-pointer"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-500/10 text-red-600 text-sm font-bold transition-all text-left w-full cursor-pointer"
                 >
                   Report
                 </button>
@@ -572,7 +597,7 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
                       deleteMessage(message._id);
                     }
                   }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-red-500/10 text-red-600 text-xs font-bold transition-all text-left w-full cursor-pointer"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-500/10 text-red-600 text-sm font-bold transition-all text-left w-full cursor-pointer"
                 >
                   Delete
                 </button>
