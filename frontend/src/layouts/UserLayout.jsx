@@ -92,8 +92,21 @@ export default function UserLayout() {
       cleanupExpired();
     }, 5 * 60 * 1000);
 
+    fetchCallHistory();
+
     return () => clearInterval(interval);
   }, []);
+
+  const latestMissedCall = callHistory.find(c => c.status === 'missed' && c.caller?._id !== user?._id);
+  const lastViewedCallsAt = localStorage.getItem('orbit_last_viewed_calls');
+  const hasMissedCalls = latestMissedCall && (!lastViewedCallsAt || new Date(latestMissedCall.createdAt) > new Date(lastViewedCallsAt));
+
+  // Update last viewed time when visiting /calls
+  useEffect(() => {
+    if (location.pathname === '/calls') {
+      localStorage.setItem('orbit_last_viewed_calls', new Date().toISOString());
+    }
+  }, [location.pathname]);
 
   // WebRTC Audio Connection Setup
   const pcRef = useRef(null);
