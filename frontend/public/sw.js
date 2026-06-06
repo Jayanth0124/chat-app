@@ -14,7 +14,7 @@ self.addEventListener('push', function(event) {
         data: data.data || {}
       };
 
-      if (isCall && self.Notification.prototype.hasOwnProperty('actions')) {
+      if (isCall) {
         options.actions = [
           { action: 'accept_call', title: '✅ Accept' },
           { action: 'decline_call', title: '❌ Decline' }

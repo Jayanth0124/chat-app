@@ -696,40 +696,51 @@ export default function UserLayout() {
 
 
 
-      {/* GLOBAL OVERLAY 7: INCOMING CALL BANNER */}
+      {/* GLOBAL OVERLAY 7: FULL SCREEN INCOMING CALL */}
       {incomingCall && !activeCall && (
-        <div className="fixed bottom-6 right-6 z-[70] w-[320px] bg-neutral-900 text-white rounded-2xl shadow-2xl border border-white/10 p-4 animate-in slide-in-from-right duration-300">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="relative shrink-0">
-              {incomingCall.callerPic ? (
-                <img src={incomingCall.callerPic} alt={incomingCall.callerName} className="w-12 h-12 rounded-full object-cover" />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">
-                  {incomingCall.callerName?.[0]}
-                </div>
-              )}
-              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-neutral-900 animate-pulse" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-black text-sm">{incomingCall.callerName}</p>
-              <p className="text-xs text-neutral-400">
-                📞 Voice Call incoming...
-              </p>
-            </div>
+        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-between bg-neutral-900/95 backdrop-blur-xl text-white p-12 transition-all duration-300">
+          <div className="text-center mt-12 animate-in slide-in-from-top duration-500">
+            <span className="text-sm tracking-[0.2em] text-neutral-400 font-bold uppercase animate-pulse">
+              Incoming {incomingCall.type === 'video' ? 'Video' : 'Voice'} Call
+            </span>
+            <h3 className="text-4xl font-black mt-4 drop-shadow-lg">{incomingCall.callerName}</h3>
+            <p className="text-base text-neutral-400 mt-2">Orbit Encrypted Connection</p>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={handleRejectCall}
-              className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <PhoneOff size={15} /> Decline
-            </button>
-            <button
-              onClick={handleAcceptCall}
-              className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <Phone size={15} /> Accept
-            </button>
+
+          <div className="relative my-8">
+            {incomingCall.callerPic ? (
+              <img src={incomingCall.callerPic} alt={incomingCall.callerName} className="w-40 h-40 rounded-full object-cover border-4 border-green-500 shadow-[0_0_50px_rgba(34,197,94,0.3)] z-10 relative" />
+            ) : (
+              <div className="w-40 h-40 rounded-full border-4 border-green-500 bg-neutral-800 flex items-center justify-center text-5xl font-black uppercase text-green-500 shadow-[0_0_50px_rgba(34,197,94,0.3)] z-10 relative">
+                {incomingCall.callerName?.[0]}
+              </div>
+            )}
+            
+            {/* Ripple effect */}
+            <div className="absolute inset-0 rounded-full border-4 border-green-500/40 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-green-500/20 animate-[ping_2.5s_cubic-bezier(0,0,0.2,1)_infinite] delay-300"></div>
+          </div>
+
+          <div className="flex gap-12 mb-12 animate-in slide-in-from-bottom duration-500 w-full justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={handleRejectCall}
+                className="w-16 h-16 bg-red-600 hover:bg-red-500 text-white rounded-full flex items-center justify-center shadow-[0_10px_25px_rgba(220,38,38,0.5)] transition-all transform hover:scale-110 active:scale-95 cursor-pointer"
+              >
+                <PhoneOff size={28} />
+              </button>
+              <span className="text-xs font-bold text-neutral-400">Decline</span>
+            </div>
+            
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={handleAcceptCall}
+                className="w-16 h-16 bg-green-500 hover:bg-green-400 text-white rounded-full flex items-center justify-center shadow-[0_10px_25px_rgba(34,197,94,0.5)] transition-all transform hover:scale-110 active:scale-95 animate-bounce cursor-pointer"
+              >
+                <Phone size={28} />
+              </button>
+              <span className="text-xs font-bold text-neutral-400">Accept</span>
+            </div>
           </div>
         </div>
       )}
