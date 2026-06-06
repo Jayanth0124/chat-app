@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Search, UserPlus, UserCheck, Loader2, Users } from 'lucide-react';
 import { useFriendStore } from '../store/useFriendStore';
+import { useNavigate } from 'react-router-dom';
 import { useLayoutStore } from '../store/useLayoutStore';
 
 export default function SearchFriends() {
   const { setSearchFriendsOpen } = useLayoutStore();
+  const navigate = useNavigate();
   const {
     searchResults,
     searchUsers,
@@ -83,7 +85,7 @@ export default function SearchFriends() {
               </div>
               <p className="text-sm font-bold text-on-surface">Find People</p>
               <p className="text-xs text-on-surface-variant/70 mt-1 max-w-[200px] leading-relaxed">
-                Type a username or display name to search the Blink network.
+                Type a username or display name to search the Orbit network.
               </p>
             </div>
           ) : isSearching ? (
@@ -115,17 +117,25 @@ export default function SearchFriends() {
                     key={user._id}
                     className="flex items-center gap-3 p-3 rounded-2xl hover:bg-surface-container-low border border-transparent hover:border-outline-variant/30 transition-all"
                   >
-                    <img
-                      src={
-                        user.profilePic ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random`
-                      }
-                      alt={user.username}
-                      className="w-10 h-10 rounded-full object-cover shadow-sm shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-bold text-on-surface truncate">{user.displayName}</p>
-                      <p className="text-[11px] text-on-surface-variant font-medium">@{user.username}</p>
+                    <div 
+                      onClick={() => {
+                        setSearchFriendsOpen(false);
+                        navigate(`/user-profile/${user._id}`);
+                      }}
+                      className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+                    >
+                      <img
+                        src={
+                          user.profilePic ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random`
+                        }
+                        alt={user.username}
+                        className="w-10 h-10 rounded-full object-cover shadow-sm shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-bold text-on-surface truncate">{user.displayName}</p>
+                        <p className="text-[11px] text-on-surface-variant font-medium">@{user.username}</p>
+                      </div>
                     </div>
                     {alreadyFriend ? (
                       <span className="text-[10px] font-bold text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full">

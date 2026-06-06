@@ -249,19 +249,19 @@ export const useChatStore = create((set, get) => ({
       }));
 
       // Store incoming call in layout store via event — App.jsx listens
-      window.dispatchEvent(new CustomEvent('blink:incomingCall', { detail: callData }));
+      window.dispatchEvent(new CustomEvent('orbit:incomingCall', { detail: callData }));
     });
 
     socket.on('call:answered', ({ callId }) => {
-      window.dispatchEvent(new CustomEvent('blink:callAnswered', { detail: { callId } }));
+      window.dispatchEvent(new CustomEvent('orbit:callAnswered', { detail: { callId } }));
     });
 
     socket.on('call:rejected', ({ callId }) => {
-      window.dispatchEvent(new CustomEvent('blink:callRejected', { detail: { callId } }));
+      window.dispatchEvent(new CustomEvent('orbit:callRejected', { detail: { callId } }));
     });
 
     socket.on('call:ended', ({ callId, duration }) => {
-      window.dispatchEvent(new CustomEvent('blink:callEnded', { detail: { callId, duration } }));
+      window.dispatchEvent(new CustomEvent('orbit:callEnded', { detail: { callId, duration } }));
     });
   },
 

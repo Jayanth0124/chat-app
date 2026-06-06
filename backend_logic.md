@@ -1,8 +1,8 @@
-# BLINK - COMPLETE PRODUCT LOGIC & FUNCTIONAL REQUIREMENTS
+# ORBIT - COMPLETE PRODUCT LOGIC & FUNCTIONAL REQUIREMENTS
 
 ## Product Philosophy
 
-Blink is a friend-based real-time communication platform.
+Orbit is a friend-based real-time communication platform.
 
 Users cannot directly message strangers.
 

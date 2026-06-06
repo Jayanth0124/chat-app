@@ -268,16 +268,16 @@ export default function UserLayout() {
       setIncomingCall(null);
     };
 
-    window.addEventListener('blink:incomingCall', handleIncoming);
-    window.addEventListener('blink:callAnswered', handleAnswered);
-    window.addEventListener('blink:callRejected', handleRejected);
-    window.addEventListener('blink:callEnded', handleEnded);
+    window.addEventListener('orbit:incomingCall', handleIncoming);
+    window.addEventListener('orbit:callAnswered', handleAnswered);
+    window.addEventListener('orbit:callRejected', handleRejected);
+    window.addEventListener('orbit:callEnded', handleEnded);
 
     return () => {
-      window.removeEventListener('blink:incomingCall', handleIncoming);
-      window.removeEventListener('blink:callAnswered', handleAnswered);
-      window.removeEventListener('blink:callRejected', handleRejected);
-      window.removeEventListener('blink:callEnded', handleEnded);
+      window.removeEventListener('orbit:incomingCall', handleIncoming);
+      window.removeEventListener('orbit:callAnswered', handleAnswered);
+      window.removeEventListener('orbit:callRejected', handleRejected);
+      window.removeEventListener('orbit:callEnded', handleEnded);
     };
   }, [activeCall, setActiveCall]);
 
@@ -447,7 +447,7 @@ export default function UserLayout() {
               <LogOut size={24} />
             </div>
             <h3 className="text-lg font-bold mb-2">Sign Out</h3>
-            <p className="text-sm text-on-surface-variant mb-6">Are you sure you want to log out of your Blink session?</p>
+            <p className="text-sm text-on-surface-variant mb-6">Are you sure you want to log out of your Orbit session?</p>
             <div className="flex gap-3">
               <button 
                 onClick={() => setLogoutOpen(false)}
@@ -570,7 +570,7 @@ export default function UserLayout() {
             {activeCall.status === 'connected' && (
               <p className="text-neutral-400 font-mono text-lg mt-1">{formatDuration(callDuration)}</p>
             )}
-            <p className="text-sm text-neutral-500 mt-1">Blink Encrypted Connection</p>
+            <p className="text-sm text-neutral-500 mt-1">Orbit Encrypted Connection</p>
           </div>
 
           {/* Center Avatar */}

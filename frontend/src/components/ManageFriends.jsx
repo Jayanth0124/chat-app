@@ -26,6 +26,7 @@ export default function ManageFriends() {
   const [activeTab, setActiveTab] = useState('friends'); // 'friends' | 'requests'
   const [actionLoading, setActionLoading] = useState(null);
 
+
   useEffect(() => {
     getFriends();
     getRequests();
@@ -145,7 +146,13 @@ export default function ManageFriends() {
                     key={friend._id}
                     className="bg-surface-container-low border border-outline-variant/40 rounded-2xl p-3.5 hover:border-outline-variant/80 transition-colors"
                   >
-                    <div className="flex items-center gap-3 mb-3">
+                    <div 
+                      onClick={() => {
+                        setManageFriendsOpen(false);
+                        navigate(`/user-profile/${friend._id}`);
+                      }}
+                      className="flex items-center gap-3 mb-3 cursor-pointer hover:opacity-80 transition-opacity"
+                    >
                       <img
                         src={
                           friend.profilePic ||

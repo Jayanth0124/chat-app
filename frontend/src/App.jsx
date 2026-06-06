@@ -17,6 +17,7 @@ import Discover from './pages/Discover';
 import Calls from './pages/Calls';
 import Friends from './pages/Friends';
 import Profile from './pages/Profile';
+import UserProfile from './pages/UserProfile';
 import AdminDashboard from './pages/AdminDashboard';
 import UserManagement from './components/admin/UserManagement';
 import Analytics from './components/admin/Analytics';
@@ -99,6 +100,7 @@ export default function App() {
           <Route path="calls" element={<Calls />} />
           <Route path="friends" element={<Friends />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="user-profile/:id" element={<UserProfile />} />
           <Route path="settings" element={<Settings />} />
           <Route path="contacts" element={<Friends />} />
           <Route path="add-friends" element={<Friends />} />

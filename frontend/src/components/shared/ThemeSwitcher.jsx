@@ -11,12 +11,12 @@ const THEMES = [
 
 export default function ThemeSwitcher() {
   const [activeTheme, setActiveTheme] = useState(() => {
-    return localStorage.getItem('blink-theme') || 'light';
+    return localStorage.getItem('orbit-theme') || localStorage.getItem('blink-theme') || 'light';
   });
 
   const handleThemeChange = (themeId) => {
     setActiveTheme(themeId);
-    localStorage.setItem('blink-theme', themeId);
+    localStorage.setItem('orbit-theme', themeId);
     document.documentElement.className = `h-full theme-${themeId}`;
   };
 

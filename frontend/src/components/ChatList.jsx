@@ -16,12 +16,14 @@ export default function ChatList({ activeChat, setActiveChat }) {
   const [isFocused, setIsFocused] = useState(false);
   const [recentSearches, setRecentSearches] = useState(() => {
     try {
-      const saved = localStorage.getItem('blink_recent_searches');
-      return saved ? JSON.parse(saved) : ['admin0124'];
+      const saved = localStorage.getItem('orbit_recent_searches') || localStorage.getItem('blink_recent_searches');
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return ['admin0124'];
+      return [];
     }
   });
+
+
 
   const [showUsersModal, setShowUsersModal] = useState(false);
   const navigate = useNavigate();
@@ -53,12 +55,21 @@ export default function ChatList({ activeChat, setActiveChat }) {
     }, 400);
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      const query = searchQuery.trim();
+      const updated = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5);
+      setRecentSearches(updated);
+      localStorage.setItem('orbit_recent_searches', JSON.stringify(updated));
+    }
+  };
+
   const selectSearchResult = (targetUser) => {
     // Save to recent searches
     const query = targetUser.username;
     const updated = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5);
     setRecentSearches(updated);
-    localStorage.setItem('blink_recent_searches', JSON.stringify(updated));
+    localStorage.setItem('orbit_recent_searches', JSON.stringify(updated));
 
     // Clear search and open conversation
     setSearchQuery('');
@@ -70,7 +81,7 @@ export default function ChatList({ activeChat, setActiveChat }) {
     e.stopPropagation();
     const updated = recentSearches.filter(s => s !== q);
     setRecentSearches(updated);
-    localStorage.setItem('blink_recent_searches', JSON.stringify(updated));
+    localStorage.setItem('orbit_recent_searches', JSON.stringify(updated));
   };
 
   const handleStartChat = (userId) => {
@@ -133,6 +144,7 @@ export default function ChatList({ activeChat, setActiveChat }) {
               value={searchQuery}
               onChange={handleSearchChange}
               onFocus={() => setIsFocused(true)}
+              onKeyDown={handleKeyDown}
               placeholder="Search users or chats..." 
               className="w-full h-full bg-transparent text-[14px] font-semibold text-on-surface placeholder-on-surface-variant/50 outline-none pr-4"
             />
@@ -245,7 +257,15 @@ export default function ChatList({ activeChat, setActiveChat }) {
                         selectedChat?._id === chat._id ? 'bg-primary/10 shadow-sm border border-primary/20' : 'hover:bg-surface-container-low border border-transparent'
                       }`}
                     >
-                      <div className="relative shrink-0">
+                      <div 
+                        onClick={(e) => {
+                          if (!chat.isGroupChat && otherParticipant) {
+                            e.stopPropagation();
+                            navigate(`/user-profile/${otherParticipant._id}`);
+                          }
+                        }}
+                        className="relative shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                      >
                         <img 
                           src={!chat.isGroupChat ? getSenderPic(user, chat.participants) || `https://ui-avatars.com/api/?name=${getSender(user, chat.participants)}` : chat.groupName} 
                           alt="avatar" 
@@ -359,6 +379,7 @@ export default function ChatList({ activeChat, setActiveChat }) {
           </div>
         </div>
       )}
+
     </>
   );
 }

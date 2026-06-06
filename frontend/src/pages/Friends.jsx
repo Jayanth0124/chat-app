@@ -266,7 +266,7 @@ export default function Friends() {
                   <Users className="mx-auto text-primary mb-3" size={32} />
                   <p className="text-sm font-bold">Search for people</p>
                   <p className="text-xs text-on-surface-variant/80 mt-1 max-w-sm mx-auto leading-relaxed px-4">
-                    Type above to search through all users in the Blink messaging network and add them.
+                    Type above to search through all users in the Orbit messaging network and add them.
                   </p>
                 </div>
               ) : isSearching ? (

@@ -14,8 +14,7 @@ export const searchUsers = async (req, res) => {
     const currentUser = await User.findById(loggedInUserId);
     const blockedByMe = currentUser.blockedUsers || [];
 
-    // Search by username or displayName, case-insensitive, excluding blocked/banned relationships
-    const users = await User.find({
+    const searchFilter = {
       _id: { $ne: loggedInUserId, $nin: blockedByMe },
       blockedUsers: { $ne: loggedInUserId },
       status: { $ne: 'banned' },
@@ -23,7 +22,14 @@ export const searchUsers = async (req, res) => {
         { username: { $regex: query, $options: 'i' } },
         { displayName: { $regex: query, $options: 'i' } }
       ]
-    }).select('username displayName profilePic');
+    };
+
+    if (currentUser.role !== 'admin') {
+      searchFilter.role = { $ne: 'admin' };
+    }
+
+    // Search by username or displayName, case-insensitive, excluding blocked/banned/admin relationships
+    const users = await User.find(searchFilter).select('username displayName profilePic');
 
     const queryLower = query.toLowerCase();
     users.sort((a, b) => {

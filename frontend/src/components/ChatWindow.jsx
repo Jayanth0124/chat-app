@@ -116,10 +116,10 @@ export default function ChatWindow({ onBack }) {
           {/* Logo Badge */}
           <div className="flex flex-col items-center gap-4">
             <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20 shadow-md">
-              <span className="text-3xl font-black">B</span>
+              <span className="text-3xl font-black">O</span>
             </div>
             <div>
-              <h2 className="text-3xl font-black text-on-surface tracking-tight">Blink Desktop</h2>
+              <h2 className="text-3xl font-black text-on-surface tracking-tight">Orbit Desktop</h2>
               <p className="text-sm text-on-surface-variant/80 mt-1.5 max-w-sm mx-auto leading-relaxed">
                 Connect securely and privately. Messages synchronize across clients in real-time.
               </p>
@@ -221,8 +221,14 @@ export default function ChatWindow({ onBack }) {
     <div className={`flex flex-col h-full w-full relative z-0 ${activeVanishMode ? 'bg-black text-white' : 'bg-background'}`}>
       {/* Header */}
       <div className="h-[70px] bg-surface flex items-center justify-between px-6 shrink-0 z-10 border-b border-outline-variant/60">
-        <div className="flex items-center gap-4 cursor-pointer w-full">
-          <button onClick={onBack} className="md:hidden p-1 mr-1 text-on-surface-variant hover:text-on-surface">
+        <div 
+          onClick={() => !selectedChat.isGroupChat && otherParticipant && navigate(`/user-profile/${otherParticipant._id}`)}
+          className="flex items-center gap-4 cursor-pointer w-full"
+        >
+          <button 
+            onClick={(e) => { e.stopPropagation(); onBack(); }}
+            className="md:hidden p-1 mr-1 text-on-surface-variant hover:text-on-surface"
+          >
             <ArrowLeft size={24} strokeWidth={2} />
           </button>
           <div className="relative">
@@ -793,7 +799,7 @@ function ReportModal({ message, onClose, onSubmit }) {
       <div className="bg-surface border border-outline-variant/60 rounded-3xl max-w-md w-full shadow-2xl p-6 relative flex flex-col gap-4 animate-in scale-in-95 duration-150 text-on-surface">
         <h3 className="text-lg font-black tracking-tight text-on-surface">Report Message</h3>
         <p className="text-xs text-on-surface-variant/85 leading-relaxed">
-          Help us keep Blink safe. Please select a reason for reporting this message:
+          Help us keep Orbit safe. Please select a reason for reporting this message:
         </p>
 
         {/* Message Preview */}

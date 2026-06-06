@@ -115,7 +115,7 @@ export default function Discover() {
             </div>
             <h3 className="text-base font-black text-on-surface">Discover People</h3>
             <p className="text-sm text-on-surface-variant/70 mt-1.5 max-w-[260px] leading-relaxed">
-              Search by name or username to find and connect with people on Blink.
+              Search by name or username to find and connect with people on Orbit.
             </p>
           </div>
         )}

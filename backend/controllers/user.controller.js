@@ -4,11 +4,17 @@ import cloudinary from '../utils/cloudinary.js';
 export const getUsersForSidebar = async (req, res) => {
   try {
     const loggedInUserId = req.user._id;
-    // Don't fetch the current user and don't fetch banned users
-    const filteredUsers = await User.find({ 
+    const query = { 
       _id: { $ne: loggedInUserId },
       status: { $ne: 'banned' } 
-    }).select("-password");
+    };
+
+    if (req.user.role !== 'admin') {
+      query.role = { $ne: 'admin' };
+    }
+
+    // Don't fetch the current user, banned users, or admins (unless logged-in user is admin)
+    const filteredUsers = await User.find(query).select("-password");
 
     res.status(200).json(filteredUsers);
   } catch (error) {
@@ -90,5 +96,22 @@ export const changeUsername = async (req, res) => {
   } catch (error) {
     console.error("Error in changeUsername:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (req.user.role !== 'admin' && user.role === 'admin') {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error in getUserById:", error.message);
+    res.status(500).json({ error: "Internal server error" });
   }
 };

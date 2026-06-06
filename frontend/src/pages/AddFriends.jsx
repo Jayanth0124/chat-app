@@ -142,7 +142,7 @@ export default function AddFriends() {
                 <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-3">
                   <Search size={24} />
                 </div>
-                <p className="text-sm font-bold text-on-surface">Find people on Blink</p>
+                <p className="text-sm font-bold text-on-surface">Find people on Orbit</p>
                 <p className="text-xs text-on-surface-variant/70 mt-1 max-w-[220px] leading-relaxed">
                   Type a name or username above to search the network.
                 </p>

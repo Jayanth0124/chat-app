@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Paperclip, Send, Smile, Mic, Camera, X, Check, FileText, MapPin, Image } from 'lucide-react';
+import ImageAdjustModal from './modals/ImageAdjustModal';
 
 export default function ChatInput({ onSendMessage, socket, selectedChat, replyToMessage, setReplyToMessage }) {
   const [message, setMessage] = useState('');
@@ -15,6 +16,8 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
   const typingTimeoutRef = useRef(null);
   const secondsIntervalRef = useRef(null);
   const fileInputRef = useRef(null);
+  const [adjustingImage, setAdjustingImage] = useState(null);
+  const [isAdjustOpen, setIsAdjustOpen] = useState(false);
 
   useEffect(() => {
     if (isRecording) {
@@ -84,11 +87,12 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        onSendMessage('', reader.result, 'image', replyToMessage?._id);
-        setReplyToMessage?.(null);
+        setAdjustingImage(reader.result);
+        setIsAdjustOpen(true);
       };
       reader.readAsDataURL(file);
     }
+    e.target.value = null;
     setShowAttachMenu(false);
   };
 
@@ -269,6 +273,17 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
         )}
       </div>
       
+      <ImageAdjustModal
+        isOpen={isAdjustOpen}
+        imageSrc={adjustingImage}
+        onClose={() => setIsAdjustOpen(false)}
+        onConfirm={(adjustedDataUrl) => {
+          onSendMessage('', adjustedDataUrl, 'image', replyToMessage?._id);
+          setReplyToMessage?.(null);
+          setIsAdjustOpen(false);
+        }}
+        aspectMode="original"
+      />
     </div>
   );
 }

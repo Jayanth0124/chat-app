@@ -1,4 +1,4 @@
-# BLINK - Functional Logic & Product Requirements
+# ORBIT - Functional Logic & Product Requirements
 
 ## User Types
 

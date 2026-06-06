@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { Loader2, Camera, ArrowLeft } from 'lucide-react';
+import ImageAdjustModal from '../components/modals/ImageAdjustModal';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -11,16 +12,20 @@ export default function Profile() {
   const [bio, setBio] = useState(user?.bio || '');
   const [profilePic, setProfilePic] = useState(user?.profilePic || '');
   const [username, setUsername] = useState(user?.username || '');
+  const [adjustingImage, setAdjustingImage] = useState(null);
+  const [isAdjustOpen, setIsAdjustOpen] = useState(false);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setProfilePic(reader.result);
+        setAdjustingImage(reader.result);
+        setIsAdjustOpen(true);
       };
       reader.readAsDataURL(file);
     }
+    e.target.value = null;
   };
 
   const handleSaveChanges = async (e) => {
@@ -178,6 +183,17 @@ export default function Profile() {
           )}
         </div>
       </div>
+
+      <ImageAdjustModal
+        isOpen={isAdjustOpen}
+        imageSrc={adjustingImage}
+        onClose={() => setIsAdjustOpen(false)}
+        onConfirm={(adjustedDataUrl) => {
+          setProfilePic(adjustedDataUrl);
+          setIsAdjustOpen(false);
+        }}
+        aspectMode="circle"
+      />
     </div>
   );
 }
