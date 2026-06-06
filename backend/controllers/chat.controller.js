@@ -230,6 +230,15 @@ export const fetchMessages = async (req, res) => {
       expiresAt: { $lte: new Date() }
     });
 
+    // Snapchat/Instagram Vanish Mode logic:
+    // If a viewOnce message has already been 'seen', it should vanish upon chat reload.
+    // We delete it from the DB before fetching, so neither user sees it again.
+    await Message.deleteMany({
+      chat: chatId,
+      isViewOnce: true,
+      status: 'seen'
+    });
+
     const messages = await Message.find({ chat: chatId })
       .populate("sender", "displayName profilePic email")
       .populate("chat")

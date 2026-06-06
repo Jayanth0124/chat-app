@@ -619,40 +619,7 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
         
         {/* Content */}
         <div className="relative px-3.5 pt-2 pb-1.5 flex flex-col justify-between">
-          
-          {message?.isViewOnce && !message?.isViewed ? (
-            <div className="flex flex-col min-w-[200px]">
-              {!isOwn ? (
-                <div className="flex flex-col">
-                  {/* View Once Placeholder */}
-                  <div className="w-full h-[120px] bg-gradient-to-br from-primary/10 to-secondary/10 rounded-2xl mb-3 flex flex-col justify-between p-3 relative overflow-hidden">
-                    <div className="absolute inset-0 backdrop-blur-3xl bg-black/5"></div>
-                    <div className="relative z-10 flex justify-between">
-                      <div className="bg-primary text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                        ⏱️ View Once
-                      </div>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={onViewMessage}
-                    className="flex items-center justify-center gap-2 text-[14px] font-bold text-primary bg-primary/10 py-2.5 rounded-xl hover:bg-primary/20 transition-colors w-full cursor-pointer"
-                  >
-                    👁️ Tap to view Message
-                  </button>
-                </div>
-              ) : (
-                <span className="text-[14px] font-bold italic opacity-85 flex items-center gap-2 py-1">
-                  ⏱️ View Once sent
-                </span>
-              )}
-            </div>
-          ) : message?.isViewOnce && message?.isViewed ? (
-            <div className="flex items-center gap-2 pr-4 pl-1 py-1">
-              <span className="text-[14px] italic opacity-60 flex items-center gap-2 font-semibold">
-                👁️ View Once opened
-              </span>
-            </div>
-          ) : isVoice ? (
+          {isVoice ? (
             /* Styled voice note note message */
             <div className="flex items-center gap-3 pr-2 min-w-[220px] py-1">
               <button 
@@ -779,6 +746,7 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
                   ⏱️ {timeRemaining}s
                 </span>
               )}
+              {message?.isViewOnce && <span title="Vanish Mode Message">⏱️</span>}
               <span>{time}</span>
               {isOwn && (
                 <span className="inline-block -mb-[1px]">
@@ -806,6 +774,7 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
                   ⏱️ {timeRemaining}s
                 </span>
               )}
+              {message?.isViewOnce && <span title="Vanish Mode Message">⏱️</span>}
               <span>{time}</span>
               {isOwn && (
                 <span className="inline-block -mb-[1px]">
