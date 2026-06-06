@@ -65,7 +65,11 @@ export async function subscribeUserToPush() {
     // 4. Save subscription on backend
     await axiosInstance.post('/users/push/subscribe', { subscription: subscription.toJSON() });
   } catch (error) {
-    console.error('[PUSH] Failed to subscribe user:', error);
+    if (error.name === 'AbortError') {
+      console.warn('[PUSH] Push subscription aborted (likely missing/invalid VAPID keys locally).');
+    } else {
+      console.error('[PUSH] Failed to subscribe user:', error);
+    }
   }
 }
 

@@ -14,7 +14,8 @@ import {
   getBroadcasts,
   deleteBroadcast,
   getSettings,
-  updateSetting
+  updateSetting,
+  getDatabaseUsageStats
 } from '../controllers/admin.controller.js';
 
 const router = express.Router();
@@ -23,6 +24,7 @@ const router = express.Router();
 router.use(protectRoute, requireAdmin);
 
 router.get('/stats', getDashboardStats);
+router.get('/database-stats', getDatabaseUsageStats);
 router.get('/users', getAllUsers);
 router.put('/users/:userId/ban', banUser);
 router.get('/audit-logs', getAuditLogs);

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Chat from '../models/Chat.js';
 import Message from '../models/Message.js';
@@ -359,6 +360,65 @@ export const deleteBroadcast = async (req, res) => {
     res.status(200).json({ message: "Broadcast deleted successfully" });
   } catch (error) {
     console.error("Error in deleteBroadcast:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getDatabaseUsageStats = async (req, res) => {
+  try {
+    const db = mongoose.connection.db;
+    if (!db) {
+      return res.status(503).json({ message: "Database connection not established" });
+    }
+
+    const stats = await db.command({ dbStats: 1 });
+    const collectionsCursor = await db.listCollections().toArray();
+    
+    const collectionStats = await Promise.all(collectionsCursor.map(async (coll) => {
+      try {
+        const collStats = await db.command({ collStats: coll.name });
+        return {
+          name: coll.name,
+          count: collStats.count,
+          size: collStats.size,
+          avgObjSize: collStats.avgObjSize || 0,
+          nindexes: collStats.nindexes,
+          totalIndexSize: collStats.totalIndexSize
+        };
+      } catch (err) {
+        return null;
+      }
+    }));
+
+    const validCollectionStats = collectionStats.filter(c => c !== null);
+
+    const systemHealth = {
+      mongodb: mongoose.connection.readyState === 1 ? 'healthy' : 'error',
+      socketio: req.io ? 'healthy' : 'warning',
+      cloudinary: process.env.CLOUDINARY_API_KEY ? 'healthy' : 'warning',
+      api: 'healthy',
+      activeConnections: req.io ? req.io.engine.clientsCount : 0
+    };
+
+    res.status(200).json({
+      database: {
+        dbName: stats.db,
+        collections: stats.collections,
+        objects: stats.objects,
+        avgObjSize: stats.avgObjSize,
+        dataSize: stats.dataSize,
+        storageSize: stats.storageSize,
+        indexes: stats.indexes,
+        indexSize: stats.indexSize,
+        fsUsedSize: stats.fsUsedSize,
+        fsTotalSize: stats.fsTotalSize,
+      },
+      collections: validCollectionStats,
+      systemHealth,
+      uptime: process.uptime()
+    });
+  } catch (error) {
+    console.error("Error in getDatabaseUsageStats:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

@@ -424,19 +424,18 @@ export default function UserLayout() {
       }
     } catch (e) {
       console.error('Error initiating call back:', e);
-      toast.error('Could not initiate call');
     }
   };
 
   return (
-    <div className="relative h-screen w-full flex flex-col md:flex-row overflow-hidden font-sans bg-background text-on-surface">
+    <div className="relative h-screen w-full flex flex-col md:flex-row overflow-hidden font-sans bg-black text-on-surface">
       {/* Desktop Sidebar (Hidden on mobile) */}
-      <div className="hidden md:block h-full">
+      <div className="hidden md:block h-full relative z-50">
         <UserSidebar />
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 h-full relative flex flex-col overflow-hidden bg-background">
+      <main className="flex-1 h-full relative flex flex-col overflow-hidden bg-transparent">
         <Outlet />
       </main>
 

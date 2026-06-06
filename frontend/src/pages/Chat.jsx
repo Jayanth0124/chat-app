@@ -55,7 +55,7 @@ export default function Chat() {
   }, [activeChat, setSelectedChat]);
 
   return (
-    <div className="flex-1 h-full flex w-full bg-background overflow-hidden">
+    <div className="flex-1 h-full flex w-full bg-transparent overflow-hidden">
       {/* Chat List Sidebar */}
       <ChatList activeChat={activeChat} setActiveChat={setActiveChat} />
 

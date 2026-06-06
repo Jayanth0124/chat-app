@@ -167,7 +167,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
   };
 
   return (
-    <div className="px-6 py-4 bg-background flex flex-col items-center justify-center gap-2 z-10 shrink-0 relative">
+    <div className="px-4 md:px-6 pb-4 md:pb-8 pt-2 bg-transparent flex flex-col items-center justify-center gap-2 z-10 shrink-0 relative pb-safe">
       
       {/* Reply Preview Bar */}
       {replyToMessage && (
@@ -259,7 +259,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
         ) : (
           /* Normal Message Composer Input */
           <form onSubmit={handleSubmit} className="flex-1 relative">
-            <div className="bg-surface-container-low rounded-full border border-outline-variant/60 shadow-sm flex items-center h-[52px] px-2 transition-colors focus-within:border-primary">
+            <div className="glass-pill shadow-xl flex items-center h-[56px] px-2 transition-colors focus-within:ring-2 focus-within:ring-primary/50">
               
               {/* Left Icons inside input */}
               <div className="flex items-center gap-1 pl-1 pr-2 text-on-surface-variant">
@@ -314,7 +314,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
             {message.trim() ? (
               <button 
                 onClick={handleSubmit}
-                className="w-[50px] h-[50px] rounded-full bg-primary hover:bg-primary/90 text-white flex items-center justify-center shadow-md transition-all active:scale-95 cursor-pointer"
+                className="w-[56px] h-[56px] rounded-full bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all active:scale-95 hover:scale-105 cursor-pointer"
               >
                 <Send size={22} strokeWidth={2.5} className="ml-1" />
               </button>
@@ -322,7 +322,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
                 <button 
                   type="button" 
                   onClick={startRecording}
-                  className="w-[46px] h-[46px] rounded-full bg-surface-container border border-outline-variant/60 flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-colors shadow-sm cursor-pointer"
+                  className="w-[56px] h-[56px] rounded-full glass-panel flex items-center justify-center text-on-surface hover:bg-white/10 transition-colors shadow-lg cursor-pointer"
                   title="Voice Note"
                 >
                 <Mic size={22} strokeWidth={2} />

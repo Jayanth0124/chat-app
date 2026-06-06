@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import chatlistBg from '../assets/images/chatlist.jpg';
 import { Search, Loader2, MessageSquarePlus, MoreVertical, Users, Trash2, Clock, Inbox, Bell, Pin, BellOff, Ban, Mail, ChevronDown } from 'lucide-react';
 import { useChatStore } from '../store/useChatStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -63,8 +64,8 @@ function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContext
     <>
       <div 
         {...longPressProps}
-        className={`flex items-center gap-4 px-3 py-3 mb-1 rounded-2xl cursor-pointer transition-all relative group/item ${
-          selectedChat?._id === chat._id ? 'bg-primary/10 shadow-sm border border-primary/20' : 'hover:bg-surface-container-low border border-transparent'
+        className={`flex items-center gap-4 px-3 py-3 rounded-2xl cursor-pointer transition-all duration-300 relative group/item ${
+          selectedChat?._id === chat._id ? 'bg-secondary-container shadow-[0_0_15px_rgba(139,92,246,0.15)] ring-1 ring-primary-container' : 'hover:bg-white/5 border border-transparent'
         }`}
       >
         <div 
@@ -82,7 +83,7 @@ function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContext
             className="w-[46px] h-[46px] rounded-full object-cover shadow-sm" 
           />
           {isOnline && (
-            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-surface rounded-full"></div>
+            <div className="absolute bottom-0 right-0 w-3 h-3 bg-primary rounded-full orbit-online-indicator"></div>
           )}
         </div>
         
@@ -107,7 +108,7 @@ function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContext
               {isPinned && <Pin size={12} className="text-on-surface-variant/70 rotate-45" />}
               {isMuted && <BellOff size={12} className="text-on-surface-variant/70" />}
               {unreadCounts[chat._id] > 0 && (
-                <div className="w-5 h-5 rounded-full bg-primary text-white text-[11px] font-bold flex items-center justify-center shadow-sm ml-1 group-hover/item:opacity-0 transition-opacity">
+                <div className="w-5 h-5 rounded-full bg-primary-container text-white text-[11px] font-bold flex items-center justify-center shadow-[0_0_10px_rgba(139,92,246,0.4)] ml-1 group-hover/item:opacity-0 transition-opacity">
                   {unreadCounts[chat._id]}
                 </div>
               )}
@@ -332,17 +333,25 @@ export default function ChatList({ activeChat, setActiveChat }) {
 
   return (
     <>
-      <div className={`w-full md:w-[350px] lg:w-[400px] h-full flex flex-col bg-surface border-r border-outline-variant/60 shrink-0 ${activeChat ? 'hidden md:flex' : 'flex'}`}>
+      <div 
+        className={`orbit-bg-chatlist w-full md:w-[320px] lg:w-[350px] h-full overflow-hidden flex flex-col shrink-0 bg-cover bg-center bg-no-repeat relative border-r border-outline-variant ${activeChat ? 'hidden md:flex' : 'flex'}`}
+        style={{ backgroundImage: `url(${chatlistBg})` }}
+      >
+        {/* Dark Glass Overlay */}
+        <div className="orbit-dark-overlay absolute inset-0 bg-black/60 backdrop-blur-md z-0" />
         
-        {/* Header */}
-        <div className="px-6 pt-6 pb-4 flex justify-between items-center select-none">
-          <h2 className="text-[24px] font-black tracking-tight text-on-surface">Chats</h2>
-          <div className="flex gap-2 text-on-surface-variant">
-            {/* Mobile-only notifications drawer trigger */}
-            <button 
-              onClick={() => setNotificationsOpen(true)} 
-              className="relative p-2 hover:bg-surface-container-low rounded-full transition-colors cursor-pointer md:hidden" 
-              title="Notifications"
+        {/* Content Container */}
+        <div className="relative z-10 flex flex-col h-full w-full">
+        
+          {/* Header */}
+          <div className="px-6 pt-6 pb-4 flex justify-between items-center select-none">
+            <h2 className="text-[24px] font-black tracking-tight text-white">Chats</h2>
+            <div className="flex gap-2 text-white/80">
+              {/* Mobile-only notifications drawer trigger */}
+              <button 
+                onClick={() => setNotificationsOpen(true)} 
+                className="relative p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer md:hidden" 
+                title="Notifications"
             >
               <Bell size={20} strokeWidth={2} />
               {unreadCount > 0 && (
@@ -378,8 +387,8 @@ export default function ChatList({ activeChat, setActiveChat }) {
         </div>
 
         {/* Search Bar */}
-        <div className="px-5 pb-4">
-          <div className="relative flex items-center bg-surface-container-low rounded-full overflow-hidden transition-colors h-[42px] border border-transparent focus-within:border-primary">
+        <div className="px-4 pb-2 pt-2">
+          <div className="relative flex items-center bg-surface-container-low/80 backdrop-blur-sm rounded-[20px] overflow-hidden transition-colors h-[48px] border border-transparent focus-within:border-primary/50 shadow-inner">
             <div className="pl-4 pr-3 flex items-center justify-center text-on-surface-variant">
               <Search size={16} strokeWidth={2.5} />
             </div>
@@ -480,7 +489,7 @@ export default function ChatList({ activeChat, setActiveChat }) {
           /* Normal Conversations List Mode */
           <>
             {/* Chat List Items */}
-            <div className="flex-1 overflow-y-auto bg-surface p-3 border-t border-outline-variant/60">
+            <div className="flex-1 overflow-y-auto px-3 pb-3 pt-2 space-y-1.5">
               {isChatsLoading ? (
                 <div className="flex items-center justify-center h-20">
                   <Loader2 className="w-6 h-6 animate-spin text-on-surface-variant" />
@@ -508,6 +517,7 @@ export default function ChatList({ activeChat, setActiveChat }) {
             </div>
           </>
         )}
+        </div>
       </div>
 
       {/* New Chat Modal */}
@@ -543,7 +553,7 @@ export default function ChatList({ activeChat, setActiveChat }) {
                 </div>
               ) : (friends || []).length === 0 ? (
                 <div className="text-center text-on-surface-variant py-6 text-sm">
-                  You don't have any friends yet.<br/>Go to Contacts to add some!
+                  You don't have any friends yet.<br />Go to Contacts to add some!
                 </div>
               ) : (
                 (friends || []).map((u) => (
@@ -564,7 +574,6 @@ export default function ChatList({ activeChat, setActiveChat }) {
           </div>
         </div>
       )}
-
     </>
   );
 }

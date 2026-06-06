@@ -2,16 +2,16 @@ import { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
 
 const THEMES = [
-  { id: 'light', name: 'Light Mode', color: '#faf9fe', border: '#0058bc' },
-  { id: 'dark', name: 'Dark Mode', color: '#0f172a', border: '#adc6ff' },
-  { id: 'blue', name: 'Blue Sky', color: '#f0f7ff', border: '#2563eb' },
-  { id: 'umbrellad', name: 'Umbrellad', color: '#fffbff', border: '#c64f00' },
-  { id: 'midnight', name: 'Midnight', color: '#090514', border: '#9F21E3' },
+  { id: 'deep-space', name: 'Deep Space', color: '#030712', border: '#6366F1' },
+  { id: 'nebula', name: 'Nebula Purple', color: '#0F0617', border: '#A855F7' },
+  { id: 'midnight', name: 'Midnight Blue', color: '#020617', border: '#38BDF8' },
+  { id: 'aurora', name: 'Aurora', color: '#041C1C', border: '#14B8A6' },
+  { id: 'black-hole', name: 'Black Hole', color: '#000000', border: '#6D28D9' },
 ];
 
 export default function ThemeSwitcher() {
   const [activeTheme, setActiveTheme] = useState(() => {
-    return localStorage.getItem('orbit-theme') || localStorage.getItem('blink-theme') || 'light';
+    return localStorage.getItem('orbit-theme') || 'deep-space';
   });
 
   const handleThemeChange = (themeId) => {

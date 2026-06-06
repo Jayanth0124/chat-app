@@ -53,10 +53,10 @@ export default function UserSidebar() {
       item.type === 'link' ? (
         <Link
           to={item.to}
-          className={`p-3 rounded-xl transition-all duration-200 ${
+          className={`p-3 rounded-2xl transition-all duration-300 ${
             isActive
-              ? 'text-primary bg-primary/10 font-bold'
-              : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+              ? 'text-white bg-gradient-to-br from-primary to-primary-container shadow-lg shadow-primary/25 font-bold'
+              : 'text-on-surface-variant hover:bg-on-surface/10 hover:text-on-surface'
           }`}
         >
           {item.icon}
@@ -64,7 +64,7 @@ export default function UserSidebar() {
       ) : (
         <button
           onClick={item.onClick}
-          className="relative p-3 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all duration-200 cursor-pointer"
+          className="relative p-3 rounded-2xl text-on-surface-variant hover:bg-on-surface/10 hover:text-on-surface transition-all duration-300 cursor-pointer"
         >
           {item.icon}
           {item.badge && (
@@ -78,12 +78,8 @@ export default function UserSidebar() {
     return (
       <div key={index} className="relative group flex items-center justify-center w-full">
         {inner}
-        {/* Active bar */}
-        {isActive && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-8 bg-primary rounded-r-full" />
-        )}
         {/* Tooltip */}
-        <div className="absolute left-[80px] scale-90 opacity-0 pointer-events-none group-hover:scale-100 group-hover:opacity-100 transition-all duration-200 bg-neutral-900 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-md z-50">
+        <div className="absolute left-[70px] scale-90 opacity-0 pointer-events-none group-hover:scale-100 group-hover:opacity-100 transition-all duration-300 bg-surface-container-low backdrop-blur-md border border-outline-variant text-on-surface text-[12px] font-semibold px-3 py-1.5 rounded-xl whitespace-nowrap shadow-xl z-[100]">
           {item.label}
         </div>
       </div>
@@ -91,7 +87,7 @@ export default function UserSidebar() {
   };
 
   return (
-    <div className="w-[72px] h-full bg-surface border-r border-outline-variant/60 flex flex-col items-center py-6 shrink-0 z-20 shadow-sm justify-between">
+    <div className="w-[80px] h-full bg-surface backdrop-blur-xl border-r border-outline-variant flex flex-col items-center py-8 shrink-0 z-50 shadow-2xl justify-between">
       {/* Top: Branding + Nav */}
       <div className="flex flex-col gap-6 w-full items-center flex-1">
         {/* Logo */}
@@ -100,7 +96,7 @@ export default function UserSidebar() {
         </div>
 
         {/* Nav Items */}
-        <nav className="flex flex-col gap-3 w-full items-center mt-4">
+        <nav className="flex flex-col gap-4 w-full items-center mt-6">
           {navItems.map((item, index) => (
             <SidebarItem key={index} item={item} index={index} />
           ))}
@@ -113,7 +109,7 @@ export default function UserSidebar() {
         <div className="relative group flex items-center justify-center w-full">
           <Link
             to="/profile"
-            className="p-1 rounded-full overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all border border-outline-variant/30"
+            className="p-1 rounded-full overflow-hidden hover:ring-2 hover:ring-primary/60 transition-all border border-outline-variant/50 cursor-pointer"
           >
             <img
               src={
@@ -124,7 +120,7 @@ export default function UserSidebar() {
               className="w-9 h-9 rounded-full object-cover"
             />
           </Link>
-          <div className="absolute left-[80px] scale-90 opacity-0 pointer-events-none group-hover:scale-100 group-hover:opacity-100 transition-all duration-200 bg-neutral-900 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-md z-50">
+          <div className="absolute left-[70px] scale-90 opacity-0 pointer-events-none group-hover:scale-100 group-hover:opacity-100 transition-all duration-300 bg-surface-container-low backdrop-blur-md border border-outline-variant text-on-surface text-[12px] font-semibold px-3 py-1.5 rounded-xl whitespace-nowrap shadow-xl z-[100]">
             My Profile
           </div>
         </div>
@@ -133,11 +129,11 @@ export default function UserSidebar() {
         <div className="relative group flex items-center justify-center w-full">
           <button
             onClick={() => setLogoutOpen(true)}
-            className="p-3 rounded-xl text-on-surface-variant hover:bg-red-500/10 hover:text-red-500 transition-all duration-200 cursor-pointer"
+            className="p-3 rounded-2xl text-on-surface-variant hover:bg-red-500/10 hover:text-red-500 transition-all duration-300 cursor-pointer"
           >
             <LogOut size={22} />
           </button>
-          <div className="absolute left-[80px] scale-90 opacity-0 pointer-events-none group-hover:scale-100 group-hover:opacity-100 transition-all duration-200 bg-neutral-900 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-md z-50">
+          <div className="absolute left-[70px] scale-90 opacity-0 pointer-events-none group-hover:scale-100 group-hover:opacity-100 transition-all duration-300 bg-surface-container-low backdrop-blur-md border border-outline-variant text-on-surface text-[12px] font-semibold px-3 py-1.5 rounded-xl whitespace-nowrap shadow-xl z-[100]">
             Sign Out
           </div>
         </div>

@@ -5,7 +5,7 @@ import App from './App.jsx'
 import './index.css'
 
 // Initialize theme from localStorage
-const savedTheme = localStorage.getItem('orbit-theme') || localStorage.getItem('blink-theme') || 'light';
+const savedTheme = localStorage.getItem('orbit-theme') || 'deep-space';
 document.documentElement.className = `h-full theme-${savedTheme}`;
 
 createRoot(document.getElementById('root')).render(

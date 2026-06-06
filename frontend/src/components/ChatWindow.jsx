@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import chatWindowBg from '../assets/images/chat-window.jpg';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, MoreVertical, CheckCheck, Check, Phone, Play, Pause, FileText, MapPin, Compass, Shield, Users, Search, Image as ImageIcon, Send, Clock, Eye, EyeOff } from 'lucide-react';
 import ChatInput from './ChatInput';
@@ -134,7 +135,11 @@ export default function ChatWindow({ onBack }) {
 
   if (!selectedChat) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-background h-full p-8 relative overflow-hidden select-none">
+      <div 
+        className="orbit-bg-chatwindow flex-1 flex flex-col items-center justify-center h-full p-8 relative overflow-hidden select-none bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${chatWindowBg})` }}
+      >
+        <div className="orbit-dark-overlay absolute inset-0 bg-black/50 backdrop-blur-sm z-0" />
         {/* Subtle Decorative Glows */}
         <div className="absolute top-1/4 left-1/3 w-64 h-64 bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-1/4 right-1/3 w-64 h-64 bg-secondary/5 rounded-full blur-[100px] pointer-events-none" />
@@ -245,9 +250,14 @@ export default function ChatWindow({ onBack }) {
   const activeVanishMode = selectedChat.vanishMode && selectedChat.vanishMode !== 'OFF';
 
   return (
-    <div className={`flex flex-col h-full w-full relative z-0 ${activeVanishMode ? 'bg-black text-white' : 'bg-background'}`}>
+    <div 
+      className={`orbit-bg-chatwindow flex flex-col h-full w-full relative z-0 bg-cover bg-center bg-no-repeat bg-fixed`}
+      style={{ backgroundImage: `url(${chatWindowBg})` }}
+    >
+      <div className={`orbit-dark-overlay absolute inset-0 z-0 ${activeVanishMode ? 'bg-black/90' : 'bg-black/40 backdrop-blur-[2px]'}`} />
+      
       {/* Header */}
-      <div className="h-[70px] bg-surface flex items-center justify-between px-6 shrink-0 z-10 border-b border-outline-variant/60">
+      <div className="h-[76px] bg-surface backdrop-blur-xl flex items-center justify-between px-4 md:px-6 shrink-0 z-10 relative border-b border-outline-variant w-full">
         <div 
           onClick={() => !selectedChat.isGroupChat && otherParticipant && navigate(`/user-profile/${otherParticipant._id}`)}
           className="flex items-center gap-4 cursor-pointer w-full"
@@ -259,9 +269,9 @@ export default function ChatWindow({ onBack }) {
             <ArrowLeft size={24} strokeWidth={2} />
           </button>
           <div className="relative">
-            <img src={chatPic} alt="avatar" className="w-11 h-11 rounded-full object-cover shadow-sm" />
+            <img src={chatPic} alt="avatar" className="w-12 h-12 rounded-full object-cover shadow-md" />
             {isOnline && (
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-surface rounded-full"></div>
+              <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-primary rounded-full orbit-online-indicator"></div>
             )}
           </div>
           <div className="flex flex-col justify-center flex-1 min-w-0">
@@ -336,7 +346,10 @@ export default function ChatWindow({ onBack }) {
             )}
           </div>
           
-          <button onClick={() => triggerCall('voice')} className="p-1 hover:text-on-surface transition-colors cursor-pointer" title="Voice Call">
+          <button className="p-1 hover:text-on-surface transition-colors cursor-pointer md:mr-1 text-on-surface-variant hover:text-white" title="Search in Chat">
+            <Search size={20} strokeWidth={2.5} />
+          </button>
+          <button onClick={() => triggerCall('voice')} className="p-1 hover:text-on-surface transition-colors cursor-pointer text-on-surface-variant hover:text-white" title="Voice Call">
             <Phone size={20} strokeWidth={2.5} />
           </button>
           <div className="relative shrink-0">
@@ -389,7 +402,7 @@ export default function ChatWindow({ onBack }) {
       </div>
 
       {/* Chat Messages Area */}
-      <div className={`flex-1 overflow-y-auto px-[5%] py-4 flex flex-col gap-1 transition-colors ${activeVanishMode ? 'bg-black text-white/90' : 'bg-background'}`}>
+      <div className={`flex-1 overflow-y-auto px-[5%] py-4 flex flex-col gap-2 transition-colors relative z-10 ${activeVanishMode ? 'text-white/90' : ''}`}>
         
         {activeVanishMode && (
           <div className="text-center my-4 opacity-50 text-sm font-semibold">
@@ -653,7 +666,7 @@ function MessageBubble({ isOwn, text, time, status, isFirstInGroup, isLastInGrou
         )}
 
         <div 
-          className={`relative w-full shadow-sm flex flex-col overflow-hidden ${roundedClasses} ${isOwn ? 'bg-primary text-white font-medium' : 'bg-surface-container-low text-on-surface border border-outline-variant/30'}`}
+          className={`relative w-full flex flex-col overflow-hidden ${roundedClasses} ${isOwn ? 'orbit-bubble-outgoing' : 'orbit-bubble-incoming'}`}
           onContextMenu={handleContextMenu}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}

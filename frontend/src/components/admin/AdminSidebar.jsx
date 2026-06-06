@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, MessageSquare, AlertCircle, Shield, Activity, Bell, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, MessageSquare, AlertCircle, Shield, Activity, Bell, LogOut, Database } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 
@@ -32,6 +32,7 @@ export default function AdminSidebar() {
           <NavItem to="/admin/moderation" icon={<MessageSquare size={18} strokeWidth={2.5} />} label="Moderation" />
           
           <p className="hidden lg:block text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-2 ml-2 mt-6">System</p>
+          <NavItem to="/admin/database" icon={<Database size={18} strokeWidth={2.5} />} label="Database Usage" />
           <NavItem to="/admin/security" icon={<Shield size={18} strokeWidth={2.5} />} label="Security" />
           <NavItem to="/admin/notifications" icon={<Bell size={18} strokeWidth={2.5} />} label="Notifications" />
         </nav>

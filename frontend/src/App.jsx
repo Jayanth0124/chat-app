@@ -27,6 +27,7 @@ import ReportsCenter from './components/admin/ReportsCenter';
 import SecurityCenter from './components/admin/SecurityCenter';
 import NotificationCenter from './components/admin/NotificationCenter';
 import ChatModeration from './components/admin/ChatModeration';
+import DatabaseUsage from './pages/admin/DatabaseUsage';
 import InAppNotification from './components/InAppNotification';
 import { subscribeUserToPush, unsubscribeUserFromPush } from './lib/pushSubscription';
 
@@ -235,6 +236,7 @@ export default function App() {
             <Route path="security" element={<SecurityCenter />} />
             <Route path="notifications" element={<NotificationCenter />} />
             <Route path="moderation" element={<ChatModeration />} />
+            <Route path="database" element={<DatabaseUsage />} />
           </Route>
         )}
 

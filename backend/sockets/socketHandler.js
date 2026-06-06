@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Message from '../models/Message.js';
 import Call from '../models/Call.js';
@@ -176,5 +177,74 @@ export const handleSockets = (io) => {
         console.error('Error in disconnect socket handler:', error);
       }
     });
+
+    // ─── ADMIN MONITORING ────────────────────────────────────
+    socket.on('admin:monitor:join', () => {
+      socket.join('admin_monitor');
+    });
+
+    socket.on('admin:monitor:leave', () => {
+      socket.leave('admin_monitor');
+    });
   });
+
+  // Admin Telemetry Loop
+  setInterval(async () => {
+    try {
+      const monitorRoom = io.sockets.adapter.rooms.get('admin_monitor');
+      if (monitorRoom && monitorRoom.size > 0) {
+        const db = mongoose.connection.db;
+        if (!db) return;
+        
+        const stats = await db.command({ dbStats: 1 });
+        const collectionsCursor = await db.listCollections().toArray();
+        
+        const collectionStats = await Promise.all(collectionsCursor.map(async (coll) => {
+          try {
+            const collStats = await db.command({ collStats: coll.name });
+            return {
+              name: coll.name,
+              count: collStats.count,
+              size: collStats.size,
+              avgObjSize: collStats.avgObjSize || 0,
+              nindexes: collStats.nindexes,
+              totalIndexSize: collStats.totalIndexSize
+            };
+          } catch (err) {
+            return null;
+          }
+        }));
+
+        const systemHealth = {
+          mongodb: mongoose.connection.readyState === 1 ? 'healthy' : 'error',
+          socketio: io ? 'healthy' : 'warning',
+          cloudinary: process.env.CLOUDINARY_API_KEY ? 'healthy' : 'warning',
+          api: 'healthy',
+          activeConnections: io.engine.clientsCount
+        };
+
+        const payload = {
+          database: {
+            dbName: stats.db,
+            collections: stats.collections,
+            objects: stats.objects,
+            avgObjSize: stats.avgObjSize,
+            dataSize: stats.dataSize,
+            storageSize: stats.storageSize,
+            indexes: stats.indexes,
+            indexSize: stats.indexSize,
+            fsUsedSize: stats.fsUsedSize,
+            fsTotalSize: stats.fsTotalSize,
+          },
+          collections: collectionStats.filter(c => c !== null),
+          systemHealth,
+          uptime: process.uptime()
+        };
+
+        io.to('admin_monitor').emit('admin:db_stats_update', payload);
+      }
+    } catch (e) {
+      console.error('Error in Admin Telemetry Loop:', e);
+    }
+  }, 5000);
 };
