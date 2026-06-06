@@ -54,19 +54,18 @@ self.addEventListener('notificationclick', function(event) {
         }
       }
 
-      const navigateTo = action === 'accept_call' ? '/calls' : targetUrl;
+      const navigateTo = (action === 'accept_call' || action === 'view_call' || !action) ? '/calls' : targetUrl;
+      const finalAction = action || 'view_call';
 
       if (client && 'focus' in client) {
         client.focus();
-        if (action === 'accept_call' || action === 'decline_call') {
-          client.postMessage({ type: 'CALL_ACTION', action, callData: data });
-        }
+        client.postMessage({ type: 'CALL_ACTION', action: finalAction, callData: data });
         return client.navigate(navigateTo);
       } else if (clients.openWindow) {
         return clients.openWindow(navigateTo).then(newClient => {
-          if (newClient && (action === 'accept_call' || action === 'decline_call')) {
+          if (newClient) {
             setTimeout(() => {
-              newClient.postMessage({ type: 'CALL_ACTION', action, callData: data });
+              newClient.postMessage({ type: 'CALL_ACTION', action: finalAction, callData: data });
             }, 3000);
           }
         });

@@ -126,13 +126,16 @@ export default function App() {
           });
           const { socket } = useChatStore.getState();
           if (socket) {
-             socket.emit('call:answer', { to: callData.callerId });
+             socket.emit('call:answer', { to: callData.callerId, callId: callData.callId });
           }
         } else if (action === 'decline_call') {
           const { socket } = useChatStore.getState();
           if (socket) {
-             socket.emit('call:decline', { to: callData.callerId });
+             socket.emit('call:reject', { to: callData.callerId, callId: callData.callId });
           }
+        } else if (action === 'view_call') {
+          // Trigger the incoming call UI
+          window.dispatchEvent(new CustomEvent('orbit:incomingCall', { detail: callData }));
         }
       }
     };
