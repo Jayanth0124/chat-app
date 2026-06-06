@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/useAuthStore';
 import { useChatStore } from './store/useChatStore';
 import { useSettingsStore } from './store/useSettingsStore';
+import { useLayoutStore } from './store/useLayoutStore';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Welcome from './pages/Welcome';
@@ -96,7 +97,6 @@ export default function App() {
       window.removeEventListener('keyup', handleKey, { capture: true });
     };
   }, [settings.screenCapturePrivacy]);
-
   useEffect(() => {
     if (user) {
       connectSocket(user);
@@ -106,6 +106,46 @@ export default function App() {
       unsubscribeUserFromPush();
     }
   }, [user, connectSocket, disconnectSocket]);
+
+  const { setActiveCall } = useLayoutStore();
+
+  useEffect(() => {
+    const handleServiceWorkerMessage = (event) => {
+      if (event.data && event.data.type === 'CALL_ACTION') {
+        const { action, callData } = event.data;
+        if (action === 'accept_call') {
+          setActiveCall({
+             callId: callData.callId,
+             name: callData.callerName,
+             pic: callData.callerPic,
+             type: callData.callType,
+             status: 'connected',
+             receiverId: user?._id,
+             callerId: callData.callerId,
+             direction: 'incoming'
+          });
+          const { socket } = useChatStore.getState();
+          if (socket) {
+             socket.emit('call:answer', { to: callData.callerId });
+          }
+        } else if (action === 'decline_call') {
+          const { socket } = useChatStore.getState();
+          if (socket) {
+             socket.emit('call:decline', { to: callData.callerId });
+          }
+        }
+      }
+    };
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+    }
+    return () => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+      }
+    };
+  }, [setActiveCall, user]);
 
   if (isCheckingAuth || showSplash) {
     return (

@@ -2,13 +2,24 @@ self.addEventListener('push', function(event) {
   if (event.data) {
     try {
       const data = event.data.json();
+      
+      const isCall = data.data && data.data.type === 'incoming_call';
+
       const options = {
         body: data.body || '',
         icon: data.icon || '/logo.png',
         badge: data.badge || '/logo.png',
-        vibrate: [100, 50, 100],
+        vibrate: isCall ? [500, 250, 500, 250, 500, 250, 500, 250] : [100, 50, 100],
+        requireInteraction: isCall,
         data: data.data || {}
       };
+
+      if (isCall && self.Notification.prototype.hasOwnProperty('actions')) {
+        options.actions = [
+          { action: 'accept_call', title: '✅ Accept' },
+          { action: 'decline_call', title: '❌ Decline' }
+        ];
+      }
 
       event.waitUntil(
         self.registration.showNotification(data.title || 'Orbit', options)
@@ -30,17 +41,35 @@ self.addEventListener('push', function(event) {
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
   const targetUrl = event.notification.data?.url || '/';
+  const action = event.action;
+  const data = event.notification.data || {};
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(windowClients) {
+      let client = null;
       for (let i = 0; i < windowClients.length; i++) {
-        const client = windowClients[i];
-        if (client.url.includes(targetUrl) && 'focus' in client) {
-          return client.focus();
+        if (windowClients[i].url.includes(self.registration.scope)) {
+          client = windowClients[i];
+          break;
         }
       }
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
+
+      const navigateTo = action === 'accept_call' ? '/calls' : targetUrl;
+
+      if (client && 'focus' in client) {
+        client.focus();
+        if (action === 'accept_call' || action === 'decline_call') {
+          client.postMessage({ type: 'CALL_ACTION', action, callData: data });
+        }
+        return client.navigate(navigateTo);
+      } else if (clients.openWindow) {
+        return clients.openWindow(navigateTo).then(newClient => {
+          if (newClient && (action === 'accept_call' || action === 'decline_call')) {
+            setTimeout(() => {
+              newClient.postMessage({ type: 'CALL_ACTION', action, callData: data });
+            }, 3000);
+          }
+        });
       }
     })
   );

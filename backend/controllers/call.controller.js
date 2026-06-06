@@ -1,5 +1,6 @@
 import Call from '../models/Call.js';
 import User from '../models/User.js';
+import { sendPushNotification } from '../utils/webPush.js';
 
 // GET /api/calls — fetch call history for the logged-in user
 export const getCallHistory = async (req, res) => {
@@ -39,6 +40,23 @@ export const createCall = async (req, res) => {
 
     await call.populate('caller', 'displayName profilePic username');
     await call.populate('receiver', 'displayName profilePic username');
+
+    // Send Web Push Notification to Receiver
+    const payload = {
+      type: 'incoming_call',
+      title: 'Incoming Voice Call',
+      body: `${call.caller.displayName} is calling you.`,
+      icon: call.caller.profilePic || '/logo.png',
+      data: {
+        type: 'incoming_call',
+        callId: call._id,
+        callerId: call.caller._id,
+        callType: call.type,
+        callerName: call.caller.displayName,
+        callerPic: call.caller.profilePic
+      }
+    };
+    await sendPushNotification(receiverId, payload);
 
     res.status(201).json(call);
   } catch (error) {
