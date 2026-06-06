@@ -534,4 +534,34 @@ export const useChatStore = create((set, get) => ({
       }
     }
   },
+
+  pinChat: async (chatId, pin) => {
+    try {
+      const res = await axiosInstance.post(`/chat/${chatId}/pin`, { pin });
+      import('./useAuthStore').then(({ useAuthStore }) => {
+        const currentUser = useAuthStore.getState().user;
+        useAuthStore.setState({ user: { ...currentUser, pinnedChats: res.data.pinnedChats } });
+      });
+      toast.success(pin ? 'Chat pinned' : 'Chat unpinned');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error pinning chat');
+    }
+  },
+
+  muteChat: async (chatId, durationHours) => {
+    try {
+      const res = await axiosInstance.post(`/chat/${chatId}/mute`, { durationHours });
+      import('./useAuthStore').then(({ useAuthStore }) => {
+        const currentUser = useAuthStore.getState().user;
+        useAuthStore.setState({ user: { ...currentUser, mutedChats: res.data.mutedChats } });
+      });
+      if (durationHours === false) {
+        toast.success('Chat unmuted');
+      } else {
+        toast.success('Notifications muted');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error muting chat');
+    }
+  }
 }));

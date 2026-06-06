@@ -80,6 +80,19 @@ const userSchema = new mongoose.Schema({
   archivedChats: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Chat'
+  }],
+  pinnedChats: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Chat'
+  }],
+  mutedChats: [{
+    chatId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Chat'
+    },
+    mutedUntil: {
+      type: Date // null means muted forever
+    }
   }]
 }, { timestamps: true });
 

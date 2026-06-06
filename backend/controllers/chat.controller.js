@@ -520,3 +520,56 @@ export const markChatAsUnread = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const pinChat = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { pin } = req.body; // boolean
+    const loggedInUserId = req.user._id;
+
+    const user = await User.findById(loggedInUserId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (pin) {
+      if (!user.pinnedChats.includes(chatId)) {
+        user.pinnedChats.push(chatId);
+      }
+    } else {
+      user.pinnedChats = user.pinnedChats.filter(id => id.toString() !== chatId);
+    }
+
+    await user.save();
+    res.status(200).json({ success: true, pinnedChats: user.pinnedChats });
+  } catch (error) {
+    console.error("Error in pinChat:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const muteChat = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { durationHours } = req.body; // 8, 168 (1 week), or null (always)
+    const loggedInUserId = req.user._id;
+
+    const user = await User.findById(loggedInUserId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Remove existing mute for this chat if any
+    user.mutedChats = user.mutedChats.filter(m => m.chatId.toString() !== chatId);
+
+    if (durationHours !== undefined && durationHours !== false) {
+      let mutedUntil = null;
+      if (durationHours !== null) {
+        mutedUntil = new Date(Date.now() + durationHours * 60 * 60 * 1000);
+      }
+      user.mutedChats.push({ chatId, mutedUntil });
+    }
+
+    await user.save();
+    res.status(200).json({ success: true, mutedChats: user.mutedChats });
+  } catch (error) {
+    console.error("Error in muteChat:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

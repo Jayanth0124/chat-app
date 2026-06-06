@@ -1,15 +1,215 @@
 import { useEffect, useState, useRef } from 'react';
-import { Search, Loader2, MessageSquarePlus, MoreVertical, Users, Trash2, Clock, Inbox, Bell } from 'lucide-react';
+import { Search, Loader2, MessageSquarePlus, MoreVertical, Users, Trash2, Clock, Inbox, Bell, Pin, BellOff, Ban, Mail, ChevronDown } from 'lucide-react';
 import { useChatStore } from '../store/useChatStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useFriendStore } from '../store/useFriendStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useNavigate } from 'react-router-dom';
+import { useLongPress } from '../hooks/useLongPress';
+
+function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContextMenu, setActiveContextMenu, getSender, getSenderPic, unreadCounts }) {
+  const navigate = useNavigate();
+  const { deleteChat, pinChat, muteChat, markChatAsUnread } = useChatStore();
+  const { blockUser } = useFriendStore();
+
+  const otherParticipant = !chat.isGroupChat ? chat.participants?.find(p => p._id !== user?._id) : null;
+  const isOnline = otherParticipant?.isOnline || false;
+  
+  const isPinned = user?.pinnedChats?.includes(chat._id);
+  const isMuted = user?.mutedChats?.some(m => m.chatId === chat._id && (m.mutedUntil === null || new Date(m.mutedUntil) > new Date()));
+
+  // Long press for mobile
+  const longPressProps = useLongPress((e) => {
+    setActiveContextMenu({ chatId: chat._id, isMobile: true });
+  }, (e) => {
+    // Normal Click
+    if (!activeContextMenu) {
+      setSelectedChat(chat);
+    }
+  });
+
+  const closeMenu = (e) => {
+    e?.stopPropagation();
+    setActiveContextMenu(null);
+  };
+
+  const handleAction = (action, e) => {
+    e?.stopPropagation();
+    closeMenu();
+    switch (action) {
+      case 'pin': pinChat(chat._id, !isPinned); break;
+      case 'unread': markChatAsUnread(chat._id); break;
+      case 'mute_8h': muteChat(chat._id, 8); break;
+      case 'mute_1w': muteChat(chat._id, 168); break;
+      case 'mute_always': muteChat(chat._id, null); break;
+      case 'unmute': muteChat(chat._id, false); break;
+      case 'block': 
+        if (otherParticipant) {
+          if (window.confirm(`Block ${otherParticipant.displayName}?`)) blockUser(otherParticipant._id); 
+        }
+        break;
+      case 'delete':
+        if (window.confirm("Are you sure you want to delete this conversation?")) deleteChat(chat._id);
+        break;
+      default: break;
+    }
+  };
+
+  const isMenuOpenDesktop = activeContextMenu?.chatId === chat._id && !activeContextMenu?.isMobile;
+  const isMenuOpenMobile = activeContextMenu?.chatId === chat._id && activeContextMenu?.isMobile;
+
+  return (
+    <>
+      <div 
+        {...longPressProps}
+        className={`flex items-center gap-4 px-3 py-3 mb-1 rounded-2xl cursor-pointer transition-all relative group/item ${
+          selectedChat?._id === chat._id ? 'bg-primary/10 shadow-sm border border-primary/20' : 'hover:bg-surface-container-low border border-transparent'
+        }`}
+      >
+        <div 
+          onClick={(e) => {
+            if (!chat.isGroupChat && otherParticipant) {
+              e.stopPropagation();
+              navigate(`/user-profile/${otherParticipant._id}`);
+            }
+          }}
+          className="relative shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+        >
+          <img 
+            src={!chat.isGroupChat ? getSenderPic(user, chat.participants) || `https://ui-avatars.com/api/?name=${getSender(user, chat.participants)}` : chat.groupName} 
+            alt="avatar" 
+            className="w-[46px] h-[46px] rounded-full object-cover shadow-sm" 
+          />
+          {isOnline && (
+            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-surface rounded-full"></div>
+          )}
+        </div>
+        
+        <div className="flex-1 min-w-0 h-full flex flex-col justify-center">
+          <div className="flex justify-between items-center mb-[2px]">
+            <h3 className="font-semibold text-[15px] text-on-surface truncate pr-6">
+              {!chat.isGroupChat ? getSender(user, chat.participants) : chat.groupName}
+            </h3>
+            <span className={`text-[12px] font-medium whitespace-nowrap pl-2 group-hover/item:opacity-0 transition-opacity ${selectedChat?._id === chat._id ? 'text-primary' : 'text-on-surface-variant/80'}`}>
+              {chat.latestMessage ? new Date(chat.latestMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+            </span>
+          </div>
+          
+          <div className="flex justify-between items-center">
+            <div className="flex items-center text-[13px] text-on-surface-variant/80 font-medium truncate pr-2">
+              <span className="truncate">
+                {chat.latestMessage ? chat.latestMessage.content : 'No messages yet...'}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-1 shrink-0">
+              {isPinned && <Pin size={12} className="text-on-surface-variant/70 rotate-45" />}
+              {isMuted && <BellOff size={12} className="text-on-surface-variant/70" />}
+              {unreadCounts[chat._id] > 0 && (
+                <div className="w-5 h-5 rounded-full bg-primary text-white text-[11px] font-bold flex items-center justify-center shadow-sm ml-1 group-hover/item:opacity-0 transition-opacity">
+                  {unreadCounts[chat._id]}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop 3-dot Trigger */}
+        <button
+          onClick={(e) => { e.stopPropagation(); setActiveContextMenu({ chatId: chat._id, isMobile: false }); }}
+          className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 bg-surface-container text-on-surface-variant rounded-full hover:bg-surface-container-high transition-all opacity-0 group-hover/item:opacity-100 shadow-sm cursor-pointer z-10 hidden md:block"
+        >
+          <ChevronDown size={18} />
+        </button>
+
+        {/* Desktop Dropdown */}
+        {isMenuOpenDesktop && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={closeMenu} />
+            <div className="absolute right-4 top-12 w-48 bg-surface border border-outline-variant/60 rounded-xl shadow-xl z-50 p-1.5 animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex flex-col text-[13px] font-medium">
+                <button onClick={(e) => handleAction('pin', e)} className="text-left px-3 py-2 rounded-lg hover:bg-surface-container cursor-pointer transition-colors">
+                  {isPinned ? 'Unpin chat' : 'Pin chat'}
+                </button>
+                {unreadCounts[chat._id] === 0 && (
+                  <button onClick={(e) => handleAction('unread', e)} className="text-left px-3 py-2 rounded-lg hover:bg-surface-container cursor-pointer transition-colors">
+                    Mark as unread
+                  </button>
+                )}
+                {isMuted ? (
+                  <button onClick={(e) => handleAction('unmute', e)} className="text-left px-3 py-2 rounded-lg hover:bg-surface-container cursor-pointer transition-colors">
+                    Unmute notifications
+                  </button>
+                ) : (
+                  <>
+                    <div className="px-3 py-1.5 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mt-1 border-t border-outline-variant/30 pt-2">Mute Notifications</div>
+                    <button onClick={(e) => handleAction('mute_8h', e)} className="text-left px-3 py-2 rounded-lg hover:bg-surface-container cursor-pointer transition-colors">8 hours</button>
+                    <button onClick={(e) => handleAction('mute_1w', e)} className="text-left px-3 py-2 rounded-lg hover:bg-surface-container cursor-pointer transition-colors">1 week</button>
+                    <button onClick={(e) => handleAction('mute_always', e)} className="text-left px-3 py-2 rounded-lg hover:bg-surface-container cursor-pointer transition-colors">Always</button>
+                  </>
+                )}
+                <div className="h-px bg-outline-variant/30 my-1" />
+                <button onClick={(e) => handleAction('block', e)} className="text-left px-3 py-2 rounded-lg hover:bg-surface-container cursor-pointer transition-colors">
+                  Block contact
+                </button>
+                <button onClick={(e) => handleAction('delete', e)} className="text-left px-3 py-2 rounded-lg text-red-500 hover:bg-red-500/10 cursor-pointer transition-colors">
+                  Delete chat
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Mobile Bottom Sheet */}
+      {isMenuOpenMobile && (
+        <>
+          <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={closeMenu} />
+          <div className="fixed bottom-0 left-0 right-0 z-[101] bg-surface rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300 pb-safe">
+            <div className="w-12 h-1.5 bg-outline-variant/50 rounded-full mx-auto my-3" />
+            <div className="flex flex-col pb-4">
+              <button onClick={(e) => handleAction('pin', e)} className="flex items-center gap-4 px-6 py-4 hover:bg-surface-container active:bg-surface-container-high transition-colors text-left text-on-surface font-semibold text-[15px]">
+                <Pin size={20} className="text-on-surface-variant" />
+                {isPinned ? 'Unpin chat' : 'Pin chat'}
+              </button>
+              {unreadCounts[chat._id] === 0 && (
+                <button onClick={(e) => handleAction('unread', e)} className="flex items-center gap-4 px-6 py-4 hover:bg-surface-container active:bg-surface-container-high transition-colors text-left text-on-surface font-semibold text-[15px]">
+                  <Inbox size={20} className="text-on-surface-variant" />
+                  Mark as unread
+                </button>
+              )}
+              {isMuted ? (
+                <button onClick={(e) => handleAction('unmute', e)} className="flex items-center gap-4 px-6 py-4 hover:bg-surface-container active:bg-surface-container-high transition-colors text-left text-on-surface font-semibold text-[15px]">
+                  <Bell size={20} className="text-on-surface-variant" />
+                  Unmute notifications
+                </button>
+              ) : (
+                <button onClick={(e) => handleAction('mute_always', e)} className="flex items-center gap-4 px-6 py-4 hover:bg-surface-container active:bg-surface-container-high transition-colors text-left text-on-surface font-semibold text-[15px]">
+                  <BellOff size={20} className="text-on-surface-variant" />
+                  Mute notifications
+                </button>
+              )}
+              <div className="h-px bg-outline-variant/30 my-2 mx-6" />
+              <button onClick={(e) => handleAction('block', e)} className="flex items-center gap-4 px-6 py-4 hover:bg-surface-container active:bg-surface-container-high transition-colors text-left text-on-surface font-semibold text-[15px]">
+                <Ban size={20} className="text-on-surface-variant" />
+                Block contact
+              </button>
+              <button onClick={(e) => handleAction('delete', e)} className="flex items-center gap-4 px-6 py-4 hover:bg-red-500/10 active:bg-red-500/20 transition-colors text-left text-red-500 font-semibold text-[15px]">
+                <Trash2 size={20} />
+                Delete chat
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
 
 export default function ChatList({ activeChat, setActiveChat }) {
-  const { chats, fetchChats, isChatsLoading, selectedChat, setSelectedChat, accessChat, deleteChat, unreadCounts } = useChatStore();
-  const { searchUsers, searchResults, isSearching, getFriends, friends, isLoading: isFriendsLoading } = useFriendStore();
+  const { chats, fetchChats, isChatsLoading, selectedChat, setSelectedChat, accessChat, deleteChat, pinChat, muteChat, markChatAsUnread, unreadCounts } = useChatStore();
+  const { searchUsers, searchResults, isSearching, getFriends, friends, blockUser, isLoading: isFriendsLoading } = useFriendStore();
   const { user } = useAuthStore();
   const { setNotificationsOpen } = useLayoutStore();
   const { unreadCount } = useNotificationStore();
@@ -31,6 +231,9 @@ export default function ChatList({ activeChat, setActiveChat }) {
 
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [showListMenu, setShowListMenu] = useState(false);
+  
+  // Context Menu State
+  const [activeContextMenu, setActiveContextMenu] = useState(null); // { chatId, isMobile }
   const navigate = useNavigate();
   const typingTimeoutRef = useRef(null);
 
@@ -119,6 +322,12 @@ export default function ChatList({ activeChat, setActiveChat }) {
     }
 
     return true;
+  }).sort((a, b) => {
+    const isAPinned = user?.pinnedChats?.includes(a._id);
+    const isBPinned = user?.pinnedChats?.includes(b._id);
+    if (isAPinned && !isBPinned) return -1;
+    if (!isAPinned && isBPinned) return 1;
+    return 0; // fallback to original sorting (by latestMessage date which is done by useChatStore)
   });
 
   return (
@@ -281,79 +490,20 @@ export default function ChatList({ activeChat, setActiveChat }) {
                   <p className="text-xs text-on-surface-variant/80 font-bold">No active conversations found</p>
                 </div>
               ) : (
-                filteredChats.map((chat) => {
-                  const otherParticipant = !chat.isGroupChat ? chat.participants?.find(p => p._id !== user?._id) : null;
-                  const isOnline = otherParticipant?.isOnline || false;
-                  return (
-                    <div 
-                      key={chat._id}
-                      onClick={() => setSelectedChat(chat)}
-                      className={`flex items-center gap-4 px-3 py-3 mb-1 rounded-2xl cursor-pointer transition-all relative group/item ${
-                        selectedChat?._id === chat._id ? 'bg-primary/10 shadow-sm border border-primary/20' : 'hover:bg-surface-container-low border border-transparent'
-                      }`}
-                    >
-                      <div 
-                        onClick={(e) => {
-                          if (!chat.isGroupChat && otherParticipant) {
-                            e.stopPropagation();
-                            navigate(`/user-profile/${otherParticipant._id}`);
-                          }
-                        }}
-                        className="relative shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
-                      >
-                        <img 
-                          src={!chat.isGroupChat ? getSenderPic(user, chat.participants) || `https://ui-avatars.com/api/?name=${getSender(user, chat.participants)}` : chat.groupName} 
-                          alt="avatar" 
-                          className="w-[46px] h-[46px] rounded-full object-cover shadow-sm" 
-                        />
-                        {/* Dynamic Online Indicator Dot */}
-                        {isOnline && (
-                          <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-surface rounded-full"></div>
-                        )}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0 h-full flex flex-col justify-center">
-                        <div className="flex justify-between items-center mb-[2px]">
-                          <h3 className="font-semibold text-[15px] text-on-surface truncate pr-6">
-                            {!chat.isGroupChat ? getSender(user, chat.participants) : chat.groupName}
-                          </h3>
-                          <span className={`text-[12px] font-medium whitespace-nowrap pl-2 group-hover/item:opacity-0 transition-opacity ${selectedChat?._id === chat._id ? 'text-primary' : 'text-on-surface-variant/80'}`}>
-                            {chat.latestMessage ? new Date(chat.latestMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                          </span>
-                        </div>
-                        
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center text-[13px] text-on-surface-variant/80 font-medium truncate pr-2">
-                            <span className="truncate">
-                              {chat.latestMessage ? chat.latestMessage.content : 'No messages yet...'}
-                            </span>
-                          </div>
-                          
-                          {/* Unread Badge (only show if unreadCount exists and is greater than 0) */}
-                          {unreadCounts[chat._id] > 0 && (
-                            <div className="w-5 h-5 rounded-full bg-primary text-white text-[11px] font-bold flex items-center justify-center shrink-0 shadow-sm group-hover/item:opacity-0 transition-opacity">
-                              {unreadCounts[chat._id]}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Delete Conversation Button (Hover Only) */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (window.confirm("Are you sure you want to delete this entire conversation?")) {
-                            deleteChat(chat._id);
-                          }
-                        }}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-red-500/10 text-red-600 rounded-xl hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover/item:opacity-100 shadow-sm cursor-pointer z-10"
-                        title="Delete Chat"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  );
-                })
+                filteredChats.map((chat) => (
+                  <ChatListItem 
+                    key={chat._id}
+                    chat={chat}
+                    user={user}
+                    selectedChat={selectedChat}
+                    setSelectedChat={setSelectedChat}
+                    activeContextMenu={activeContextMenu}
+                    setActiveContextMenu={setActiveContextMenu}
+                    getSender={getSender}
+                    getSenderPic={getSenderPic}
+                    unreadCounts={unreadCounts}
+                  />
+                ))
               )}
             </div>
           </>
