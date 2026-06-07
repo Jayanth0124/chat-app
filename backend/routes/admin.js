@@ -4,6 +4,7 @@ import {
   getDashboardStats, 
   getAllUsers, 
   banUser, 
+  deleteUser,
   getAuditLogs,
   getReports,
   updateReportStatus,
@@ -27,6 +28,7 @@ router.get('/stats', getDashboardStats);
 router.get('/database-stats', getDatabaseUsageStats);
 router.get('/users', getAllUsers);
 router.put('/users/:userId/ban', banUser);
+router.delete('/users/:userId', deleteUser);
 router.get('/audit-logs', getAuditLogs);
 router.get('/reports', getReports);
 router.put('/reports/:reportId/status', updateReportStatus);

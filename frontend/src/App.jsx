@@ -207,7 +207,11 @@ export default function App() {
 
       <Routes>
         {/* Welcome Page or Main Workspace */}
-        <Route path="/" element={!isAuthenticated ? <Welcome /> : <UserLayout />}>
+        <Route path="/" element={
+          !isAuthenticated ? <Welcome /> : 
+          userRole === 'admin' ? <Navigate to="/admin" replace /> : 
+          <UserLayout />
+        }>
           <Route index element={<Chat />} />
           <Route path="calls" element={<Calls />} />
           <Route path="friends" element={<Friends />} />

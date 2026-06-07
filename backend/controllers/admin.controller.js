@@ -82,6 +82,30 @@ export const banUser = async (req, res) => {
   }
 };
 
+export const deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    await User.findByIdAndDelete(userId);
+
+    // Create Audit Log
+    await AuditLog.create({
+      adminId: req.user._id,
+      action: 'DELETE_USER',
+      targetId: userId,
+      targetModel: 'User',
+      details: `User ${user.username} (Email: ${user.email}) was deleted permanently.`
+    });
+
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.log("Error in deleteUser:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export const getAuditLogs = async (req, res) => {
   try {
     const logs = await AuditLog.find()

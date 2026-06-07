@@ -34,6 +34,17 @@ export default function UserManagement() {
     }
   };
 
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm("Are you sure you want to permanently delete this user? This action cannot be undone.")) return;
+    try {
+      const res = await axiosInstance.delete(`/admin/users/${userId}`);
+      toast.success(res.data.message);
+      fetchUsers();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete user');
+    }
+  };
+
   const filteredUsers = users.filter(user => 
     user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (user.displayName && user.displayName.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -129,16 +140,24 @@ export default function UserManagement() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       {user.role !== 'admin' && (
-                        <button 
-                          onClick={() => handleToggleBan(user._id)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-colors cursor-pointer ${
-                            user.status === 'active' 
-                              ? 'bg-red-100 hover:bg-red-200 text-red-700' 
-                              : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-700'
-                          }`}
-                        >
-                          {user.status === 'active' ? 'Ban' : 'Unban'}
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button 
+                            onClick={() => handleToggleBan(user._id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-colors cursor-pointer ${
+                              user.status === 'active' 
+                                ? 'bg-orange-100 hover:bg-orange-200 text-orange-700' 
+                                : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-700'
+                            }`}
+                          >
+                            {user.status === 'active' ? 'Ban' : 'Unban'}
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteUser(user._id)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-colors cursor-pointer bg-red-100 hover:bg-red-200 text-red-700"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
