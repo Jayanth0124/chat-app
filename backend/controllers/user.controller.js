@@ -185,7 +185,7 @@ export const updatePrivacySettings = async (req, res) => {
     const { readReceipts, onlineStatus } = req.body;
     const userId = req.user._id;
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).populate('friends', '_id');
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -193,11 +193,24 @@ export const updatePrivacySettings = async (req, res) => {
     if (typeof readReceipts === 'boolean') {
       user.privacySettings.readReceipts = readReceipts;
     }
-    if (typeof onlineStatus === 'boolean') {
+    
+    let onlineStatusChanged = false;
+    if (typeof onlineStatus === 'boolean' && user.privacySettings?.onlineStatus !== onlineStatus) {
       user.privacySettings.onlineStatus = onlineStatus;
+      onlineStatusChanged = true;
     }
 
     await user.save();
+
+    if (onlineStatusChanged && req.io && user.friends) {
+      user.friends.forEach((friend) => {
+        req.io.to(friend._id.toString()).emit('friendStatusUpdate', {
+          userId: user._id,
+          isOnline: onlineStatus ? user.isOnline : false,
+          lastSeen: user.lastActive || new Date()
+        });
+      });
+    }
 
     res.status(200).json({ message: "Privacy settings updated successfully", privacySettings: user.privacySettings });
   } catch (error) {

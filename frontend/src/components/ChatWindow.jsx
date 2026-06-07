@@ -573,6 +573,28 @@ export default function ChatWindow({ onBack }) {
   );
 }
 
+const handleDownload = async (e, url, defaultFilename) => {
+  e.preventDefault();
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const blob = await response.blob();
+    if (blob.size === 0 || blob.type.includes('text/html')) throw new Error('Invalid blob data (likely an error page)');
+    
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = defaultFilename || 'download';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (error) {
+    console.error('Download failed, opening in new tab', error);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+};
+
 function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup, isHighlighted, message, onViewMessage, setReplyToMessage, onReportMessage }) {
   const { deleteMessage } = useChatStore();
   const [showMenu, setShowMenu] = useState(false);
@@ -791,17 +813,14 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
                   <span className="text-[10px] text-white/40 uppercase tracking-widest mt-0.5">Document</span>
                 </div>
                 {message?.mediaUrl && (
-                  <a 
-                    href={message.mediaUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    download
-                    className={`ml-1 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                  <button 
+                    onClick={(e) => handleDownload(e, message.mediaUrl, 'document.pdf')}
+                    className={`ml-1 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer ${
                       isOwn ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-white/5 hover:bg-white/10 text-[#0A84FF]'
                     }`}
                   >
                     <Download size={14} />
-                  </a>
+                  </button>
                 )}
               </div>
             </div>
@@ -821,15 +840,12 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
               {message?.mediaUrl ? (
                 <div className="relative rounded-md overflow-hidden border border-white/10 bg-black">
                   <img src={message.mediaUrl} alt="Visual Payload" className="w-full h-auto max-h-[300px] object-cover" />
-                  <a 
-                    href={message.mediaUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    download
+                  <button 
+                    onClick={(e) => handleDownload(e, message.mediaUrl, 'image.jpg')}
                     className="absolute top-2 right-2 w-8 h-8 rounded-md bg-black/60 hover:bg-black/80 border border-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-md cursor-pointer"
                   >
                     <Download size={14} />
-                  </a>
+                  </button>
                 </div>
               ) : (
                 <div className="w-full h-32 rounded-md bg-black/40 border border-white/5 flex items-center justify-center">
@@ -858,6 +874,8 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
                   <span className="text-[#0A84FF] animate-pulse">sending...</span>
                 ) : status === 'sent' ? (
                   <Check size={12} strokeWidth={3} className="text-white/40" />
+                ) : status === 'delivered' ? (
+                  <CheckCheck size={12} strokeWidth={3} className="text-white/40" />
                 ) : (
                   <CheckCheck size={12} strokeWidth={3} className="text-[#0A84FF]" />
                 )}

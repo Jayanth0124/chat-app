@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Chat from '../models/Chat.js';
 import Message from '../models/Message.js';
+import cloudinary, { deleteFromCloudinary } from '../utils/cloudinary.js';
 import AuditLog from '../models/AuditLog.js';
 import Report from '../models/Report.js';
 import SecurityLog from '../models/SecurityLog.js';
@@ -169,6 +170,11 @@ export const deleteMessageByAdmin = async (req, res) => {
     const { messageId } = req.params;
     const message = await Message.findById(messageId);
     if (!message) return res.status(404).json({ message: "Message not found" });
+
+    // Delete media from Cloudinary if it exists
+    if (message.mediaUrl) {
+      await deleteFromCloudinary(message.mediaUrl);
+    }
 
     await Message.findByIdAndDelete(messageId);
 

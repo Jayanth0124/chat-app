@@ -2,7 +2,7 @@ import Chat from '../models/Chat.js';
 import Message from '../models/Message.js';
 import User from '../models/User.js';
 import Report from '../models/Report.js';
-import cloudinary from '../utils/cloudinary.js';
+import cloudinary, { deleteFromCloudinary } from '../utils/cloudinary.js';
 import { sendPushNotification } from '../utils/webPush.js';
 
 export const accessChat = async (req, res) => {
@@ -77,7 +77,13 @@ export const fetchChats = async (req, res) => {
     const loggedInUserId = req.user._id;
 
     // Prune expired messages first
-    await Message.deleteMany({ expiresAt: { $lte: new Date() } });
+    const expiredMessages = await Message.find({ expiresAt: { $lte: new Date() } });
+    if (expiredMessages.length > 0) {
+      for (const msg of expiredMessages) {
+        if (msg.mediaUrl) await deleteFromCloudinary(msg.mediaUrl);
+      }
+      await Message.deleteMany({ _id: { $in: expiredMessages.map(m => m._id) } });
+    }
 
     let results = await Chat.find({ participants: { $elemMatch: { $eq: loggedInUserId } } })
       .populate('participants', '-password')
@@ -232,19 +238,31 @@ export const fetchMessages = async (req, res) => {
     const { chatId } = req.params;
 
     // Prune any expired messages from this chat
-    await Message.deleteMany({
+    const expiredChatMsgs = await Message.find({
       chat: chatId,
       expiresAt: { $lte: new Date() }
     });
+    if (expiredChatMsgs.length > 0) {
+      for (const msg of expiredChatMsgs) {
+        if (msg.mediaUrl) await deleteFromCloudinary(msg.mediaUrl);
+      }
+      await Message.deleteMany({ _id: { $in: expiredChatMsgs.map(m => m._id) } });
+    }
 
     // Snapchat/Instagram Vanish Mode logic:
     // If a viewOnce message has already been 'seen', it should vanish upon chat reload.
     // We delete it from the DB before fetching, so neither user sees it again.
-    await Message.deleteMany({
+    const vanishedMsgs = await Message.find({
       chat: chatId,
       isViewOnce: true,
       status: 'seen'
     });
+    if (vanishedMsgs.length > 0) {
+      for (const msg of vanishedMsgs) {
+        if (msg.mediaUrl) await deleteFromCloudinary(msg.mediaUrl);
+      }
+      await Message.deleteMany({ _id: { $in: vanishedMsgs.map(m => m._id) } });
+    }
 
     let messages = await Message.find({ chat: chatId })
       .populate("sender", "displayName profilePic email privacySettings")
@@ -448,6 +466,14 @@ export const deleteChat = async (req, res) => {
       return res.status(403).json({ message: "You are not authorized to delete this chat" });
     }
 
+    // Clean up all Cloudinary media associated with this chat
+    const messagesWithMedia = await Message.find({ chat: chatId, mediaUrl: { $ne: null } });
+    if (messagesWithMedia.length > 0) {
+      for (const msg of messagesWithMedia) {
+        if (msg.mediaUrl) await deleteFromCloudinary(msg.mediaUrl);
+      }
+    }
+
     await Message.deleteMany({ chat: chatId });
     await Chat.findByIdAndDelete(chatId);
 
@@ -508,6 +534,11 @@ export const deleteMessage = async (req, res) => {
     // Only sender can delete their message
     if (message.sender.toString() !== loggedInUserId.toString()) {
       return res.status(403).json({ message: "You can only delete your own messages." });
+    }
+
+    // Delete media from Cloudinary if it exists
+    if (message.mediaUrl) {
+      await deleteFromCloudinary(message.mediaUrl);
     }
 
     await Message.findByIdAndDelete(messageId);

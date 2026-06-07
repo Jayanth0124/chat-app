@@ -18,7 +18,7 @@ export const useChatStore = create((set, get) => ({
 
   // ─── SOCKET ──────────────────────────────────────────────────────────────
   connectSocket: (user) => {
-    if (!user || get().socket?.connected) return;
+    if (!user || get().socket) return;
 
     const socketUrl = import.meta.env.VITE_API_URL || 
       (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
@@ -53,8 +53,12 @@ export const useChatStore = create((set, get) => ({
       }
 
       if (isCurrentChat) {
-        // Append to current messages view
-        set((state) => ({ messages: [...state.messages, newMessage], chats: updatedChats }));
+        // Prevent duplicate appending
+        set((state) => {
+          const messageExists = state.messages.some(m => m._id === newMessage._id);
+          if (messageExists) return { chats: updatedChats };
+          return { messages: [...state.messages, newMessage], chats: updatedChats };
+        });
         // Mark as seen immediately since user is looking at this chat
         get().markChatAsSeen(chatId);
       } else {
