@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Paperclip, Send, Smile, Mic, Camera, X, Check, FileText, MapPin, Image } from 'lucide-react';
+import { Paperclip, Send, Smile, Mic, Camera, X, Check, FileText, MapPin, Image as ImageIcon, Trash2 } from 'lucide-react';
 import ImageAdjustModal from './modals/ImageAdjustModal';
 import EmojiPicker from 'emoji-picker-react';
 
@@ -36,6 +36,18 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
     };
   }, [isRecording]);
 
+  const handleInputResize = () => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto'; // Reset height
+      const scrollHeight = inputRef.current.scrollHeight;
+      inputRef.current.style.height = Math.min(Math.max(scrollHeight, 44), 120) + 'px';
+    }
+  };
+
+  useEffect(() => {
+    handleInputResize();
+  }, [message]);
+
   const handleTyping = (e) => {
     setMessage(e.target.value);
 
@@ -55,7 +67,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (message.trim()) {
       onSendMessage(message, null, 'text', replyToMessage?._id);
       setMessage('');
@@ -142,7 +154,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
     const file = e.target.files[0];
     if (file) {
       if (file.size > 50 * 1024 * 1024) {
-        toast?.error("File size must be less than 50MB");
+        alert("File size must be less than 50MB");
         e.target.value = null;
         return;
       }
@@ -167,26 +179,34 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
   };
 
   return (
-    <div className="px-4 md:px-6 pb-4 md:pb-8 pt-2 bg-transparent flex flex-col items-center justify-center gap-2 z-10 shrink-0 relative pb-safe">
+    <div className="relative w-full px-4 md:px-6 pb-4 md:pb-8 pt-2 bg-transparent flex flex-col items-center justify-center gap-2 z-20 shrink-0 pb-safe">
       
-      {/* Reply Preview Bar */}
+      {/* Ambient background glow behind composer */}
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none -z-10" />
+
+      {/* Reply Preview Card */}
       {replyToMessage && (
-        <div className="flex w-full items-center justify-between gap-3 max-w-[900px] bg-surface-container border border-outline-variant/60 rounded-2xl px-5 py-3 animate-in slide-in-from-bottom-2 duration-150 mb-1 z-10">
-          <div className="flex flex-col min-w-0">
-            <span className="text-[11px] font-bold text-primary uppercase tracking-wider">
+        <div className="flex w-full items-center justify-between gap-3 max-w-[900px] bg-surface/80 backdrop-blur-xl border border-outline-variant/50 rounded-2xl p-3 shadow-[0_8px_30px_rgba(0,0,0,0.12)] mb-1 animate-in slide-in-from-bottom-2 duration-200">
+          <div className="w-1 rounded-full bg-primary h-full self-stretch shrink-0" />
+          <div className="flex flex-col min-w-0 flex-1 pl-1 py-0.5">
+            <span className="text-[12px] font-bold text-primary tracking-wide">
               Replying to {replyToMessage.sender?.displayName || 'User'}
             </span>
-            <span className="text-xs text-on-surface-variant truncate font-medium mt-0.5">
-              {replyToMessage.messageType === 'image' ? '📷 Image' : replyToMessage.content}
+            <span className="text-[13px] text-on-surface-variant truncate font-medium mt-0.5 opacity-90">
+              {replyToMessage.messageType === 'image' ? '📷 Photo' : 
+               replyToMessage.messageType === 'video' ? '🎥 Video' : 
+               replyToMessage.messageType === 'document' ? '📄 Document' : 
+               replyToMessage.messageType === 'audio' ? '🎤 Voice Note' : 
+               replyToMessage.content}
             </span>
           </div>
           <button
             type="button"
             onClick={() => setReplyToMessage(null)}
-            className="p-1.5 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface rounded-full transition-colors cursor-pointer"
+            className="p-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface rounded-full transition-all cursor-pointer shadow-sm active:scale-95"
             title="Cancel Reply"
           >
-            <X size={14} />
+            <X size={16} strokeWidth={2.5} />
           </button>
         </div>
       )}
@@ -195,7 +215,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
       {showEmojiMenu && (
         <>
           <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowEmojiMenu(false)} />
-          <div className="absolute bottom-20 left-4 z-50 animate-in slide-in-from-bottom-2 duration-150 shadow-2xl overflow-hidden rounded-2xl border border-outline-variant/60 max-w-[calc(100vw-32px)]">
+          <div className="absolute bottom-full mb-4 left-4 md:left-6 z-50 animate-in slide-in-from-bottom-4 duration-200 shadow-[0_8px_30px_rgb(0,0,0,0.2)] rounded-3xl border border-outline-variant/60 overflow-hidden bg-surface max-w-[calc(100vw-32px)]">
             <EmojiPicker 
               theme="dark" 
               emojiStyle="native" 
@@ -209,70 +229,99 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
         </>
       )}
 
-      {/* Attachment Menu Overlay */}
+      {/* Attachment Menu Popup */}
       {showAttachMenu && (
-        <div className="absolute bottom-20 left-20 bg-surface border border-outline-variant/60 p-2 rounded-2xl shadow-xl z-50 flex flex-col gap-1 w-44 animate-in slide-in-from-bottom-2 duration-150">
-          <button 
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-3 px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container rounded-xl transition-colors text-left w-full cursor-pointer"
-          >
-            <Image size={16} className="text-blue-500" /> Photo & Video
-          </button>
-          <button 
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-3 px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container rounded-xl transition-colors text-left w-full cursor-pointer"
-          >
-            <FileText size={16} className="text-purple-500" /> Document
-          </button>
-        </div>
-      )}
-
-      <div className="flex w-full items-center justify-center gap-3 max-w-[900px]">
-        {isRecording ? (
-          /* Pulsing Voice Recorder Simulation bar */
-          <div className="flex-1 bg-surface-container-low rounded-full border border-outline-variant/60 shadow-sm flex items-center justify-between h-[52px] px-6 transition-colors animate-pulse">
-            <div className="flex items-center gap-3 text-red-500 text-sm font-bold">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
-              Recording Voice Note ({Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60).toString().padStart(2, '0')})
-            </div>
-            <div className="flex items-center gap-2">
+        <>
+          <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowAttachMenu(false)} />
+          <div className="absolute bottom-full mb-4 left-4 md:left-16 z-50 bg-surface/90 backdrop-blur-2xl border border-outline-variant/50 p-4 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex flex-col gap-3 w-72 animate-in zoom-in-95 slide-in-from-bottom-4 duration-200">
+            <div className="grid grid-cols-2 gap-3">
               <button 
-                type="button" 
-                onClick={cancelRecording} 
-                className="p-2 hover:bg-surface-container text-on-surface-variant hover:text-red-500 rounded-full transition-colors cursor-pointer"
-                title="Discard"
+                type="button"
+                onClick={() => { fileInputRef.current?.setAttribute('accept', 'image/*,video/*'); fileInputRef.current?.click(); setShowAttachMenu(false); }}
+                className="flex flex-col items-center justify-center gap-2 p-4 bg-surface-container hover:bg-surface-container-high rounded-2xl transition-all cursor-pointer active:scale-95 group border border-outline-variant/30 shadow-sm"
               >
-                <X size={18} />
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] group-hover:scale-110 transition-transform">
+                  <ImageIcon size={22} strokeWidth={2} />
+                </div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/80">Media</span>
               </button>
+              
               <button 
-                type="button" 
-                onClick={stopRecordingAndSend} 
-                className="p-2 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 rounded-full transition-colors cursor-pointer"
-                title="Send Voice Note"
+                type="button"
+                onClick={() => { fileInputRef.current?.setAttribute('accept', 'application/*,text/*'); fileInputRef.current?.click(); setShowAttachMenu(false); }}
+                className="flex flex-col items-center justify-center gap-2 p-4 bg-surface-container hover:bg-surface-container-high rounded-2xl transition-all cursor-pointer active:scale-95 group border border-outline-variant/30 shadow-sm"
               >
-                <Check size={18} />
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white rounded-full shadow-[0_4px_12px_rgba(168,85,247,0.3)] group-hover:scale-110 transition-transform">
+                  <FileText size={22} strokeWidth={2} />
+                </div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/80">File</span>
               </button>
             </div>
           </div>
+        </>
+      )}
+
+      <div className="flex w-full items-end justify-center gap-2 md:gap-3 max-w-[900px] z-20">
+        {isRecording ? (
+          /* Premium Voice Recording UI */
+          <div className="flex-1 bg-surface/90 backdrop-blur-xl rounded-[28px] border border-red-500/30 shadow-[0_8px_30px_rgba(239,68,68,0.15)] flex items-center h-[56px] px-2 transition-all">
+            <button 
+              type="button" 
+              onClick={cancelRecording} 
+              className="w-10 h-10 flex items-center justify-center hover:bg-red-500/10 text-on-surface-variant hover:text-red-500 rounded-full transition-colors cursor-pointer shrink-0"
+              title="Discard"
+            >
+              <Trash2 size={20} />
+            </button>
+            
+            <div className="flex-1 flex items-center justify-center gap-3">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
+              <span className="text-red-500 text-sm font-black tracking-widest font-mono">
+                {Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60).toString().padStart(2, '0')}
+              </span>
+              
+              {/* Simulated Waveform */}
+              <div className="flex items-center gap-1 ml-2 h-6 overflow-hidden">
+                {[...Array(6)].map((_, i) => (
+                  <div 
+                    key={i} 
+                    className="w-1 bg-red-500 rounded-full animate-pulse opacity-80"
+                    style={{ 
+                      height: `${20 + Math.random() * 80}%`, 
+                      animationDelay: `${i * 150}ms`,
+                      animationDuration: '800ms'
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <button 
+              type="button" 
+              onClick={stopRecordingAndSend} 
+              className="w-10 h-10 flex items-center justify-center bg-red-500 text-white hover:bg-red-600 rounded-full transition-all cursor-pointer shrink-0 shadow-lg active:scale-95"
+              title="Send Voice Note"
+            >
+              <Send size={18} strokeWidth={2.5} className="ml-0.5" />
+            </button>
+          </div>
         ) : (
           /* Normal Message Composer Input */
-          <form onSubmit={handleSubmit} className="flex-1 relative">
-            <div className="glass-pill shadow-xl flex items-center h-[56px] px-2 transition-colors focus-within:ring-2 focus-within:ring-primary/50">
+          <form onSubmit={handleSubmit} className="flex-1 relative flex items-end">
+            <div className="w-full bg-surface/80 backdrop-blur-xl border border-outline-variant/60 shadow-[0_8px_30px_rgba(0,0,0,0.06)] flex items-end min-h-[56px] rounded-[28px] pl-2 pr-4 py-1 transition-all focus-within:border-primary/50 focus-within:shadow-[0_8px_30px_rgba(var(--color-primary),0.1)] focus-within:bg-surface">
               
               {/* Left Icons inside input */}
-              <div className="flex items-center gap-1 pl-1 pr-2 text-on-surface-variant">
+              <div className="flex items-center gap-1 pb-1 shrink-0">
                 <button 
                   type="button" 
                   onClick={() => {
                     setShowEmojiMenu(!showEmojiMenu);
                     setShowAttachMenu(false);
                   }}
-                  className={`p-2 hover:text-on-surface transition-colors rounded-full cursor-pointer ${showEmojiMenu ? 'text-primary' : ''}`}
+                  className={`w-10 h-10 flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 ${showEmojiMenu ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`}
                   title="Emoji"
                 >
-                  <Smile size={22} strokeWidth={2} />
+                  <Smile size={22} strokeWidth={2.2} />
                 </button>
                 <button 
                   type="button" 
@@ -280,20 +329,34 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
                     setShowAttachMenu(!showAttachMenu);
                     setShowEmojiMenu(false);
                   }}
-                  className={`p-2 hover:text-on-surface transition-colors rounded-full cursor-pointer ${showAttachMenu ? 'text-primary' : ''}`}
+                  className={`w-10 h-10 flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 ${showAttachMenu ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`}
                   title="Attach"
                 >
-                  <Paperclip size={20} strokeWidth={2} />
+                  <Paperclip size={20} strokeWidth={2.2} />
                 </button>
               </div>
 
-              <input
+              {/* Textarea instead of Input */}
+              <textarea
                 ref={inputRef}
-                type="text"
                 value={message}
                 onChange={handleTyping}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }
+                }}
                 placeholder="Type a message..."
-                className="flex-1 bg-transparent text-[15px] text-on-surface placeholder-on-surface-variant/50 font-medium outline-none h-full"
+                rows={1}
+                className="flex-1 bg-transparent text-[15px] text-on-surface placeholder-on-surface-variant/50 font-medium outline-none resize-none px-2 mb-1 custom-scrollbar"
+                style={{ 
+                  height: '44px',
+                  minHeight: '44px',
+                  lineHeight: '24px',
+                  paddingTop: '10px',
+                  paddingBottom: '10px'
+                }}
               />
 
               {/* Hidden File Input for Real Image/Video/Doc Uploads */}
@@ -310,22 +373,23 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
 
         {/* External Send/Mic Button */}
         {!isRecording && (
-          <div className="shrink-0 flex items-center justify-center">
+          <div className="shrink-0 flex items-center justify-center mb-0.5">
             {message.trim() ? (
               <button 
                 onClick={handleSubmit}
-                className="w-[56px] h-[56px] rounded-full bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all active:scale-95 hover:scale-105 cursor-pointer"
+                className="w-[52px] h-[52px] rounded-full bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shadow-[0_8px_20px_rgba(var(--color-primary),0.3)] transition-all active:scale-95 hover:scale-105 cursor-pointer relative group overflow-hidden"
               >
-                <Send size={22} strokeWidth={2.5} className="ml-1" />
+                <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <Send size={22} strokeWidth={2.5} className="relative z-10 pl-0.5" />
               </button>
             ) : (
-                <button 
-                  type="button" 
-                  onClick={startRecording}
-                  className="w-[56px] h-[56px] rounded-full glass-panel flex items-center justify-center text-on-surface hover:bg-white/10 transition-colors shadow-lg cursor-pointer"
-                  title="Voice Note"
-                >
-                <Mic size={22} strokeWidth={2} />
+              <button 
+                type="button" 
+                onClick={startRecording}
+                className="w-[52px] h-[52px] rounded-full bg-surface/80 backdrop-blur-xl border border-outline-variant/60 flex items-center justify-center text-on-surface hover:bg-surface hover:text-primary transition-all shadow-sm active:scale-95 cursor-pointer group"
+                title="Voice Note"
+              >
+                <Mic size={22} strokeWidth={2.2} className="group-hover:scale-110 transition-transform" />
               </button>
             )}
           </div>
