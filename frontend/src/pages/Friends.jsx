@@ -438,9 +438,6 @@ export default function Friends() {
 
             <div className="mt-4 flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container text-[11px] font-bold text-on-surface-variant border border-outline-variant/30">
-                <Hash size={12} /> ID: {selectedUser._id.substring(0, 8)}
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container text-[11px] font-bold text-on-surface-variant border border-outline-variant/30">
                 <Clock size={12} /> Joined {new Date(selectedUser.createdAt).toLocaleDateString()}
               </span>
             </div>
