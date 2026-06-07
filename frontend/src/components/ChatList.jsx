@@ -338,7 +338,7 @@ export default function ChatList({ activeChat, setActiveChat }) {
         style={{ backgroundImage: `url(${chatlistBg})` }}
       >
         {/* Dark Glass Overlay */}
-        <div className="orbit-dark-overlay absolute inset-0 bg-black/60 backdrop-blur-md z-0" />
+        <div className="orbit-dark-overlay absolute inset-0 bg-black/30 backdrop-blur-none z-0" />
         
         {/* Content Container */}
         <div className="relative z-10 flex flex-col h-full w-full">

@@ -124,7 +124,7 @@ export default function UserProfile() {
   return (
     <div className="h-full flex flex-col bg-background overflow-y-auto w-full text-on-surface font-sans border-l border-outline-variant/60">
       {/* Header */}
-      <div className="h-[60px] bg-surface flex items-center px-6 shrink-0 border-b border-outline-variant/60 sticky top-0 z-10">
+      <div className="h-[60px] bg-background flex items-center px-6 shrink-0 border-b border-outline-variant/60 sticky top-0 z-10">
         <button 
           onClick={() => navigate(-1)} 
           className="p-1.5 rounded-full hover:bg-surface-container-low text-on-surface-variant hover:text-on-surface transition-colors flex items-center mr-3 cursor-pointer"

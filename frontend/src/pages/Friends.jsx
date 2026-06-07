@@ -107,7 +107,7 @@ export default function Friends() {
   return (
     <div className="flex-1 h-full flex flex-col w-full bg-background overflow-hidden border-l border-outline-variant/60 font-sans text-on-surface">
       {/* Header */}
-      <div className="h-[60px] bg-surface flex items-center justify-between px-6 shrink-0 border-b border-outline-variant/60 sticky top-0 z-10">
+      <div className="h-[60px] bg-background flex items-center justify-between px-6 shrink-0 border-b border-outline-variant/60 sticky top-0 z-10">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate(-1)} 

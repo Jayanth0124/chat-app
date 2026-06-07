@@ -25,7 +25,7 @@ export default function Discover() {
   return (
     <div className="flex-1 h-full flex flex-col w-full bg-surface overflow-hidden border-l border-outline-variant/60 select-none">
       {/* Header */}
-      <div className="h-[60px] bg-surface flex items-center justify-between px-6 shrink-0 z-10 border-b border-outline-variant/60">
+      <div className="h-[60px] bg-background flex items-center justify-between px-6 shrink-0 z-10 border-b border-outline-variant/60">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/')} className="p-1 mr-1 text-on-surface-variant md:hidden cursor-pointer">
             <ArrowLeft size={24} strokeWidth={2} />

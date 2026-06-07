@@ -14,10 +14,12 @@ export default function Chat() {
     };
   }, [setSelectedChat]);
 
+  const isChatOpen = !!activeChat;
+
   // Handle Hardware Back Button and Escape Key Navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && activeChat) {
+      if (e.key === 'Escape' && isChatOpen) {
         e.preventDefault();
         setActiveChat(null);
         setSelectedChat(null);
@@ -25,7 +27,7 @@ export default function Chat() {
     };
 
     const handlePopState = (e) => {
-      if (activeChat) {
+      if (isChatOpen) {
         // When hardware back is pressed, popstate fires.
         // We close the chat instead of navigating away.
         setActiveChat(null);
@@ -33,7 +35,7 @@ export default function Chat() {
       }
     };
 
-    if (activeChat) {
+    if (isChatOpen) {
       // Push a dummy history state with the identical URL
       // This absorbs the next back button press
       window.history.pushState({ chatOpen: true }, '', window.location.href);
@@ -42,7 +44,7 @@ export default function Chat() {
     }
 
     return () => {
-      if (activeChat) {
+      if (isChatOpen) {
         window.removeEventListener('keydown', handleKeyDown);
         window.removeEventListener('popstate', handlePopState);
         // If the chat was closed via UI Back Button or Esc key (not hardware back),
@@ -52,7 +54,7 @@ export default function Chat() {
         }
       }
     };
-  }, [activeChat, setSelectedChat]);
+  }, [isChatOpen, setSelectedChat]);
 
   return (
     <div className="flex-1 h-full flex w-full bg-transparent overflow-hidden">

@@ -12,7 +12,7 @@ export default function AdminLayout() {
     <div className="h-screen w-full flex flex-col md:flex-row bg-background text-on-surface overflow-hidden font-sans">
       
       {/* Mobile Top Header */}
-      <div className="md:hidden flex items-center justify-between h-14 px-4 bg-surface border-b border-outline-variant/60 shrink-0 z-30 shadow-sm">
+      <div className="md:hidden flex items-center justify-between h-14 px-4 bg-background border-b border-outline-variant/60 shrink-0 z-30 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg overflow-hidden shadow-sm shrink-0">
             <img src="/logo.png" alt="Orbit Logo" className="w-full h-full object-cover" />
