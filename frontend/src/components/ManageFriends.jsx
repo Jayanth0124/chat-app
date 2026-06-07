@@ -3,6 +3,7 @@ import { X, Users, Check, Trash2, Ban, MessageSquare, Loader2, UserX, Clock, Use
 import { useFriendStore } from '../store/useFriendStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 import { useChatStore } from '../store/useChatStore';
+import { useConfirmStore } from '../store/useConfirmStore';
 import { useNavigate } from 'react-router-dom';
 
 export default function ManageFriends() {
@@ -41,14 +42,26 @@ export default function ManageFriends() {
   };
 
   const handleRemove = async (userId) => {
-    if (!window.confirm('Remove this friend?')) return;
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Remove Friend",
+      message: "Remove this friend?",
+      confirmText: "Remove",
+      danger: true
+    });
+    if (!confirmed) return;
     setActionLoading(`remove-${userId}`);
     await removeFriend(userId);
     setActionLoading(null);
   };
 
   const handleBlock = async (userId) => {
-    if (!window.confirm('Block this user?')) return;
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Block User",
+      message: "Block this user?",
+      confirmText: "Block",
+      danger: true
+    });
+    if (!confirmed) return;
     setActionLoading(`block-${userId}`);
     await blockUser(userId);
     setActionLoading(null);

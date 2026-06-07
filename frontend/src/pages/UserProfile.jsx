@@ -6,6 +6,7 @@ import { useFriendStore } from '../store/useFriendStore';
 import { useChatStore } from '../store/useChatStore';
 import { useAuthStore } from '../store/useAuthStore';
 import toast from 'react-hot-toast';
+import { useConfirmStore } from '../store/useConfirmStore';
 
 export default function UserProfile() {
   const { id } = useParams();
@@ -93,7 +94,13 @@ export default function UserProfile() {
   };
 
   const handleUnfriend = async () => {
-    if (window.confirm(`Are you sure you want to remove ${profileUser.displayName} from your friends list?`)) {
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Remove Friend",
+      message: `Are you sure you want to remove ${profileUser.displayName} from your friends list?`,
+      confirmText: "Remove",
+      danger: true
+    });
+    if (confirmed) {
       await removeFriend(profileUser._id);
       toast.success(`${profileUser.displayName} removed from friends`);
       // Refresh state
@@ -103,7 +110,13 @@ export default function UserProfile() {
   };
 
   const handleBlock = async () => {
-    if (window.confirm(`Are you sure you want to block ${profileUser.displayName}? You will no longer receive their messages.`)) {
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Block User",
+      message: `Are you sure you want to block ${profileUser.displayName}? You will no longer receive their messages.`,
+      confirmText: "Block",
+      danger: true
+    });
+    if (confirmed) {
       await blockUser(profileUser._id);
       toast.success(`${profileUser.displayName} blocked successfully`);
       navigate(-1);

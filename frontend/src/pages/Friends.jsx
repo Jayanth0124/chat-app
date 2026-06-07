@@ -8,6 +8,7 @@ import {
   Check, X, Trash2, Ban, MessageSquare, Clock, Inbox, ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useConfirmStore } from '../store/useConfirmStore';
 
 export default function Friends() {
   const navigate = useNavigate();
@@ -60,7 +61,13 @@ export default function Friends() {
   };
 
   const handleRemove = async (userId) => {
-    if (window.confirm('Are you sure you want to remove this friend?')) {
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Remove Friend",
+      message: "Are you sure you want to remove this friend?",
+      confirmText: "Remove",
+      danger: true
+    });
+    if (confirmed) {
       setActionLoading(`remove-${userId}`);
       await removeFriend(userId);
       setActionLoading(null);
@@ -69,7 +76,13 @@ export default function Friends() {
   };
 
   const handleBlock = async (userId) => {
-    if (window.confirm('Are you sure you want to block this user?')) {
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Block User",
+      message: "Are you sure you want to block this user?",
+      confirmText: "Block",
+      danger: true
+    });
+    if (confirmed) {
       setActionLoading(`block-${userId}`);
       await blockUser(userId);
       setActionLoading(null);

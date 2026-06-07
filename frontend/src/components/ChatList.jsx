@@ -8,6 +8,7 @@ import { useLayoutStore } from '../store/useLayoutStore';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useNavigate } from 'react-router-dom';
 import { useLongPress } from '../hooks/useLongPress';
+import { useConfirmStore } from '../store/useConfirmStore';
 
 function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContextMenu, setActiveContextMenu, getSender, getSenderPic, unreadCounts }) {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContext
     setActiveContextMenu(null);
   };
 
-  const handleAction = (action, e) => {
+  const handleAction = async (action, e) => {
     e?.stopPropagation();
     closeMenu();
     switch (action) {
@@ -47,11 +48,23 @@ function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContext
       case 'unmute': muteChat(chat._id, false); break;
       case 'block': 
         if (otherParticipant) {
-          if (window.confirm(`Block ${otherParticipant.displayName}?`)) blockUser(otherParticipant._id); 
+          const confirmed = await useConfirmStore.getState().confirm({
+            title: "Block User",
+            message: `Block ${otherParticipant.displayName}?`,
+            confirmText: "Block",
+            danger: true
+          });
+          if (confirmed) blockUser(otherParticipant._id); 
         }
         break;
       case 'delete':
-        if (window.confirm("Are you sure you want to delete this conversation?")) deleteChat(chat._id);
+        const confirmedDelete = await useConfirmStore.getState().confirm({
+          title: "Delete Chat",
+          message: "Are you sure you want to delete this conversation?",
+          confirmText: "Delete",
+          danger: true
+        });
+        if (confirmedDelete) deleteChat(chat._id);
         break;
       default: break;
     }
@@ -107,12 +120,21 @@ function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContext
           </div>
           
           <div className="flex justify-between items-center">
-            <p className={`text-[13px] truncate pr-2 transition-colors ${
+            <p className={`text-[13px] truncate pr-2 transition-colors flex items-center gap-1.5 ${
               hasUnread 
                 ? 'text-[#EBEBF5] font-medium' 
                 : isSelected ? 'text-white/60' : 'text-[#EBEBF5]/50'
             }`}>
-              {chat.latestMessage ? chat.latestMessage.content : 'No messages yet...'}
+              {chat.vanishMode && chat.vanishMode !== 'OFF' ? (
+                <>
+                  <Clock size={12} className="text-[#0A84FF]" />
+                  <span className="italic text-[#0A84FF]">Vanish Mode</span>
+                </>
+              ) : chat.latestMessage ? (
+                chat.latestMessage.messageType === 'image' ? '📷 Image' : chat.latestMessage.content
+              ) : (
+                'No messages yet...'
+              )}
             </p>
             
             <div className="flex items-center gap-1.5 shrink-0">

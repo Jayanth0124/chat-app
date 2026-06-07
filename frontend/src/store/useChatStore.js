@@ -61,22 +61,6 @@ export const useChatStore = create((set, get) => ({
         // Increment unread count for this chat
         const newUnread = { ...unreadCounts, [chatId]: (unreadCounts[chatId] || 0) + 1 };
         set({ chats: updatedChats, unreadCounts: newUnread });
-
-        // Trigger in-app notification
-        const senderName = newMessage.sender?.displayName || 'Someone';
-        const senderPic = newMessage.sender?.profilePic;
-        const preview = newMessage.messageType === 'image'
-          ? '📷 Image'
-          : newMessage.content?.substring(0, 60) || 'New message';
-
-        getNotifStore().then((ns) => ns.addNotification({
-          type: 'message',
-          title: senderName,
-          body: preview,
-          avatar: senderPic,
-          chatId,
-          from: newMessage.sender?._id || newMessage.sender,
-        }));
       }
     });
 

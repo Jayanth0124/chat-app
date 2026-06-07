@@ -29,6 +29,7 @@ import NotificationCenter from './components/admin/NotificationCenter';
 import ChatModeration from './components/admin/ChatModeration';
 import DatabaseUsage from './pages/admin/DatabaseUsage';
 import InAppNotification from './components/InAppNotification';
+import ConfirmDialog from './components/ui/ConfirmDialog';
 import { subscribeUserToPush, unsubscribeUserFromPush } from './lib/pushSubscription';
 
 export default function App() {
@@ -249,6 +250,7 @@ export default function App() {
       </Routes>
       <Toaster position="top-center" />
       <InAppNotification />
+      <ConfirmDialog />
     </>
   );
 }

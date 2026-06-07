@@ -200,9 +200,16 @@ export const sendMessage = async (req, res) => {
       message.chat.participants.forEach(async (participant) => {
         const participantId = participant._id.toString();
         if (participantId !== loggedInUserId.toString()) {
+          const isVanishMode = message.isViewOnce || (message.chat && message.chat.vanishMode && message.chat.vanishMode !== 'OFF');
+          const pushBody = isVanishMode 
+            ? 'New Vanish Mode Message' 
+            : message.messageType === 'image' 
+              ? '📷 Photo' 
+              : message.content;
+
           await sendPushNotification(participantId, {
             title: message.sender.displayName || 'New Message',
-            body: message.messageType === 'image' ? '📷 Photo' : message.content,
+            body: pushBody,
             icon: message.sender.profilePic || '/logo.png',
             data: {
               url: `/chat/${chatId}`,

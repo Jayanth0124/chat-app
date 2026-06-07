@@ -1,56 +1,97 @@
-import { useEffect, useState } from 'react';
-import { X, MessageSquare, UserPlus, UserCheck, Phone, Video, ShieldAlert } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { X, MessageSquare, UserPlus, UserCheck, Phone, Video, ShieldAlert, Clock, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useChatStore } from '../store/useChatStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 
-const ICONS = {
-  message: MessageSquare,
-  friendRequest: UserPlus,
-  friendAccepted: UserCheck,
-  callIncoming: Phone,
-  callVideo: Video,
-  system: ShieldAlert,
-};
-
-const COLORS = {
-  message: 'bg-primary',
-  friendRequest: 'bg-violet-500',
-  friendAccepted: 'bg-green-500',
-  callIncoming: 'bg-emerald-500',
-  callVideo: 'bg-blue-500',
-  system: 'bg-red-500',
+const CATEGORY_CONFIG = {
+  message: {
+    icon: MessageSquare,
+    color: 'text-[#0A84FF]',
+    bg: 'bg-[#0A84FF]/10',
+    border: 'border-[#0A84FF]/20',
+    label: 'COMMUNICATION'
+  },
+  friendRequest: {
+    icon: UserPlus,
+    color: 'text-[#BF5AF2]',
+    bg: 'bg-[#BF5AF2]/10',
+    border: 'border-[#BF5AF2]/20',
+    label: 'NETWORK'
+  },
+  friendAccepted: {
+    icon: UserCheck,
+    color: 'text-[#32D74B]',
+    bg: 'bg-[#32D74B]/10',
+    border: 'border-[#32D74B]/20',
+    label: 'NETWORK'
+  },
+  callIncoming: {
+    icon: Phone,
+    color: 'text-[#32D74B]',
+    bg: 'bg-[#32D74B]/10',
+    border: 'border-[#32D74B]/20',
+    label: 'VOICE LINK'
+  },
+  callVideo: {
+    icon: Video,
+    color: 'text-[#0A84FF]',
+    bg: 'bg-[#0A84FF]/10',
+    border: 'border-[#0A84FF]/20',
+    label: 'VIDEO LINK'
+  },
+  system: {
+    icon: ShieldAlert,
+    color: 'text-[#FF453A]',
+    bg: 'bg-[#FF453A]/10',
+    border: 'border-[#FF453A]/20',
+    label: 'SYSTEM ALERT'
+  },
 };
 
 function ToastItem({ notif, onDismiss }) {
-  const [visible, setVisible] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [progress, setProgress] = useState(100);
   const navigate = useNavigate();
   const { chats, setSelectedChat, accessChat } = useChatStore();
   const { setManageFriendsOpen, setActiveAnnouncement } = useLayoutStore();
-  const { removeNotification } = useNotificationStore();
+  const duration = 5000;
+  
+  const touchStartX = useRef(0);
+  const isActionTriggered = useRef(false);
 
   useEffect(() => {
-    // Animate in
-    const showTimer = setTimeout(() => setVisible(true), 10);
-    // Auto-dismiss after 4.5s
-    const hideTimer = setTimeout(() => {
-      setVisible(false);
-      setTimeout(() => onDismiss(notif.id), 300);
-    }, 4500);
+    let start = Date.now();
+    let rAF;
 
-    return () => {
-      clearTimeout(showTimer);
-      clearTimeout(hideTimer);
+    const tick = () => {
+      const elapsed = Date.now() - start;
+      const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
+      setProgress(remaining);
+      
+      if (elapsed < duration) {
+        rAF = requestAnimationFrame(tick);
+      } else {
+        closeToast();
+      }
     };
-  }, [notif.id, onDismiss]);
+    
+    rAF = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rAF);
+  }, []);
 
-  const Icon = ICONS[notif.type] || MessageSquare;
-  const iconBg = COLORS[notif.type] || 'bg-primary';
+  const closeToast = () => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(onDismiss, 300);
+  };
 
-  const handleClick = () => {
-    setVisible(false);
-    setTimeout(() => onDismiss(notif.id), 300);
+  const handleClick = (e) => {
+    if (isActionTriggered.current) return;
+    isActionTriggered.current = true;
+    
+    closeToast();
 
     // Trigger action
     if (notif.type === 'message' && notif.chatId) {
@@ -72,70 +113,123 @@ function ToastItem({ notif, onDismiss }) {
     }
   };
 
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const distance = touchEndX - touchStartX.current;
+    if (distance > 50) {
+      closeToast();
+    }
+  };
+
+  const config = CATEGORY_CONFIG[notif.type] || CATEGORY_CONFIG.message;
+  const Icon = config.icon;
+  const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
   return (
     <div
       onClick={handleClick}
-      className={`flex items-start gap-3 w-[320px] bg-surface border border-outline-variant/60 rounded-2xl shadow-xl p-3.5 cursor-pointer hover:shadow-2xl transition-all duration-300 select-none ${
-        visible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      className={`relative overflow-hidden flex flex-col w-[340px] max-w-[calc(100vw-32px)] bg-[#111111]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.5)] cursor-pointer transition-all duration-300 transform select-none ${
+        isClosing 
+          ? 'opacity-0 translate-x-12 scale-95 pointer-events-none' 
+          : 'opacity-100 translate-x-0 scale-100 animate-in slide-in-from-right-8 fade-in zoom-in-95'
       }`}
     >
-      {/* Avatar or Icon */}
-      <div className="relative shrink-0">
-        {notif.avatar ? (
-          <img
-            src={notif.avatar}
-            alt=""
-            className="w-10 h-10 rounded-full object-cover"
-          />
-        ) : (
-          <div className={`w-10 h-10 rounded-full ${iconBg} flex items-center justify-center text-white`}>
-            <Icon size={18} />
+      {/* Glow Effect behind content */}
+      <div className={`absolute top-0 left-0 w-32 h-32 rounded-full blur-[50px] opacity-20 pointer-events-none ${config.bg.replace('/10', '')}`} />
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-white/5 relative z-10">
+        <div className="flex items-center gap-2">
+          <div className={`w-5 h-5 rounded-md flex items-center justify-center border ${config.bg} ${config.border} ${config.color}`}>
+            <Icon size={11} strokeWidth={2.5} />
           </div>
-        )}
-        <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 ${iconBg} rounded-full flex items-center justify-center`}>
-          <Icon size={9} className="text-white" />
+          <span className="text-[9px] font-bold tracking-widest text-white/50 uppercase">{config.label}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-medium text-white/30 tracking-wider flex items-center gap-1">
+            <Clock size={10} /> {timeString}
+          </span>
+          <button
+            onClick={(e) => { e.stopPropagation(); closeToast(); }}
+            className="w-5 h-5 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors"
+          >
+            <X size={12} />
+          </button>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <p className="text-[12px] font-black text-on-surface truncate">{notif.title}</p>
-        <p className="text-[11px] text-on-surface-variant/80 line-clamp-2 leading-relaxed mt-0.5">{notif.body}</p>
+      {/* Body */}
+      <div className="px-4 py-3 flex items-start gap-3 relative z-10">
+        {/* Large Premium Avatar */}
+        <div className="relative shrink-0">
+          {notif.avatar ? (
+            <div className="w-12 h-12 rounded-xl overflow-hidden border border-white/10 shadow-lg bg-black/50">
+              <img src={notif.avatar} alt="Sender" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${config.bg} ${config.border} ${config.color} shadow-lg`}>
+              <Icon size={20} strokeWidth={1.5} />
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0 flex flex-col justify-center min-h-[48px]">
+          <h4 className="text-[14px] font-semibold text-white/90 truncate pr-2">{notif.title}</h4>
+          <p className="text-[12px] text-white/60 line-clamp-2 leading-relaxed mt-0.5 pr-2">{notif.body}</p>
+        </div>
+
+        <div className="shrink-0 self-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <ChevronRight size={16} className="text-white/20" />
+        </div>
       </div>
 
-      {/* Dismiss */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setVisible(false);
-          setTimeout(() => onDismiss(notif.id), 300);
-        }}
-        className="p-1 rounded-full hover:bg-surface-container-high text-on-surface-variant/60 transition-colors shrink-0"
-      >
-        <X size={13} />
-      </button>
+      {/* Progress Bar Container */}
+      <div className="w-full h-[3px] bg-white/5 relative z-10">
+        <div 
+          className={`h-full transition-all duration-[100ms] ease-linear ${config.bg.replace('/10', '')} opacity-80`}
+          style={{ width: `${progress}%` }}
+        />
+      </div>
     </div>
   );
 }
 
 export default function InAppNotification() {
   const { notifications } = useNotificationStore();
-  const [shownIds, setShownIds] = useState([]);
+  const [activeToasts, setActiveToasts] = useState([]);
+  const seenIds = useRef(new Set());
+
+  useEffect(() => {
+    // Find new notifications that are not historical and haven't been queued yet
+    const newNotifs = notifications.filter(n => !n.isHistorical && !seenIds.current.has(n.id));
+    
+    if (newNotifs.length > 0) {
+      newNotifs.forEach(n => seenIds.current.add(n.id));
+      setActiveToasts(prev => {
+        // Prepend new notifications and limit to 3 visible at a time
+        const next = [...newNotifs, ...prev];
+        return next.slice(0, 3);
+      });
+    }
+  }, [notifications]);
 
   const handleDismiss = (id) => {
-    setShownIds((prev) => [...prev, id]);
+    setActiveToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  // Only show the most recent 4 notifications that have not been shown/dismissed as toasts and are NOT historical
-  const visible = notifications.filter((notif) => !notif.isHistorical && !shownIds.includes(notif.id)).slice(0, 4);
-
-  if (visible.length === 0) return null;
+  if (activeToasts.length === 0) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
-      {visible.map((notif) => (
-        <div key={notif.id} className="pointer-events-auto">
-          <ToastItem notif={notif} onDismiss={handleDismiss} />
+    <div className="fixed top-4 md:top-6 right-4 md:right-6 z-[9999] flex flex-col gap-3 pointer-events-none items-end">
+      {activeToasts.map((notif) => (
+        <div key={notif.id} className="pointer-events-auto group">
+          <ToastItem notif={notif} onDismiss={() => handleDismiss(notif.id)} />
         </div>
       ))}
     </div>
