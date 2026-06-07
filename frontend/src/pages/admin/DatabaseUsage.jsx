@@ -97,37 +97,37 @@ export default function DatabaseUsage() {
   const mostDocsCollection = [...collections].sort((a,b) => b.count - a.count)[0] || null;
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6">
       
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-on-surface flex items-center gap-2">
-            <Activity className="w-6 h-6 text-primary" />
-            System Telemetry
+        <div className="flex flex-col gap-2 md:gap-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-on-surface flex items-center gap-2">
+            <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-primary shrink-0" />
+            <span className="truncate">System Telemetry</span>
           </h1>
-          <p className="text-on-surface-variant mt-1 text-sm">Real-time database and service health monitoring.</p>
+          <p className="text-on-surface-variant mt-1 text-xs sm:text-sm">Real-time database and service health monitoring.</p>
         </div>
-        <div className="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-xl border border-outline-variant/50 text-sm font-medium text-on-surface">
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse mr-2" />
+        <div className="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-outline-variant/50 text-xs sm:text-sm font-medium text-on-surface w-fit">
+          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse mr-1 sm:mr-2 shrink-0" />
           Live Connected
         </div>
       </div>
 
       {/* System Health Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
         <HealthCard title="MongoDB" status={systemHealth.mongodb} />
         <HealthCard title="Socket.IO" status={systemHealth.socketio} />
         <HealthCard title="Cloudinary" status={systemHealth.cloudinary} />
         <HealthCard title="Core API" status={systemHealth.api} />
-        <div className="bg-surface border border-outline-variant/60 rounded-2xl p-4 flex flex-col justify-center shadow-sm col-span-2 md:col-span-1 text-center md:text-left items-center md:items-start">
-          <span className="text-on-surface-variant text-xs uppercase tracking-wider font-bold mb-1">Active Sockets</span>
-          <span className="text-xl font-bold text-on-surface">{formatNumber(systemHealth.activeConnections)}</span>
+        <div className="bg-surface border border-outline-variant/60 rounded-2xl p-4 flex flex-col justify-center shadow-sm col-span-2 md:col-span-1 text-center md:text-left items-center md:items-start h-full">
+          <span className="text-on-surface-variant text-[11px] sm:text-xs uppercase tracking-wider font-bold mb-1 truncate w-full">Active Sockets</span>
+          <span className="text-xl sm:text-2xl font-bold text-on-surface truncate w-full">{formatNumber(systemHealth.activeConnections)}</span>
         </div>
       </div>
 
       {/* Database Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <MetricCard 
           icon={<HardDrive className="text-blue-500 w-5 h-5" />} 
           label="Total Data Size" 
@@ -152,28 +152,30 @@ export default function DatabaseUsage() {
           value={formatNumber(database.indexes)} 
           subtext={`${formatBytes(database.indexSize)} on disk`} 
         />
-        <MetricCard 
-          icon={<Zap className="text-yellow-500 w-5 h-5" />} 
-          label="Avg Document Size" 
-          value={formatBytes(database.avgObjSize)} 
-          subtext={`Uptime: ${(uptime / 3600).toFixed(1)} hrs`} 
-        />
+        <div className="col-span-2 lg:col-span-1">
+          <MetricCard 
+            icon={<Zap className="text-yellow-500 w-5 h-5" />} 
+            label="Avg Document Size" 
+            value={formatBytes(database.avgObjSize)} 
+            subtext={`Uptime: ${(uptime / 3600).toFixed(1)} hrs`} 
+          />
+        </div>
       </div>
 
       {/* Live Analytics Chart */}
-      <div className="bg-surface border border-outline-variant/60 rounded-2xl p-4 md:p-6 shadow-sm">
+      <div className="bg-surface border border-outline-variant/60 rounded-2xl p-4 md:p-6 shadow-sm overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
           <h2 className="text-lg font-bold text-on-surface">Live Database Growth</h2>
-          <div className="flex bg-surface-container-low rounded-lg p-1 border border-outline-variant/50 self-start sm:self-auto">
+          <div className="flex bg-surface-container-low rounded-lg p-1 border border-outline-variant/50 self-start sm:self-auto w-full sm:w-auto">
             <button 
               onClick={() => setActiveTab('storage')} 
-              className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${activeTab === 'storage' ? 'bg-primary text-white' : 'text-on-surface-variant'}`}
+              className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${activeTab === 'storage' ? 'bg-primary text-white' : 'text-on-surface-variant'}`}
             >
               Storage (MB)
             </button>
             <button 
               onClick={() => setActiveTab('docs')} 
-              className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${activeTab === 'docs' ? 'bg-primary text-white' : 'text-on-surface-variant'}`}
+              className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${activeTab === 'docs' ? 'bg-primary text-white' : 'text-on-surface-variant'}`}
             >
               Documents
             </button>
@@ -181,7 +183,7 @@ export default function DatabaseUsage() {
         </div>
         <div className="h-[250px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={history}>
+            <AreaChart data={history} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={activeTab === 'storage' ? '#3b82f6' : '#8b5cf6'} stopOpacity={0.3}/>
@@ -190,10 +192,11 @@ export default function DatabaseUsage() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--outline-variant)" />
               <XAxis dataKey="time" stroke="var(--on-surface-variant)" fontSize={11} tickMargin={10} minTickGap={30} />
-              <YAxis stroke="var(--on-surface-variant)" fontSize={11} tickFormatter={(v) => activeTab === 'storage' ? v.toFixed(2) : v} width={50} />
+              <YAxis stroke="var(--on-surface-variant)" fontSize={11} tickFormatter={(v) => activeTab === 'storage' ? v.toFixed(2) : v} width={45} axisLine={false} tickLine={false} />
               <RechartsTooltip 
-                contentStyle={{ backgroundColor: 'var(--surface-container-low)', borderColor: 'var(--outline-variant)', borderRadius: '12px', color: 'var(--on-surface)' }}
+                contentStyle={{ backgroundColor: 'var(--surface-container-low)', borderColor: 'var(--outline-variant)', borderRadius: '12px', color: 'var(--on-surface)', fontSize: '13px', padding: '10px' }}
                 itemStyle={{ color: 'var(--primary)' }}
+                labelStyle={{ color: 'var(--on-surface-variant)', marginBottom: '4px' }}
               />
               <Area 
                 type="monotone" 
@@ -210,60 +213,92 @@ export default function DatabaseUsage() {
       </div>
 
       {/* Collection Highlights */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         {largestCollection && (
-          <div className="bg-surface border border-outline-variant/60 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-            <div>
-              <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Largest by Storage</p>
-              <h3 className="text-lg font-bold text-on-surface capitalize">{largestCollection.name}</h3>
+          <div className="bg-surface border border-outline-variant/60 rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-sm">
+            <div className="min-w-0 pr-4">
+              <p className="text-[10px] sm:text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 truncate">Largest by Storage</p>
+              <h3 className="text-base sm:text-lg font-bold text-on-surface capitalize truncate">{largestCollection.name}</h3>
             </div>
-            <div className="text-right">
-              <span className="text-xl font-bold text-blue-500">{formatBytes(largestCollection.size)}</span>
+            <div className="text-right shrink-0">
+              <span className="text-lg sm:text-xl font-bold text-blue-500 whitespace-nowrap">{formatBytes(largestCollection.size)}</span>
             </div>
           </div>
         )}
         {mostDocsCollection && (
-          <div className="bg-surface border border-outline-variant/60 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-            <div>
-              <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Most Documents</p>
-              <h3 className="text-lg font-bold text-on-surface capitalize">{mostDocsCollection.name}</h3>
+          <div className="bg-surface border border-outline-variant/60 rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-sm">
+            <div className="min-w-0 pr-4">
+              <p className="text-[10px] sm:text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1 truncate">Most Documents</p>
+              <h3 className="text-base sm:text-lg font-bold text-on-surface capitalize truncate">{mostDocsCollection.name}</h3>
             </div>
-            <div className="text-right">
-              <span className="text-xl font-bold text-purple-500">{formatNumber(mostDocsCollection.count)} Docs</span>
+            <div className="text-right shrink-0">
+              <span className="text-lg sm:text-xl font-bold text-purple-500 whitespace-nowrap">{formatNumber(mostDocsCollection.count)} <span className="text-xs sm:text-sm text-on-surface-variant">Docs</span></span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Collections Table */}
+      {/* Collections Section */}
       <div className="bg-surface border border-outline-variant/60 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-outline-variant/60">
-          <h2 className="text-lg font-bold text-on-surface">Collection Statistics</h2>
+        <div className="p-4 sm:p-5 border-b border-outline-variant/60">
+          <h2 className="text-base sm:text-lg font-bold text-on-surface">Collection Statistics</h2>
         </div>
-        <div className="overflow-x-auto">
+        
+        {/* Mobile: Cards Layout */}
+        <div className="md:hidden flex flex-col divide-y divide-outline-variant/30">
+          {collections.map((c) => (
+            <div key={c.name} className="p-4 flex flex-col gap-3">
+              <div className="flex items-center gap-2 font-bold text-on-surface capitalize text-sm">
+                <Database className="w-4 h-4 text-on-surface-variant shrink-0" />
+                <span className="truncate">{c.name}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-[11px] sm:text-xs">
+                <div>
+                  <div className="text-on-surface-variant font-medium mb-0.5">Documents</div>
+                  <div className="text-on-surface font-semibold truncate">{formatNumber(c.count)}</div>
+                </div>
+                <div>
+                  <div className="text-on-surface-variant font-medium mb-0.5">Size</div>
+                  <div className="text-on-surface font-semibold truncate">{formatBytes(c.size)}</div>
+                </div>
+                <div>
+                  <div className="text-on-surface-variant font-medium mb-0.5">Avg Size</div>
+                  <div className="text-on-surface font-semibold truncate">{formatBytes(c.avgObjSize)}</div>
+                </div>
+                <div>
+                  <div className="text-on-surface-variant font-medium mb-0.5">Indexes ({c.nindexes})</div>
+                  <div className="text-on-surface font-semibold truncate">{formatBytes(c.totalIndexSize)}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop: Table Layout */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-surface-container-lowest/50 text-on-surface-variant text-xs uppercase tracking-wider font-bold">
-                <th className="p-4 border-b border-outline-variant/40">Collection</th>
-                <th className="p-4 border-b border-outline-variant/40 text-right">Documents</th>
-                <th className="p-4 border-b border-outline-variant/40 text-right">Size</th>
-                <th className="p-4 border-b border-outline-variant/40 text-right">Avg Doc Size</th>
-                <th className="p-4 border-b border-outline-variant/40 text-right">Indexes</th>
-                <th className="p-4 border-b border-outline-variant/40 text-right">Index Size</th>
+              <tr className="bg-surface-container-lowest/50 text-on-surface-variant text-[11px] lg:text-xs uppercase tracking-wider font-bold">
+                <th className="p-3 lg:p-4 border-b border-outline-variant/40">Collection</th>
+                <th className="p-3 lg:p-4 border-b border-outline-variant/40 text-right whitespace-nowrap">Documents</th>
+                <th className="p-3 lg:p-4 border-b border-outline-variant/40 text-right whitespace-nowrap">Size</th>
+                <th className="p-3 lg:p-4 border-b border-outline-variant/40 text-right whitespace-nowrap">Avg Doc Size</th>
+                <th className="p-3 lg:p-4 border-b border-outline-variant/40 text-right whitespace-nowrap">Indexes</th>
+                <th className="p-3 lg:p-4 border-b border-outline-variant/40 text-right whitespace-nowrap">Index Size</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant/40 text-sm">
+            <tbody className="divide-y divide-outline-variant/40 text-[13px] lg:text-sm">
               {collections.map((c) => (
                 <tr key={c.name} className="hover:bg-surface-container-low/30 transition-colors">
-                  <td className="p-4 font-medium text-on-surface capitalize flex items-center gap-2">
-                    <Database className="w-4 h-4 text-on-surface-variant" />
-                    {c.name}
+                  <td className="p-3 lg:p-4 font-medium text-on-surface capitalize flex items-center gap-2">
+                    <Database className="w-4 h-4 text-on-surface-variant shrink-0" />
+                    <span className="truncate max-w-[150px] lg:max-w-none">{c.name}</span>
                   </td>
-                  <td className="p-4 text-right font-medium text-on-surface">{formatNumber(c.count)}</td>
-                  <td className="p-4 text-right text-on-surface-variant">{formatBytes(c.size)}</td>
-                  <td className="p-4 text-right text-on-surface-variant">{formatBytes(c.avgObjSize)}</td>
-                  <td className="p-4 text-right text-on-surface-variant">{c.nindexes}</td>
-                  <td className="p-4 text-right text-on-surface-variant">{formatBytes(c.totalIndexSize)}</td>
+                  <td className="p-3 lg:p-4 text-right font-medium text-on-surface whitespace-nowrap">{formatNumber(c.count)}</td>
+                  <td className="p-3 lg:p-4 text-right text-on-surface-variant whitespace-nowrap">{formatBytes(c.size)}</td>
+                  <td className="p-3 lg:p-4 text-right text-on-surface-variant whitespace-nowrap">{formatBytes(c.avgObjSize)}</td>
+                  <td className="p-3 lg:p-4 text-right text-on-surface-variant whitespace-nowrap">{c.nindexes}</td>
+                  <td className="p-3 lg:p-4 text-right text-on-surface-variant whitespace-nowrap">{formatBytes(c.totalIndexSize)}</td>
                 </tr>
               ))}
             </tbody>
@@ -278,32 +313,32 @@ export default function DatabaseUsage() {
 function HealthCard({ title, status }) {
   const getStatusIcon = (s) => {
     switch(s) {
-      case 'healthy': return <CheckCircle className="text-green-500 w-5 h-5" />;
-      case 'warning': return <AlertTriangle className="text-yellow-500 w-5 h-5" />;
-      case 'error': return <XCircle className="text-red-500 w-5 h-5" />;
-      default: return <AlertTriangle className="text-neutral-500 w-5 h-5" />;
+      case 'healthy': return <CheckCircle className="text-green-500 w-5 h-5 shrink-0" />;
+      case 'warning': return <AlertTriangle className="text-yellow-500 w-5 h-5 shrink-0" />;
+      case 'error': return <XCircle className="text-red-500 w-5 h-5 shrink-0" />;
+      default: return <AlertTriangle className="text-neutral-500 w-5 h-5 shrink-0" />;
     }
   };
 
   return (
-    <div className="bg-surface border border-outline-variant/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 shadow-sm text-center">
+    <div className="bg-surface border border-outline-variant/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 shadow-sm text-center h-full">
       {getStatusIcon(status)}
-      <span className="text-on-surface-variant text-[10px] sm:text-xs uppercase tracking-wider font-bold truncate w-full text-center">{title}</span>
+      <span className="text-on-surface-variant text-[11px] sm:text-xs uppercase tracking-wider font-bold truncate w-full text-center px-1">{title}</span>
     </div>
   );
 }
 
 function MetricCard({ icon, label, value, subtext }) {
   return (
-    <div className="bg-surface border border-outline-variant/60 rounded-2xl p-5 shadow-sm">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="p-2 bg-surface-container-low rounded-xl border border-outline-variant/50">
+    <div className="bg-surface border border-outline-variant/60 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col h-full overflow-hidden">
+      <div className="flex items-center gap-2 sm:gap-3 mb-3">
+        <div className="p-2 bg-surface-container-low rounded-xl border border-outline-variant/50 shrink-0">
           {icon}
         </div>
-        <span className="text-sm font-bold text-on-surface-variant uppercase tracking-wider">{label}</span>
+        <span className="text-xs sm:text-sm font-bold text-on-surface-variant uppercase tracking-wider truncate w-full">{label}</span>
       </div>
-      <div className="text-2xl font-black text-on-surface mb-1">{value}</div>
-      <div className="text-xs font-medium text-on-surface-variant">{subtext}</div>
+      <div className="text-xl sm:text-2xl md:text-3xl font-black text-on-surface mb-1 truncate w-full break-all" title={value}>{value}</div>
+      <div className="text-xs sm:text-sm font-medium text-on-surface-variant mt-auto truncate w-full" title={subtext}>{subtext}</div>
     </div>
   );
 }
