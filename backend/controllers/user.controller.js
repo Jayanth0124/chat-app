@@ -156,7 +156,8 @@ export const getActiveBroadcasts = async (req, res) => {
     const query = {
       $or: [
         { audience: 'All Users' },
-        { audience: 'Active Users (Last 24h)' }
+        { audience: 'Active Users (Last 24h)' },
+        { targetUser: req.user._id }
       ]
     };
 
@@ -211,7 +212,7 @@ export const updatePrivacySettings = async (req, res) => {
     if (onlineStatusChanged && req.io && user.friends) {
       user.friends.forEach((friend) => {
         req.io.to(friend._id.toString()).emit('friendStatusUpdate', {
-          userId: user._id,
+          userId: user._id.toString(),
           isOnline: onlineStatus ? user.isOnline : false,
           lastSeen: user.lastActive || new Date()
         });

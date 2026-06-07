@@ -21,6 +21,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
   const fileInputRef = useRef(null);
   const [adjustingImage, setAdjustingImage] = useState(null);
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     if (isRecording) {
@@ -66,10 +67,12 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
     }, 2000);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     if (e) e.preventDefault();
+    if (isSending) return;
     if (message.trim()) {
-      onSendMessage(message, null, 'text', replyToMessage?._id);
+      setIsSending(true);
+      await onSendMessage(message, null, 'text', replyToMessage?._id);
       setMessage('');
       setReplyToMessage?.(null);
       setShowEmojiMenu(false);
@@ -78,6 +81,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
         socket.emit('stop typing', selectedChat._id);
         setIsTyping(false);
       }
+      setIsSending(false);
     }
   };
 

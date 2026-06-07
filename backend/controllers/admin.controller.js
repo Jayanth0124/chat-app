@@ -471,3 +471,72 @@ export const getDatabaseUsageStats = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const getUserConversationsByAdmin = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const chats = await Chat.find({ participants: userId })
+      .populate('participants', 'username displayName profilePic')
+      .sort({ updatedAt: -1 });
+    res.status(200).json(chats);
+  } catch (error) {
+    console.error("Error in getUserConversationsByAdmin:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getConversationMessagesByAdmin = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const messages = await Message.find({ chat: chatId })
+      .populate('sender', 'username displayName profilePic')
+      .sort({ createdAt: 1 });
+    res.status(200).json(messages);
+  } catch (error) {
+    console.error("Error in getConversationMessagesByAdmin:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const bulkDeleteMessagesByAdmin = async (req, res) => {
+  try {
+    const { messageIds } = req.body;
+    if (!messageIds || !Array.isArray(messageIds) || messageIds.length === 0) {
+      return res.status(400).json({ message: "Please provide an array of message IDs" });
+    }
+
+    // Identify chats affected before deleting to emit socket events
+    const messages = await Message.find({ _id: { $in: messageIds } });
+    if (messages.length === 0) {
+      return res.status(404).json({ message: "Messages not found" });
+    }
+
+    // We can emit to chats so participants know messages are deleted
+    const chatsAffected = new Set();
+    messages.forEach(msg => chatsAffected.add(msg.chat.toString()));
+
+    await Message.deleteMany({ _id: { $in: messageIds } });
+
+    // Log the bulk deletion
+    await AuditLog.create({
+      adminId: req.user._id,
+      action: 'MODERATION_DELETE_MESSAGE',
+      targetId: messageIds[0], // record at least the first
+      targetModel: 'Message',
+      details: `Administratively bulk-deleted ${messageIds.length} messages.`
+    });
+
+    if (req.io) {
+      chatsAffected.forEach(chatId => {
+        messageIds.forEach(msgId => {
+          req.io.to(chatId).emit('messageDeleted', { messageId: msgId, chatId });
+        });
+      });
+    }
+
+    res.status(200).json({ message: `Successfully deleted ${messageIds.length} messages` });
+  } catch (error) {
+    console.error("Error in bulkDeleteMessagesByAdmin:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

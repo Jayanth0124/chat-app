@@ -22,7 +22,7 @@ export const handleSockets = (io) => {
         if (user?.friends && user.privacySettings?.onlineStatus !== false) {
           user.friends.forEach((friend) => {
             io.to(friend._id.toString()).emit('friendStatusUpdate', {
-              userId: userData._id,
+              userId: userData._id.toString(),
               isOnline: true,
               lastSeen: new Date()
             });
@@ -167,7 +167,7 @@ export const handleSockets = (io) => {
         if (user?.friends && user.privacySettings?.onlineStatus !== false) {
           user.friends.forEach((friend) => {
             io.to(friend._id.toString()).emit('friendStatusUpdate', {
-              userId: socket.userId,
+              userId: socket.userId.toString(),
               isOnline: false,
               lastSeen
             });

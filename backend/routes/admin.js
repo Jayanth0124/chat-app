@@ -9,6 +9,7 @@ import {
   getReports,
   updateReportStatus,
   deleteMessageByAdmin,
+  bulkDeleteMessagesByAdmin,
   getSecurityLogs,
   blockIP,
   sendBroadcast,
@@ -16,7 +17,9 @@ import {
   deleteBroadcast,
   getSettings,
   updateSetting,
-  getDatabaseUsageStats
+  getDatabaseUsageStats,
+  getUserConversationsByAdmin,
+  getConversationMessagesByAdmin
 } from '../controllers/admin.controller.js';
 
 const router = express.Router();
@@ -32,7 +35,10 @@ router.delete('/users/:userId', deleteUser);
 router.get('/audit-logs', getAuditLogs);
 router.get('/reports', getReports);
 router.put('/reports/:reportId/status', updateReportStatus);
+router.get('/users/:userId/conversations', getUserConversationsByAdmin);
+router.get('/conversations/:chatId/messages', getConversationMessagesByAdmin);
 router.delete('/messages/:messageId', deleteMessageByAdmin);
+router.post('/messages/bulk-delete', bulkDeleteMessagesByAdmin);
 router.get('/security-logs', getSecurityLogs);
 router.post('/security/block-ip', blockIP);
 router.post('/notifications/broadcast', sendBroadcast);

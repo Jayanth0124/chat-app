@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { axiosInstance } from '../lib/axios';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { useConfirmStore } from '../store/useConfirmStore';
 import { 
   Loader2, 
   ShieldBan, 
@@ -68,7 +69,13 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteMessage = async (messageId, reportId) => {
-    if (!window.confirm("Are you sure you want to delete this message administratively?")) return;
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Delete Message",
+      message: "Are you sure you want to delete this message administratively?",
+      confirmText: "Delete",
+      danger: true
+    });
+    if (!confirmed) return;
     try {
       await axiosInstance.delete(`/admin/messages/${messageId}`);
       if (reportId) {

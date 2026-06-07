@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { axiosInstance } from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { BellRing, Send, Loader2, Clock, Globe, ShieldAlert, Users, History, Trash2 } from 'lucide-react';
+import { useConfirmStore } from '../../store/useConfirmStore';
 
 export default function NotificationCenter() {
   const [audience, setAudience] = useState('All Users');
@@ -83,7 +84,13 @@ export default function NotificationCenter() {
   };
 
   const handleDeleteBroadcast = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this broadcast? It will be removed from the database.")) return;
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Delete Broadcast",
+      message: "Are you sure you want to delete this broadcast? It will be removed from the database.",
+      confirmText: "Delete",
+      danger: true
+    });
+    if (!confirmed) return;
     try {
       await axiosInstance.delete(`/admin/notifications/broadcast/${id}`);
       toast.success("Broadcast deleted successfully");

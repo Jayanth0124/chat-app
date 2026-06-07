@@ -12,6 +12,7 @@ import {
   Clock, 
   ShieldAlert 
 } from 'lucide-react';
+import { useConfirmStore } from '../../store/useConfirmStore';
 
 export default function ReportsCenter() {
   const [reports, setReports] = useState([]);
@@ -45,7 +46,13 @@ export default function ReportsCenter() {
   };
 
   const handleDeleteMessage = async (messageId, reportId) => {
-    if (!window.confirm("Are you sure you want to administratively delete this message? This action is irreversible.")) {
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Delete Message",
+      message: "Are you sure you want to administratively delete this message? This action is irreversible.",
+      confirmText: "Delete",
+      danger: true
+    });
+    if (!confirmed) {
       return;
     }
     try {

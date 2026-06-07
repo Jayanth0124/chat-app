@@ -3,6 +3,8 @@ import { axiosInstance } from '../lib/axios';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import { useAuthStore } from './useAuthStore';
+import { useNotificationStore } from './useNotificationStore';
+import { useLayoutStore } from './useLayoutStore';
 
 export const useChatStore = create((set, get) => ({
   users: [],
@@ -29,8 +31,6 @@ export const useChatStore = create((set, get) => ({
     socket.emit('setup', user);
     set({ socket });
 
-    // Lazy import to avoid circular dependency
-    const getNotifStore = () => import('./useNotificationStore').then((m) => m.useNotificationStore.getState());
 
     // ── Message received ──────────────────────────────────────────────────
     socket.on('message received', async (newMessage) => {
@@ -112,8 +112,8 @@ export const useChatStore = create((set, get) => ({
 
     // ── Broadcast notification ────────────────────────────────────────────
     socket.on('broadcastNotification', ({ id, message, audience, sender, isPermanent, expiresAt }) => {
-      getNotifStore().then((ns) => {
-        ns.addNotification({
+      const ns = useNotificationStore.getState();
+      ns.addNotification({
           id,
           type: 'system',
           title: `Announcement (${audience})`,
@@ -122,13 +122,12 @@ export const useChatStore = create((set, get) => ({
           isPermanent: !!isPermanent,
           expiresAt
         });
-      });
+      toast(`📣 Announcement: ${message}`, { duration: 6000 });
     });
 
     socket.on('broadcastDeleted', ({ id }) => {
-      getNotifStore().then((ns) => {
-        ns.removeNotification(id);
-      });
+      const ns = useNotificationStore.getState();
+      ns.removeNotification(id);
     });
 
     // ── Chat deleted ──────────────────────────────────────────────────────
@@ -215,66 +214,49 @@ export const useChatStore = create((set, get) => ({
 
     // ── Friend request notifications ──────────────────────────────────────
     socket.on('friendRequestReceived', ({ from, message }) => {
-      getNotifStore().then((ns) => ns.addNotification({
+      useNotificationStore.getState().addNotification({
         type: 'friendRequest',
         title: 'Friend Request',
         body: message || `${from?.displayName} sent you a friend request`,
         avatar: from?.profilePic,
-      }));
+      });
       toast(`${from?.displayName} sent you a friend request`, { icon: '👋' });
     });
 
     socket.on('friendRequestAccepted', ({ from, message }) => {
-      getNotifStore().then((ns) => ns.addNotification({
+      useNotificationStore.getState().addNotification({
         type: 'friendAccepted',
         title: 'Request Accepted',
         body: message || `${from?.displayName} accepted your friend request`,
         avatar: from?.profilePic,
-      }));
+      });
       toast.success(`${from?.displayName} accepted your friend request`);
     });
 
     // ── Incoming call ─────────────────────────────────────────────────────
     socket.on('call:incoming', (callData) => {
-      // callData: { callId, callerId, callerName, callerPic, type }
-      
-      getNotifStore().then((ns) => ns.addNotification({
-        type: callData.type === 'video' ? 'callVideo' : 'callIncoming',
-        title: `Incoming ${callData.type === 'video' ? 'Video' : 'Voice'} Call`,
-        body: `${callData.callerName} is calling...`,
-        avatar: callData.callerPic,
-      }));
-
       // Store incoming call in layout store directly
-      import('./useLayoutStore').then(({ useLayoutStore }) => {
-        useLayoutStore.getState().setIncomingCall(callData);
-      });
+      useLayoutStore.getState().setIncomingCall(callData);
     });
 
     socket.on('call:answered', ({ callId }) => {
-      import('./useLayoutStore').then(({ useLayoutStore }) => {
-        const { activeCall, setActiveCall } = useLayoutStore.getState();
-        if (activeCall && activeCall.callId === callId) {
-          setActiveCall({ ...activeCall, status: 'connected' });
-        }
-      });
+      const { activeCall, setActiveCall } = useLayoutStore.getState();
+      if (activeCall && activeCall.callId === callId) {
+        setActiveCall({ ...activeCall, status: 'connected' });
+      }
     });
 
     socket.on('call:rejected', ({ callId }) => {
       toast('Call was declined', { icon: '📵' });
-      import('./useLayoutStore').then(({ useLayoutStore }) => {
-        const { activeCall, setActiveCall, setIncomingCall } = useLayoutStore.getState();
-        if (activeCall && activeCall.callId === callId) setActiveCall(null);
-        setIncomingCall(null);
-      });
+      const { activeCall, setActiveCall, setIncomingCall } = useLayoutStore.getState();
+      if (activeCall && activeCall.callId === callId) setActiveCall(null);
+      setIncomingCall(null);
     });
 
     socket.on('call:ended', ({ callId, duration }) => {
-      import('./useLayoutStore').then(({ useLayoutStore }) => {
-        const { activeCall, setActiveCall, setIncomingCall } = useLayoutStore.getState();
-        if (activeCall && activeCall.callId === callId) setActiveCall(null);
-        setIncomingCall(null);
-      });
+      const { activeCall, setActiveCall, setIncomingCall } = useLayoutStore.getState();
+      if (activeCall && activeCall.callId === callId) setActiveCall(null);
+      setIncomingCall(null);
     });
   },
 

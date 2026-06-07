@@ -3,6 +3,7 @@ import { axiosInstance } from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { ShieldAlert, LogIn, MonitorSmartphone, Loader2, Lock, Unlock, ShieldCheck, RefreshCw, EyeOff } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { useConfirmStore } from '../../store/useConfirmStore';
 
 export default function SecurityCenter() {
   const [logs, setLogs] = useState([]);
@@ -29,9 +30,13 @@ export default function SecurityCenter() {
 
   const handleBlockIP = async (ip) => {
     if (!ip) return;
-    if (!window.confirm(`Are you sure you want to block all sessions from IP: ${ip}?`)) {
-      return;
-    }
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Block IP",
+      message: `Are you sure you want to block all sessions from IP: ${ip}?`,
+      confirmText: "Block",
+      danger: true
+    });
+    if (!confirmed) return;
 
     setIsBlocking(true);
     try {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Search, Shield, Ban, CheckCircle, Loader2 } from 'lucide-react';
 import { axiosInstance } from '../../lib/axios';
 import toast from 'react-hot-toast';
+import { useConfirmStore } from '../../store/useConfirmStore';
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -35,7 +36,13 @@ export default function UserManagement() {
   };
 
   const handleDeleteUser = async (userId) => {
-    if (!window.confirm("Are you sure you want to permanently delete this user? This action cannot be undone.")) return;
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Delete User",
+      message: "Are you sure you want to permanently delete this user? This action cannot be undone.",
+      confirmText: "Delete",
+      danger: true
+    });
+    if (!confirmed) return;
     try {
       const res = await axiosInstance.delete(`/admin/users/${userId}`);
       toast.success(res.data.message);

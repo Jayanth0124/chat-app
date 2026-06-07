@@ -27,4 +27,6 @@ const callSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+callSchema.index({ createdAt: 1 }, { expireAfterSeconds: 604800 });
+
 export default mongoose.model('Call', callSchema);

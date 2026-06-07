@@ -96,7 +96,7 @@ export const fetchChats = async (req, res) => {
       select: 'displayName profilePic email',
     });
 
-    // Compute unread count per chat (messages not sent by me and not yet seen)
+    // Compute unread count per chat and scrub online status based on privacy
     const chatsWithUnread = await Promise.all(
       results.map(async (chat) => {
         const unreadCount = await Message.countDocuments({
@@ -104,7 +104,16 @@ export const fetchChats = async (req, res) => {
           sender: { $ne: loggedInUserId },
           status: { $ne: 'seen' }
         });
-        return { ...chat.toObject(), unreadCount };
+        
+        const chatObj = chat.toObject();
+        chatObj.participants = chatObj.participants.map(p => {
+          if (p.privacySettings?.onlineStatus === false) {
+            return { ...p, isOnline: false, lastSeen: undefined };
+          }
+          return p;
+        });
+
+        return { ...chatObj, unreadCount };
       })
     );
 

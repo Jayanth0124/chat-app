@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Loader2, ShieldAlert } from 'lucide-react';
-import { Toaster } from 'react-hot-toast';
+import ToastProvider from './components/ui/ToastProvider';
 import { useAuthStore } from './store/useAuthStore';
 import { useChatStore } from './store/useChatStore';
 import { useSettingsStore } from './store/useSettingsStore';
@@ -248,7 +248,7 @@ export default function App() {
         {/* Redirect unauthorized access */}
         <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
       </Routes>
-      <Toaster position="top-center" />
+      <ToastProvider />
       <InAppNotification />
       <ConfirmDialog />
     </>
