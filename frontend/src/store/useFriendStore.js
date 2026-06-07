@@ -13,7 +13,10 @@ export const useFriendStore = create((set, get) => ({
   getFriends: async () => {
     try {
       set({ isLoading: true });
-      const res = await axiosInstance.get('/users/friends');
+      const [res] = await Promise.all([
+        axiosInstance.get('/users/friends'),
+        new Promise(resolve => setTimeout(resolve, 600))
+      ]);
       set({ friends: res.data || [] });
     } catch (error) {
       console.error('Error fetching friends:', error);
@@ -26,7 +29,10 @@ export const useFriendStore = create((set, get) => ({
   getRequests: async () => {
     try {
       set({ isLoading: true });
-      const res = await axiosInstance.get('/users/requests');
+      const [res] = await Promise.all([
+        axiosInstance.get('/users/requests'),
+        new Promise(resolve => setTimeout(resolve, 600))
+      ]);
       set({ 
         incomingRequests: res.data?.incoming || [], 
         outgoingRequests: res.data?.outgoing || [] 
@@ -46,7 +52,11 @@ export const useFriendStore = create((set, get) => ({
     
     try {
       set({ isSearching: true });
-      const res = await axiosInstance.get(`/users/search?q=${query}`);
+      // Add a minimum 600ms visual delay for premium loading animation feel
+      const [res] = await Promise.all([
+        axiosInstance.get(`/users/search?q=${query}`),
+        new Promise(resolve => setTimeout(resolve, 600))
+      ]);
       set({ searchResults: res.data || [] });
     } catch (error) {
       console.error('Error searching users:', error);
