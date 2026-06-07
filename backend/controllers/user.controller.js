@@ -48,7 +48,13 @@ export const updateProfile = async (req, res) => {
     if (bio) updatedFields.bio = bio;
 
     if (profilePic) {
-      const uploadResponse = await cloudinary.uploader.upload(profilePic);
+      const uploadResponse = await cloudinary.uploader.upload(profilePic, {
+        folder: "orbit/profiles",
+        transformation: [
+          { width: 500, height: 500, crop: "fill", gravity: "face" },
+          { quality: "auto:best", fetch_format: "auto" }
+        ]
+      });
       updatedFields.profilePic = uploadResponse.secure_url;
     }
 
