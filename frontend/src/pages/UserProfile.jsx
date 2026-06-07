@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, Calendar, ShieldAlert, UserMinus, MessageSquare, Cl
 import { axiosInstance } from '../lib/axios';
 import { useFriendStore } from '../store/useFriendStore';
 import { useChatStore } from '../store/useChatStore';
+import { useAuthStore } from '../store/useAuthStore';
 import toast from 'react-hot-toast';
 
 export default function UserProfile() {
@@ -16,6 +17,7 @@ export default function UserProfile() {
 
   const { friends, outgoingRequests, sendRequest, removeFriend, blockUser, getFriends, getRequests } = useFriendStore();
   const { accessChat } = useChatStore();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -76,6 +78,10 @@ export default function UserProfile() {
 
   const isFriend = friends.some((f) => f._id === profileUser._id);
   const requestSent = outgoingRequests.some((r) => r._id === profileUser._id);
+  const isSelf = user?._id === profileUser._id;
+  
+  // Privacy logic: if not friend and not self, profile details are restricted
+  const showFullProfile = isFriend || isSelf;
 
   const handleMessage = async () => {
     try {
@@ -168,53 +174,59 @@ export default function UserProfile() {
 
               {/* Action Buttons for Friends / Contacts */}
               <div className="flex flex-wrap gap-2.5 sm:mb-2">
-                <button
-                  onClick={handleMessage}
-                  className="py-2.5 px-4 bg-primary hover:opacity-90 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md shadow-black/10 cursor-pointer active:scale-98 transition-all"
-                >
-                  <MessageSquare size={13.5} />
-                  Send Message
-                </button>
-
-                {isFriend ? (
+                {showFullProfile && !isSelf && (
                   <button
-                    onClick={handleUnfriend}
-                    className="py-2.5 px-4 rounded-xl border border-outline-variant hover:bg-red-500/5 hover:border-red-500/15 text-red-500 hover:text-red-600 transition-all text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                    onClick={handleMessage}
+                    className="py-2.5 px-4 bg-primary hover:opacity-90 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md shadow-black/10 cursor-pointer active:scale-98 transition-all"
                   >
-                    <UserMinus size={13.5} />
-                    Unfriend
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleAddFriend}
-                    disabled={requestSent}
-                    className={`py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all active:scale-95 ${
-                      requestSent 
-                        ? 'bg-surface-container-low border border-outline-variant text-on-surface-variant/50 cursor-default'
-                        : 'bg-primary/10 text-primary hover:bg-primary/20 border border-primary/10'
-                    }`}
-                  >
-                    {requestSent ? (
-                      <>
-                        <UserCheck size={13.5} />
-                        Request Sent
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus size={13.5} />
-                        Add Friend
-                      </>
-                    )}
+                    <MessageSquare size={13.5} />
+                    Send Message
                   </button>
                 )}
 
-                <button
-                  onClick={handleBlock}
-                  className="py-2.5 px-4 rounded-xl bg-surface-container-low border border-outline-variant hover:bg-red-500/10 text-on-surface-variant hover:text-red-500 hover:border-red-500/20 transition-all text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
-                >
-                  <ShieldAlert size={13.5} />
-                  Block User
-                </button>
+                {!isSelf && (
+                  isFriend ? (
+                    <button
+                      onClick={handleUnfriend}
+                      className="py-2.5 px-4 rounded-xl border border-outline-variant hover:bg-red-500/5 hover:border-red-500/15 text-red-500 hover:text-red-600 transition-all text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                    >
+                      <UserMinus size={13.5} />
+                      Unfriend
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleAddFriend}
+                      disabled={requestSent}
+                      className={`py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all active:scale-95 ${
+                        requestSent 
+                          ? 'bg-surface-container-low border border-outline-variant text-on-surface-variant/50 cursor-default'
+                          : 'bg-primary/10 text-primary hover:bg-primary/20 border border-primary/10'
+                      }`}
+                    >
+                      {requestSent ? (
+                        <>
+                          <UserCheck size={13.5} />
+                          Request Sent
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus size={13.5} />
+                          Add Friend
+                        </>
+                      )}
+                    </button>
+                  )
+                )}
+
+                {!isSelf && (
+                  <button
+                    onClick={handleBlock}
+                    className="py-2.5 px-4 rounded-xl bg-surface-container-low border border-outline-variant hover:bg-red-500/10 text-on-surface-variant hover:text-red-500 hover:border-red-500/20 transition-all text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                  >
+                    <ShieldAlert size={13.5} />
+                    Block User
+                  </button>
+                )}
               </div>
             </div>
 
@@ -248,31 +260,45 @@ export default function UserProfile() {
             {/* Divider */}
             <hr className="w-full border-t border-outline-variant/30 my-6" />
 
-            {/* Bio Section */}
-            <div 
-              style={{ 
-                backgroundColor: 'color-mix(in srgb, var(--surface-container-low) 40%, transparent)',
-                borderColor: 'color-mix(in srgb, var(--outline-variant) 20%, transparent)'
-              }}
-              className="w-full text-left rounded-2xl p-5 border"
-            >
-              <span className="text-[10px] font-bold text-on-surface-variant/75 uppercase tracking-wider block mb-1.5">About</span>
-              <p className="text-[13px] text-on-surface-variant/90 leading-relaxed font-semibold">
-                {profileUser.bio || "No status or bio available yet."}
-              </p>
-            </div>
+            {showFullProfile ? (
+              <>
+                {/* Bio Section */}
+                <div 
+                  style={{ 
+                    backgroundColor: 'color-mix(in srgb, var(--surface-container-low) 40%, transparent)',
+                    borderColor: 'color-mix(in srgb, var(--outline-variant) 20%, transparent)'
+                  }}
+                  className="w-full text-left rounded-2xl p-5 border"
+                >
+                  <span className="text-[10px] font-bold text-on-surface-variant/75 uppercase tracking-wider block mb-1.5">About</span>
+                  <p className="text-[13px] text-on-surface-variant/90 leading-relaxed font-semibold">
+                    {profileUser.bio || "No status or bio available yet."}
+                  </p>
+                </div>
 
-            {/* Metadata Grid */}
-            <div className="w-full mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-[13px] text-on-surface-variant/80 pl-1 font-bold">
-              <div className="flex items-center gap-3.5">
-                <Calendar size={15} className="text-primary" />
-                <span>Joined {formattedJoinDate}</span>
+                {/* Metadata Grid */}
+                <div className="w-full mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-[13px] text-on-surface-variant/80 pl-1 font-bold">
+                  <div className="flex items-center gap-3.5">
+                    <Calendar size={15} className="text-primary" />
+                    <span>Joined {formattedJoinDate}</span>
+                  </div>
+                  <div className="flex items-center gap-3.5">
+                    <Globe size={15} className="text-primary" />
+                    <span>Role: {profileUser.role === 'admin' ? 'Admin' : 'Orbit Member'}</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="w-full py-8 flex flex-col items-center justify-center text-center select-none bg-surface-container-low/50 rounded-2xl border border-outline-variant/30">
+                <div className="w-12 h-12 bg-outline-variant/10 rounded-full flex items-center justify-center mb-3">
+                  <ShieldAlert size={20} className="text-on-surface-variant/60" />
+                </div>
+                <h3 className="text-sm font-bold text-on-surface">This Profile is Private</h3>
+                <p className="text-xs text-on-surface-variant/70 mt-1 max-w-[200px]">
+                  Add this user as a friend to see their bio, join date, and send messages.
+                </p>
               </div>
-              <div className="flex items-center gap-3.5">
-                <Globe size={15} className="text-primary" />
-                <span>Role: {profileUser.role === 'admin' ? 'Admin' : 'Orbit Member'}</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

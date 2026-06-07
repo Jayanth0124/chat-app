@@ -16,8 +16,22 @@ export const getUsersForSidebar = async (req, res) => {
 
     // Don't fetch the current user, banned users, or admins (unless logged-in user is admin)
     const filteredUsers = await User.find(query).select("-password");
+    
+    const loggedInUser = await User.findById(loggedInUserId);
+    const myOnlineStatusEnabled = loggedInUser?.privacySettings?.onlineStatus !== false;
 
-    res.status(200).json(filteredUsers);
+    const sanitizedUsers = filteredUsers.map(u => {
+      const userObj = u.toObject();
+      const userOnlineStatusEnabled = u.privacySettings?.onlineStatus !== false;
+
+      if (!myOnlineStatusEnabled || !userOnlineStatusEnabled) {
+        userObj.isOnline = false;
+        delete userObj.lastSeen;
+      }
+      return userObj;
+    });
+
+    res.status(200).json(sanitizedUsers);
   } catch (error) {
     console.error("Error in getUsersForSidebar: ", error.message);
     res.status(500).json({ error: "Internal server error" });
@@ -110,7 +124,18 @@ export const getUserById = async (req, res) => {
     if (req.user.role !== 'admin' && user.role === 'admin') {
       return res.status(403).json({ message: "Access denied" });
     }
-    res.status(200).json(user);
+
+    const loggedInUser = await User.findById(req.user._id);
+    const myOnlineStatusEnabled = loggedInUser?.privacySettings?.onlineStatus !== false;
+    const userObj = user.toObject();
+    const userOnlineStatusEnabled = user.privacySettings?.onlineStatus !== false;
+
+    if (!myOnlineStatusEnabled || !userOnlineStatusEnabled) {
+      userObj.isOnline = false;
+      delete userObj.lastSeen;
+    }
+
+    res.status(200).json(userObj);
   } catch (error) {
     console.error("Error in getUserById:", error.message);
     res.status(500).json({ error: "Internal server error" });
@@ -151,6 +176,32 @@ export const getActiveBroadcasts = async (req, res) => {
     res.status(200).json(broadcasts);
   } catch (error) {
     console.error("Error in getActiveBroadcasts:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const updatePrivacySettings = async (req, res) => {
+  try {
+    const { readReceipts, onlineStatus } = req.body;
+    const userId = req.user._id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (typeof readReceipts === 'boolean') {
+      user.privacySettings.readReceipts = readReceipts;
+    }
+    if (typeof onlineStatus === 'boolean') {
+      user.privacySettings.onlineStatus = onlineStatus;
+    }
+
+    await user.save();
+
+    res.status(200).json({ message: "Privacy settings updated successfully", privacySettings: user.privacySettings });
+  } catch (error) {
+    console.error("Error in updatePrivacySettings:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

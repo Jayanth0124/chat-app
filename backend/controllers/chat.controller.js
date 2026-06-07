@@ -239,13 +239,37 @@ export const fetchMessages = async (req, res) => {
       status: 'seen'
     });
 
-    const messages = await Message.find({ chat: chatId })
-      .populate("sender", "displayName profilePic email")
-      .populate("chat")
+    let messages = await Message.find({ chat: chatId })
+      .populate("sender", "displayName profilePic email privacySettings")
+      .populate({
+        path: "chat",
+        populate: { path: "participants", select: "privacySettings" }
+      })
       .populate({
         path: "replyTo",
         populate: { path: "sender", select: "displayName profilePic" }
       });
+
+    // Enforce Read Receipts Privacy
+    const loggedInUserId = req.user._id;
+    const loggedInUser = await User.findById(loggedInUserId);
+    const myReadReceipts = loggedInUser?.privacySettings?.readReceipts !== false;
+
+    if (messages.length > 0 && messages[0].chat && !messages[0].chat.isGroupChat) {
+      const otherUser = messages[0].chat.participants.find(p => p._id.toString() !== loggedInUserId.toString());
+      const otherReadReceipts = otherUser?.privacySettings?.readReceipts !== false;
+
+      if (!myReadReceipts || !otherReadReceipts) {
+        messages = messages.map(msg => {
+          const msgObj = msg.toObject();
+          // If I sent the message and it's marked as seen, but read receipts are off, show as delivered
+          if (msgObj.sender._id.toString() === loggedInUserId.toString() && msgObj.status === 'seen') {
+            msgObj.status = 'delivered';
+          }
+          return msgObj;
+        });
+      }
+    }
 
     res.json(messages);
   } catch (error) {
@@ -348,7 +372,17 @@ export const markChatAsSeen = async (req, res) => {
       isViewOnce: msg.isViewOnce
     }));
 
-    if (req.io) {
+    const loggedInUser = await User.findById(loggedInUserId);
+    const myReadReceipts = loggedInUser?.privacySettings?.readReceipts !== false;
+    
+    let otherReadReceipts = true;
+    if (!chat.isGroupChat) {
+      const otherUser = await User.findById(chat.participants.find(p => p.toString() !== loggedInUserId.toString()));
+      otherReadReceipts = otherUser?.privacySettings?.readReceipts !== false;
+    }
+
+    // Only broadcast the 'seen' event to the sender if both parties allow read receipts
+    if (req.io && myReadReceipts && otherReadReceipts) {
       req.io.to(chatId).emit('messagesSeen', {
         chatId,
         seenBy: loggedInUserId,

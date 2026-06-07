@@ -265,19 +265,34 @@ export const updateSetting = async (req, res) => {
 
 export const sendBroadcast = async (req, res) => {
   try {
-    const { audience, message, isPermanent } = req.body;
+    const { audience, message, isPermanent, targetUserId } = req.body;
     if (!message) {
       return res.status(400).json({ message: "Message content is required" });
+    }
+
+    if (audience === 'Specific User' && !targetUserId) {
+      return res.status(400).json({ message: "Target user is required for Specific User audience" });
     }
 
     const expiresAt = isPermanent 
       ? null 
       : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
+    // If specific user, fetch them to add their name to the audience label
+    let finalAudience = audience || 'All Users';
+    let targetUserObj = null;
+    
+    if (audience === 'Specific User') {
+      targetUserObj = await User.findById(targetUserId);
+      if (!targetUserObj) return res.status(404).json({ message: "Target user not found" });
+      finalAudience = `User: ${targetUserObj.displayName || targetUserObj.username}`;
+    }
+
     // Save in DB
     const broadcastRecord = await Broadcast.create({
       sender: req.user._id,
-      audience: audience || 'All Users',
+      audience: finalAudience,
+      targetUser: audience === 'Specific User' ? targetUserId : null,
       message: message.trim(),
       isPermanent: !!isPermanent,
       expiresAt
@@ -286,14 +301,18 @@ export const sendBroadcast = async (req, res) => {
     // Retrieve target recipients based on audience
     let recipients = [];
     try {
-      let userQuery = {};
-      if (audience === 'Moderators Only' || audience === 'Moderators') {
-        userQuery = { role: { $in: ['moderator', 'admin'] } };
-      } else if (audience === 'Active Users (Last 24h)') {
-        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        userQuery = { updatedAt: { $gte: oneDayAgo } };
+      if (audience === 'Specific User') {
+        if (targetUserObj) recipients = [targetUserObj];
+      } else {
+        let userQuery = {};
+        if (audience === 'Moderators Only' || audience === 'Moderators') {
+          userQuery = { role: { $in: ['moderator', 'admin'] } };
+        } else if (audience === 'Active Users (Last 24h)') {
+          const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          userQuery = { updatedAt: { $gte: oneDayAgo } };
+        }
+        recipients = await User.find(userQuery).select('_id');
       }
-      recipients = await User.find(userQuery).select('_id');
     } catch (dbErr) {
       console.error("Failed to retrieve broadcast recipients:", dbErr);
     }

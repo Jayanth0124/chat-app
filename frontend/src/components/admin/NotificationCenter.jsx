@@ -11,6 +11,11 @@ export default function NotificationCenter() {
   const [history, setHistory] = useState([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
+  const [targetUserId, setTargetUserId] = useState('');
+  const [targetUserSearch, setTargetUserSearch] = useState('');
+  const [users, setUsers] = useState([]);
+  const [isUsersLoading, setIsUsersLoading] = useState(false);
+
   const fetchHistory = async () => {
     try {
       const res = await axiosInstance.get('/admin/notifications/broadcast');
@@ -22,9 +27,28 @@ export default function NotificationCenter() {
     }
   };
 
+  const fetchUsers = async () => {
+    if (users.length > 0) return;
+    setIsUsersLoading(true);
+    try {
+      const res = await axiosInstance.get('/admin/users');
+      setUsers(res.data);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    } finally {
+      setIsUsersLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchHistory();
   }, []);
+
+  useEffect(() => {
+    if (audience === 'Specific User') {
+      fetchUsers();
+    }
+  }, [audience]);
 
   const handleSendBroadcast = async (e) => {
     e.preventDefault();
@@ -32,15 +56,24 @@ export default function NotificationCenter() {
       return toast.error("Message content cannot be blank");
     }
 
+    if (audience === 'Specific User' && !targetUserId) {
+      return toast.error("Please select a target user");
+    }
+
     setIsSending(true);
     try {
       const res = await axiosInstance.post('/admin/notifications/broadcast', {
         audience,
         message: message.trim(),
-        isPermanent
+        isPermanent,
+        targetUserId: audience === 'Specific User' ? targetUserId : null
       });
       toast.success(res.data.message || "Broadcast announcement dispatched!");
       setMessage('');
+      if (audience === 'Specific User') {
+        setTargetUserId('');
+        setTargetUserSearch('');
+      }
       fetchHistory(); // Refresh history immediately
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to dispatch broadcast");
@@ -85,14 +118,79 @@ export default function NotificationCenter() {
             <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Audience</label>
             <select 
               value={audience}
-              onChange={(e) => setAudience(e.target.value)}
+              onChange={(e) => {
+                setAudience(e.target.value);
+                if (e.target.value !== 'Specific User') {
+                  setTargetUserId('');
+                  setTargetUserSearch('');
+                }
+              }}
               className="w-full px-4 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant/60 focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none text-on-surface text-sm cursor-pointer"
             >
               <option value="All Users">All Users</option>
               <option value="Active Users (Last 24h)">Active Users (Last 24h)</option>
               <option value="Moderators Only">Moderators Only</option>
+              <option value="Specific User">Specific User</option>
             </select>
           </div>
+
+          {audience === 'Specific User' && (
+            <div className="animate-in fade-in slide-in-from-top-2 duration-300 relative">
+              <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Select User</label>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder={isUsersLoading ? "Loading users..." : "Search by name or email..."}
+                  value={targetUserSearch}
+                  onChange={(e) => {
+                    setTargetUserSearch(e.target.value);
+                    setTargetUserId(''); // clear selection if they type
+                  }}
+                  disabled={isUsersLoading}
+                  className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant/60 focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none text-on-surface text-sm transition-all"
+                />
+                {isUsersLoading && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-on-surface-variant" size={16} />
+                )}
+                
+                {/* Search Dropdown */}
+                {targetUserSearch && !targetUserId && !isUsersLoading && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-outline-variant/60 rounded-xl shadow-lg max-h-48 overflow-y-auto z-10 p-1">
+                    {users.filter(u => 
+                      u.displayName?.toLowerCase().includes(targetUserSearch.toLowerCase()) || 
+                      u.email.toLowerCase().includes(targetUserSearch.toLowerCase()) ||
+                      u.username.toLowerCase().includes(targetUserSearch.toLowerCase())
+                    ).slice(0, 5).map(u => (
+                      <button
+                        key={u._id}
+                        type="button"
+                        onClick={() => {
+                          setTargetUserId(u._id);
+                          setTargetUserSearch(u.displayName || u.username);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-surface-container-high transition-colors flex flex-col cursor-pointer"
+                      >
+                        <span className="text-sm font-bold text-on-surface">{u.displayName || u.username}</span>
+                        <span className="text-xs text-on-surface-variant">@{u.username} • {u.email}</span>
+                      </button>
+                    ))}
+                    {users.filter(u => 
+                      u.displayName?.toLowerCase().includes(targetUserSearch.toLowerCase()) || 
+                      u.email.toLowerCase().includes(targetUserSearch.toLowerCase()) ||
+                      u.username.toLowerCase().includes(targetUserSearch.toLowerCase())
+                    ).length === 0 && (
+                      <div className="px-3 py-3 text-sm text-center text-on-surface-variant">No users found</div>
+                    )}
+                  </div>
+                )}
+                {targetUserId && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-green-500/10 text-green-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">
+                    Selected
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Notification Expiry</label>

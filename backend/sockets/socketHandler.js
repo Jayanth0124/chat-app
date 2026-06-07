@@ -17,9 +17,9 @@ export const handleSockets = (io) => {
       try {
         await User.findByIdAndUpdate(userData._id, { isOnline: true });
 
-        // Notify all friends this user is now online
+        // Notify all friends this user is now online (if they allow it)
         const user = await User.findById(userData._id).populate('friends', '_id');
-        if (user?.friends) {
+        if (user?.friends && user.privacySettings?.onlineStatus !== false) {
           user.friends.forEach((friend) => {
             io.to(friend._id.toString()).emit('friendStatusUpdate', {
               userId: userData._id,
@@ -164,7 +164,7 @@ export const handleSockets = (io) => {
         await User.findByIdAndUpdate(socket.userId, { isOnline: false, lastSeen });
 
         const user = await User.findById(socket.userId).populate('friends', '_id');
-        if (user?.friends) {
+        if (user?.friends && user.privacySettings?.onlineStatus !== false) {
           user.friends.forEach((friend) => {
             io.to(friend._id.toString()).emit('friendStatusUpdate', {
               userId: socket.userId,

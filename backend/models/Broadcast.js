@@ -10,6 +10,11 @@ const broadcastSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  targetUser: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   message: {
     type: String,
     required: true

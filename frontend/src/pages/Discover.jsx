@@ -74,7 +74,11 @@ export default function Discover() {
                   const alreadyFriend = isFriend(user._id);
                   const requestSent = hasSentRequest(user._id);
                   return (
-                    <div key={user._id} className="flex items-center justify-between p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-sm">
+                    <div 
+                      key={user._id} 
+                      onClick={() => navigate(`/user-profile/${user._id}`)}
+                      className="flex items-center justify-between p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-sm hover:border-outline-variant/100 hover:bg-surface-container-low cursor-pointer transition-colors"
+                    >
                       <div className="flex items-center gap-3">
                         <img
                           src={user.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random`}
@@ -86,21 +90,6 @@ export default function Discover() {
                           <p className="text-xs text-on-surface-variant">@{user.username}</p>
                         </div>
                       </div>
-                      {alreadyFriend ? (
-                        <span className="text-[11px] font-bold text-green-600 bg-green-500/10 px-3 py-1 rounded-full">Friends</span>
-                      ) : (
-                        <button
-                          onClick={() => sendRequest(user._id)}
-                          disabled={requestSent}
-                          className={`p-2.5 rounded-xl transition-all cursor-pointer ${
-                            requestSent
-                              ? 'bg-surface-container-low text-on-surface-variant/60'
-                              : 'bg-primary text-white hover:opacity-90 active:scale-95'
-                          }`}
-                        >
-                          {requestSent ? <UserCheck size={16} /> : <UserPlus size={16} />}
-                        </button>
-                      )}
                     </div>
                   );
                 })}

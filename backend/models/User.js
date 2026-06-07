@@ -93,7 +93,11 @@ const userSchema = new mongoose.Schema({
     mutedUntil: {
       type: Date // null means muted forever
     }
-  }]
+  }],
+  privacySettings: {
+    readReceipts: { type: Boolean, default: true },
+    onlineStatus: { type: Boolean, default: true }
+  }
 }, { timestamps: true });
 
 export default mongoose.model('User', userSchema);

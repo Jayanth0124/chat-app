@@ -180,7 +180,22 @@ export const getFriends = async (req, res) => {
   try {
     const loggedInUserId = req.user._id;
     const user = await User.findById(loggedInUserId).populate('friends', '-password');
-    res.status(200).json(user.friends);
+    
+    // Privacy check
+    const myOnlineStatusEnabled = user.privacySettings?.onlineStatus !== false;
+    
+    const sanitizedFriends = user.friends.map(friend => {
+      const friendObj = friend.toObject();
+      const friendOnlineStatusEnabled = friend.privacySettings?.onlineStatus !== false;
+      
+      if (!myOnlineStatusEnabled || !friendOnlineStatusEnabled) {
+        friendObj.isOnline = false;
+        delete friendObj.lastSeen;
+      }
+      return friendObj;
+    });
+
+    res.status(200).json(sanitizedFriends);
   } catch (error) {
     console.error("Error in getFriends:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -209,13 +224,13 @@ export const removeFriend = async (req, res) => {
     const { userId } = req.params;
     const loggedInUserId = req.user._id;
 
-    // Remove each other from friends array
+    // Remove each other from friends array and any pending requests
     await User.findByIdAndUpdate(loggedInUserId, {
-      $pull: { friends: userId }
+      $pull: { friends: userId, friendRequests: userId, sentRequests: userId }
     });
     
     await User.findByIdAndUpdate(userId, {
-      $pull: { friends: loggedInUserId }
+      $pull: { friends: loggedInUserId, friendRequests: loggedInUserId, sentRequests: loggedInUserId }
     });
 
     // Find and delete the one-on-one chat between these two users

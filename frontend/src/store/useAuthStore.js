@@ -116,5 +116,17 @@ export const useAuthStore = create((set) => ({
       set({ isUpdatingProfile: false });
     }
   },
+
+  updatePrivacySettings: async (settings) => {
+    try {
+      const res = await axiosInstance.put('/user/privacy', settings);
+      set((state) => ({ user: { ...state.user, privacySettings: res.data.privacySettings } }));
+      toast.success('Privacy settings updated');
+      return res.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update privacy settings');
+      throw error;
+    }
+  },
 }));
 

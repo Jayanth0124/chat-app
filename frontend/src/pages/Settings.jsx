@@ -6,12 +6,27 @@ import ThemeSwitcher from '../components/shared/ThemeSwitcher';
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { user, updateProfile, changeUsername, isUpdatingProfile } = useAuthStore();
+  const { user, updateProfile, changeUsername, updatePrivacySettings, isUpdatingProfile } = useAuthStore();
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [profilePic, setProfilePic] = useState(user?.profilePic || '');
   const [username, setUsername] = useState(user?.username || '');
+
+  const [readReceipts, setReadReceipts] = useState(user?.privacySettings?.readReceipts ?? true);
+  const [onlineStatus, setOnlineStatus] = useState(user?.privacySettings?.onlineStatus ?? true);
+
+  const handlePrivacyChange = async (type, value) => {
+    if (type === 'readReceipts') setReadReceipts(value);
+    if (type === 'onlineStatus') setOnlineStatus(value);
+    try {
+      await updatePrivacySettings({ [type]: value });
+    } catch (err) {
+      // Revert on error
+      if (type === 'readReceipts') setReadReceipts(!value);
+      if (type === 'onlineStatus') setOnlineStatus(!value);
+    }
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -172,6 +187,51 @@ export default function Settings() {
               {isUpdatingProfile ? <Loader2 size={16} className="animate-spin" /> : 'Update Username'}
             </button>
           </form>
+        </div>
+
+        {/* Privacy Settings Section */}
+        <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/60 shadow-sm">
+          <h2 className="text-lg font-bold mb-6">Privacy Settings</h2>
+          
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-on-surface">Read Receipts</p>
+                <p className="text-xs text-on-surface-variant/80 mt-1 max-w-sm">
+                  Let others know when you have read their messages. If turned off, you won't be able to see read receipts from others.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer ml-4">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={readReceipts}
+                  onChange={(e) => handlePrivacyChange('readReceipts', e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+
+            <hr className="border-t border-outline-variant/30" />
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-on-surface">Online Status</p>
+                <p className="text-xs text-on-surface-variant/80 mt-1 max-w-sm">
+                  Show others when you are online. If turned off, you won't be able to see the online status of others.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer ml-4">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={onlineStatus}
+                  onChange={(e) => handlePrivacyChange('onlineStatus', e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+          </div>
         </div>
 
         {/* Theme Settings switcher component */}

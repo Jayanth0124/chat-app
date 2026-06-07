@@ -5,7 +5,7 @@ import { useChatStore } from '../store/useChatStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { 
   Users, Search, UserPlus, UserCheck, UserX, Loader2, ArrowLeft, 
-  Check, X, Trash2, Ban, MessageSquare, Clock, Inbox 
+  Check, X, Trash2, Ban, MessageSquare, Clock, Inbox, ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -288,7 +288,8 @@ export default function Friends() {
                     return (
                       <div
                         key={userItem._id}
-                        className="flex items-center justify-between p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-sm"
+                        onClick={() => navigate(`/user-profile/${userItem._id}`)}
+                        className="flex items-center justify-between p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-primary/30"
                       >
                         <div className="flex items-center gap-3.5">
                           <img
@@ -302,31 +303,8 @@ export default function Friends() {
                           </div>
                         </div>
 
-                        {alreadyFriend ? (
-                          <span className="text-[10px] font-black uppercase tracking-wider text-green-600 bg-green-500/10 px-3 py-1.5 rounded-full">
-                            Friends
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => sendRequest(userItem._id)}
-                            disabled={requestSent}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                              requestSent
-                                ? 'bg-surface-container-low text-on-surface-variant/50 border border-outline-variant/60'
-                                : 'bg-primary text-white hover:opacity-90 active:scale-95 shadow-sm'
-                            }`}
-                          >
-                            {requestSent ? (
-                              <>
-                                <UserCheck size={13} /> Sent
-                              </>
-                            ) : (
-                              <>
-                                <UserPlus size={13} /> Add Friend
-                              </>
-                            )}
-                          </button>
-                        )}
+                        <ChevronRight className="text-on-surface-variant/50" size={20} />
+
                       </div>
                     );
                   })}

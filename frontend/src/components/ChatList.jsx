@@ -267,7 +267,10 @@ export default function ChatList({ activeChat, setActiveChat }) {
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
       const query = searchQuery.trim();
-      const updated = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5);
+      const updated = [query, ...recentSearches.filter(s => {
+        if (typeof s === 'string') return s !== query;
+        return s.username !== query;
+      })].slice(0, 5);
       setRecentSearches(updated);
       localStorage.setItem('orbit_recent_searches', JSON.stringify(updated));
     }
@@ -275,20 +278,34 @@ export default function ChatList({ activeChat, setActiveChat }) {
 
   const selectSearchResult = (targetUser) => {
     // Save to recent searches
-    const query = targetUser.username;
-    const updated = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5);
+    const userObj = {
+      _id: targetUser._id,
+      username: targetUser.username,
+      displayName: targetUser.displayName,
+      profilePic: targetUser.profilePic
+    };
+    
+    const filtered = recentSearches.filter(s => {
+      if (typeof s === 'string') return s !== targetUser.username;
+      return s._id !== targetUser._id;
+    });
+
+    const updated = [userObj, ...filtered].slice(0, 5);
     setRecentSearches(updated);
     localStorage.setItem('orbit_recent_searches', JSON.stringify(updated));
 
     // Clear search and open conversation
     setSearchQuery('');
     setIsFocused(false);
-    accessChat(targetUser._id);
+    navigate(`/user-profile/${targetUser._id}`);
   };
 
   const removeRecentSearch = (e, q) => {
     e.stopPropagation();
-    const updated = recentSearches.filter(s => s !== q);
+    const updated = recentSearches.filter(s => {
+      if (typeof s === 'string') return s !== q;
+      return s._id !== q._id;
+    });
     setRecentSearches(updated);
     localStorage.setItem('orbit_recent_searches', JSON.stringify(updated));
   };
@@ -423,24 +440,43 @@ export default function ChatList({ activeChat, setActiveChat }) {
                   <p className="text-xs text-on-surface-variant/70 italic">No recent searches</p>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {recentSearches.map((q) => (
-                      <div 
-                        key={q}
-                        onClick={() => { setSearchQuery(q); searchUsers(q); }}
-                        className="flex items-center justify-between p-3 bg-surface-container-low hover:bg-surface-container-high rounded-xl cursor-pointer transition-colors"
-                      >
-                        <div className="flex items-center gap-3 text-xs font-semibold">
-                          <Clock size={14} className="text-on-surface-variant" />
-                          <span>@{q}</span>
-                        </div>
-                        <button 
-                          onClick={(e) => removeRecentSearch(e, q)}
-                          className="p-1 hover:text-red-500 transition-colors cursor-pointer"
+                    {recentSearches.map((q, idx) => {
+                      const isObj = typeof q === 'object' && q !== null;
+                      const displayUsername = isObj ? q.username : q;
+                      return (
+                        <div 
+                          key={idx}
+                          onClick={() => { 
+                            if (isObj) {
+                              navigate(`/user-profile/${q._id}`);
+                            } else {
+                              setSearchQuery(displayUsername); 
+                              searchUsers(displayUsername); 
+                            }
+                          }}
+                          className="flex items-center justify-between p-3 bg-surface-container-low hover:bg-surface-container-high rounded-xl cursor-pointer transition-colors"
                         >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    ))}
+                          <div className="flex items-center gap-3 text-xs font-semibold">
+                            {isObj ? (
+                              <img 
+                                src={q.profilePic || `https://ui-avatars.com/api/?name=${q.displayName}`} 
+                                alt={q.username} 
+                                className="w-8 h-8 rounded-full object-cover shadow-sm" 
+                              />
+                            ) : (
+                              <Clock size={14} className="text-on-surface-variant" />
+                            )}
+                            <span>@{displayUsername}</span>
+                          </div>
+                          <button 
+                            onClick={(e) => removeRecentSearch(e, q)}
+                            className="p-1 hover:text-red-500 transition-colors cursor-pointer"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
