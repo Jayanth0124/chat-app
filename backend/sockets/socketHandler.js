@@ -23,11 +23,13 @@ export const handleSockets = (io) => {
       try {
         await User.findByIdAndUpdate(userData._id, { isOnline: true });
 
-        // Notify all friends this user is now online (if they allow it)
+        // Broadcast status based on privacy
         const user = await User.findById(userData._id).populate('friends', '_id');
-        if (user?.friends && user.privacySettings?.onlineStatus !== false) {
+        const onlineStatusLevel = user?.privacySettings?.onlineStatus || 'nobody';
+        
+        if (onlineStatusLevel === 'specific_friends' && user?.friends) {
           user.friends.forEach((friend) => {
-            io.to(friend._id.toString()).emit('friendStatusUpdate', {
+            io.to(friend._id.toString()).emit('userStatusUpdate', {
               userId: userData._id.toString(),
               isOnline: true,
               lastSeen: new Date()
@@ -170,9 +172,11 @@ export const handleSockets = (io) => {
         await User.findByIdAndUpdate(socket.userId, { isOnline: false, lastSeen });
 
         const user = await User.findById(socket.userId).populate('friends', '_id');
-        if (user?.friends && user.privacySettings?.onlineStatus !== false) {
+        const onlineStatusLevel = user?.privacySettings?.onlineStatus || 'nobody';
+        
+        if (onlineStatusLevel === 'specific_friends' && user?.friends) {
           user.friends.forEach((friend) => {
-            io.to(friend._id.toString()).emit('friendStatusUpdate', {
+            io.to(friend._id.toString()).emit('userStatusUpdate', {
               userId: socket.userId.toString(),
               isOnline: false,
               lastSeen

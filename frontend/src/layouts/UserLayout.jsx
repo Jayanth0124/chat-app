@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import UserSidebar from '../components/UserSidebar';
-import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Volume2, VolumeX, PhoneOff, PhoneIncoming, Check, Loader2, Bell, Trash2, ShieldAlert, UserPlus, UserCheck, Bug, HelpCircle, Inbox, CheckCircle2 } from 'lucide-react';
+import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Volume2, VolumeX, PhoneOff, PhoneIncoming, Check, Loader2, Bell, Trash2, ShieldAlert, UserPlus, UserCheck, Bug, HelpCircle, Inbox, CheckCircle2, Video, VideoOff, SwitchCamera, Bluetooth, Maximize } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 import { useChatStore } from '../store/useChatStore';
@@ -10,6 +10,7 @@ import { useFriendStore } from '../store/useFriendStore';
 import { axiosInstance } from '../lib/axios';
 import toast from 'react-hot-toast';
 import ManageFriends from '../components/ManageFriends';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function UserLayout() {
   const location = useLocation();
@@ -28,46 +29,41 @@ export default function UserLayout() {
 
   // Audio/Video controls for active call
   const [isMuted, setIsMuted] = useState(false);
-  const [isSpeakerOn, setIsSpeakerOn] = useState(true);
+  const [isSpeakerOn, setIsSpeakerOn] = useState(false); // Default false per requirements
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+  const [isFrontCamera, setIsFrontCamera] = useState(true);
+  const [showControls, setShowControls] = useState(true);
+  
   const [callDuration, setCallDuration] = useState(0);
   const callTimerRef = useState(null);
+  const controlsTimeoutRef = useRef(null);
 
   const { socket, selectedChat, chats, setSelectedChat, accessChat } = useChatStore();
-  const { notifications, clearAll, removeNotification, markAllRead, unreadCount } = useNotificationStore();
+  const { unreadCount } = useNotificationStore();
 
-  const handleNotificationClick = (notif) => {
-    // 1. Close drawer
-    setNotificationsOpen(false);
+  // WebRTC Setup
+  const pcRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const remoteAudioRef = useRef(null);
+  
+  const [localStream, setLocalStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
 
-    // 3. Action based on type
-    if (notif.type === 'message' && notif.chatId) {
-      const chat = chats.find((c) => c._id === notif.chatId);
-      if (chat) {
-        setSelectedChat(chat);
-      } else if (notif.from) {
-        accessChat(notif.from);
-      }
-      navigate('/');
-    } else if (notif.type === 'friendRequest' || notif.type === 'friendAccepted') {
-      setManageFriendsOpen(true);
-    } else if (notif.type === 'system') {
-      setActiveAnnouncement({
-        title: notif.title,
-        body: notif.body,
-        createdAt: notif.createdAt || new Date().toISOString()
-      });
-    }
-  };
+  const activeCallRef = useRef(activeCall);
+  const incomingCallRef = useRef(incomingCall);
+  const isMutedRef = useRef(isMuted);
+  const isVideoEnabledRef = useRef(isVideoEnabled);
 
-  // Fetch notifications on mount
+  useEffect(() => { activeCallRef.current = activeCall; }, [activeCall]);
+  useEffect(() => { incomingCallRef.current = incomingCall; }, [incomingCall]);
+  useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
+  useEffect(() => { isVideoEnabledRef.current = isVideoEnabled; }, [isVideoEnabled]);
+
+  // Fetch notifications and call history on mount
   useEffect(() => {
     useNotificationStore.getState().fetchNotifications();
     fetchCallHistory();
   }, []);
-
-  const latestMissedCall = callHistory.find(c => c.status === 'missed' && c.caller?._id !== user?._id);
-  const lastViewedCallsAt = localStorage.getItem('orbit_last_viewed_calls');
-  const hasMissedCalls = latestMissedCall && (!lastViewedCallsAt || new Date(latestMissedCall.createdAt) > new Date(lastViewedCallsAt));
 
   // Update last viewed time when visiting /calls
   useEffect(() => {
@@ -76,18 +72,19 @@ export default function UserLayout() {
     }
   }, [location.pathname]);
 
-  // WebRTC Audio Connection Setup
-  const pcRef = useRef(null);
-  const localStreamRef = useRef(null);
-  const remoteAudioRef = useRef(null);
+  // Handle auto-hiding controls for video calls
+  const resetControlsTimeout = () => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    if (activeCall?.type === 'video' && activeCall?.status === 'connected') {
+      controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 3000);
+    }
+  };
 
-  const activeCallRef = useRef(activeCall);
-  const incomingCallRef = useRef(incomingCall);
-  const isMutedRef = useRef(isMuted);
-
-  useEffect(() => { activeCallRef.current = activeCall; }, [activeCall]);
-  useEffect(() => { incomingCallRef.current = incomingCall; }, [incomingCall]);
-  useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
+  useEffect(() => {
+    resetControlsTimeout();
+    return () => clearTimeout(controlsTimeoutRef.current);
+  }, [activeCall?.status, activeCall?.type]);
 
   // Handle hidden audio player lifecycle
   useEffect(() => {
@@ -123,15 +120,21 @@ export default function UserLayout() {
         localStreamRef.current.getTracks().forEach(track => track.stop());
       } catch (e) {}
       localStreamRef.current = null;
+      setLocalStream(null);
     }
     if (remoteAudioRef.current) {
       remoteAudioRef.current.srcObject = null;
     }
+    setRemoteStream(null);
   };
 
   useEffect(() => {
     if (!activeCall) {
       cleanupWebRTC();
+      setIsSpeakerOn(false); // Reset speaker preference
+    } else {
+      setIsVideoEnabled(activeCall.type === 'video');
+      // If video call, speaker should typically be on, but user requested device default.
     }
   }, [activeCall]);
 
@@ -144,13 +147,63 @@ export default function UserLayout() {
   }, [isMuted]);
 
   useEffect(() => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getVideoTracks().forEach(track => {
+        track.enabled = isVideoEnabled;
+      });
+    }
+  }, [isVideoEnabled]);
+
+  const toggleCamera = async () => {
+    const newMode = !isFrontCamera;
+    setIsFrontCamera(newMode);
+    
+    if (localStreamRef.current && isVideoEnabled) {
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: newMode ? 'user' : 'environment' } 
+        });
+        const newVideoTrack = newStream.getVideoTracks()[0];
+        
+        const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
+        if (oldVideoTrack) {
+          localStreamRef.current.removeTrack(oldVideoTrack);
+          oldVideoTrack.stop();
+        }
+        
+        localStreamRef.current.addTrack(newVideoTrack);
+        setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+
+        if (pcRef.current) {
+          const sender = pcRef.current.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (sender) {
+            sender.replaceTrack(newVideoTrack);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to switch camera:', err);
+      }
+    }
+  };
+
+  const getMediaStream = async (type) => {
+    const constraints = {
+      audio: true,
+      video: type === 'video' ? { facingMode: isFrontCamera ? 'user' : 'environment' } : false
+    };
+    return await navigator.mediaDevices.getUserMedia(constraints);
+  };
+
+  useEffect(() => {
     if (activeCall?.status === 'connected') {
       const startWebRTC = async () => {
         try {
           cleanupWebRTC();
           
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const stream = await getMediaStream(activeCall.type);
           localStreamRef.current = stream;
+          setLocalStream(stream);
+
           stream.getAudioTracks().forEach(track => {
             track.enabled = !isMutedRef.current;
           });
@@ -172,6 +225,7 @@ export default function UserLayout() {
             if (remoteAudioRef.current) {
               remoteAudioRef.current.srcObject = event.streams[0];
             }
+            setRemoteStream(event.streams[0]);
           };
 
           pc.onicecandidate = (event) => {
@@ -196,7 +250,7 @@ export default function UserLayout() {
           }
         } catch (err) {
           console.error('Failed to get media devices or start WebRTC:', err);
-          toast.error('Could not access microphone');
+          toast.error('Could not access media devices');
         }
       };
 
@@ -213,8 +267,9 @@ export default function UserLayout() {
           if (!pcRef.current) {
             let stream = localStreamRef.current;
             if (!stream) {
-              stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+              stream = await getMediaStream(activeCallRef.current?.type || 'voice');
               localStreamRef.current = stream;
+              setLocalStream(stream);
               stream.getAudioTracks().forEach(track => {
                 track.enabled = !isMutedRef.current;
               });
@@ -237,6 +292,7 @@ export default function UserLayout() {
               if (remoteAudioRef.current) {
                 remoteAudioRef.current.srcObject = event.streams[0];
               }
+              setRemoteStream(event.streams[0]);
             };
 
             pc.onicecandidate = (event) => {
@@ -275,13 +331,9 @@ export default function UserLayout() {
     };
 
     socket.on('webrtc:signal', handleWebRTCSignal);
-
-    return () => {
-      socket.off('webrtc:signal', handleWebRTCSignal);
-    };
+    return () => socket.off('webrtc:signal', handleWebRTCSignal);
   }, [socket]);
 
-  // Fetch real call history from API
   const fetchCallHistory = async () => {
     setCallHistoryLoading(true);
     try {
@@ -294,10 +346,6 @@ export default function UserLayout() {
     }
   };
 
-  // All socket events (incoming, answered, rejected, ended) are now handled directly 
-  // by useChatStore manipulating useLayoutStore state to avoid React listener race conditions.
-
-  // Start/stop call timer when call status changes
   useEffect(() => {
     if (activeCall?.status === 'connected') {
       setCallDuration(0);
@@ -311,7 +359,6 @@ export default function UserLayout() {
 
   const formatDuration = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
-  // Accept an incoming call
   const handleAcceptCall = () => {
     if (!incomingCall) return;
     setActiveCall({
@@ -327,14 +374,17 @@ export default function UserLayout() {
     if (socket) socket.emit('call:answer', { to: incomingCall.callerId, callId: incomingCall.callId });
   };
 
-  // Reject an incoming call
   const handleRejectCall = () => {
     if (!incomingCall) return;
     if (socket) socket.emit('call:reject', { to: incomingCall.callerId, callId: incomingCall.callId });
+    if (incomingCall.callId) {
+      try {
+        axiosInstance.patch(`/calls/${incomingCall.callId}`, { status: 'rejected', duration: 0 });
+      } catch (e) {}
+    }
     setIncomingCall(null);
   };
 
-  // End the active call
   const handleEndCall = async () => {
     if (!activeCall) return;
     const otherId = activeCall.receiverId;
@@ -345,11 +395,11 @@ export default function UserLayout() {
         duration: callDuration
       });
     }
-    // Update call record in DB
     if (activeCall.callId) {
       try {
+        const finalStatus = activeCall.status === 'connected' ? 'completed' : 'missed';
         await axiosInstance.patch(`/calls/${activeCall.callId}`, {
-          status: 'completed',
+          status: finalStatus,
           duration: callDuration
         });
       } catch (e) {}
@@ -357,107 +407,42 @@ export default function UserLayout() {
     setActiveCall(null);
   };
 
-  // Call back from history
-  const handleCallBack = async (call) => {
-    // Determine the other party
-    const other = call.caller?._id === user?._id ? call.receiver : call.caller;
-    if (!other) return;
-    toast(`Calling ${other.displayName}...`, { icon: '📞' });
-    try {
-      const res = await axiosInstance.post('/calls', {
-        receiverId: other._id,
-        type: 'voice'
-      });
-      const callRecord = res.data;
-      setActiveCall({
-        callId: callRecord._id,
-        name: other.displayName,
-        pic: other.profilePic,
-        type: 'voice',
-        status: 'dialing',
-        receiverId: other._id,
-        direction: 'outgoing'
-      });
-      if (socket) {
-        socket.emit('call:offer', {
-          to: other._id,
-          callData: {
-            callId: callRecord._id,
-            callerId: user._id,
-            callerName: user.displayName,
-            callerPic: user.profilePic,
-            type: 'voice'
-          }
-        });
-      }
-    } catch (e) {
-      console.error('Error initiating call back:', e);
-    }
-  };
-
   return (
     <div className="relative h-screen w-full flex flex-col md:flex-row overflow-hidden font-sans bg-black text-on-surface">
-      {/* Desktop Sidebar (Hidden on mobile) */}
       <div className="hidden md:block h-full relative z-50">
         <UserSidebar />
       </div>
 
-      {/* Main Content */}
       <main className="flex-1 h-full relative flex flex-col overflow-hidden bg-transparent">
         <Outlet />
       </main>
 
-      {/* Mobile Bottom Navigation Bar */}
       <div className={`md:hidden flex justify-around items-center bg-surface border-t border-outline-variant/60 px-2 py-1 shrink-0 pb-safe ${
         location.pathname === '/' && selectedChat ? 'hidden' : 'flex'
       }`}>
-        <button 
-          onClick={() => navigate('/')} 
-          className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/' ? 'text-primary' : 'text-on-surface-variant/80'}`}
-        >
+        <button onClick={() => navigate('/')} className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
           <MessageSquare size={20} />
           <span className="text-[10px] font-semibold">Chats</span>
         </button>
-
-        <button 
-          onClick={() => navigate('/calls')} 
-          className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/calls' ? 'text-primary' : 'text-on-surface-variant/80'}`}
-        >
+        <button onClick={() => navigate('/calls')} className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/calls' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
           <Phone size={20} />
           <span className="text-[10px] font-semibold">Calls</span>
         </button>
-
-        <button 
-          onClick={() => navigate('/friends')}
-          className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/friends' ? 'text-primary' : 'text-on-surface-variant/80'}`}
-        >
+        <button onClick={() => navigate('/friends')} className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/friends' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
           <Users size={20} />
           <span className="text-[10px] font-semibold">Friends</span>
         </button>
-
-        <button 
-          onClick={() => navigate('/profile')}
-          className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/profile' ? 'text-primary' : 'text-on-surface-variant/80'}`}
-        >
+        <button onClick={() => navigate('/profile')} className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/profile' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
           <User size={20} />
           <span className="text-[10px] font-semibold">Profile</span>
         </button>
-
-        <button 
-          onClick={() => navigate('/activity')}
-          className={`relative flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/activity' ? 'text-primary' : 'text-on-surface-variant/80'}`}
-        >
+        <button onClick={() => navigate('/activity')} className={`relative flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/activity' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
           <Bell size={20} />
-          {unreadCount > 0 && (
-            <span className="absolute top-1 right-2 w-3 h-3 bg-primary rounded-full border-2 border-surface"></span>
-          )}
+          {unreadCount > 0 && <span className="absolute top-1 right-2 w-3 h-3 bg-primary rounded-full border-2 border-surface"></span>}
           <span className="text-[10px] font-semibold">Activity</span>
         </button>
       </div>
 
-
-
-      {/* GLOBAL OVERLAY 3: LOGOUT CONFIRMATION MODAL */}
       {isLogoutOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-sm p-4">
           <div className="w-full max-w-sm bg-surface rounded-2xl border border-outline-variant/60 shadow-2xl overflow-hidden p-6 text-center animate-in zoom-in-95 duration-200">
@@ -467,138 +452,270 @@ export default function UserLayout() {
             <h3 className="text-lg font-bold mb-2">Sign Out</h3>
             <p className="text-sm text-on-surface-variant mb-6">Are you sure you want to log out of your Orbit session?</p>
             <div className="flex gap-3">
-              <button 
-                onClick={() => setLogoutOpen(false)}
-                className="flex-1 py-2.5 rounded-xl border border-outline-variant hover:bg-surface-container-low transition-colors font-semibold text-sm cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={() => {
-                  setLogoutOpen(false);
-                  logout();
-                }}
-                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition-colors shadow-md shadow-red-500/10 cursor-pointer"
-              >
-                Sign Out
-              </button>
+              <button onClick={() => setLogoutOpen(false)} className="flex-1 py-2.5 rounded-xl border border-outline-variant hover:bg-surface-container-low transition-colors font-semibold text-sm cursor-pointer">Cancel</button>
+              <button onClick={() => { setLogoutOpen(false); logout(); }} className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition-colors shadow-md shadow-red-500/10 cursor-pointer">Sign Out</button>
             </div>
           </div>
         </div>
       )}
 
+      {/* GLOBAL OVERLAY 4: CALL OVERLAY (VOICE & VIDEO) */}
+      <AnimatePresence>
+        {activeCall && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-0 z-[60] bg-[#0A0A0E] text-white overflow-hidden flex flex-col"
+            onMouseMove={resetControlsTimeout}
+            onTouchStart={resetControlsTimeout}
+          >
+            {/* Deep Space Background / Video Layer */}
+            <div className="absolute inset-0 z-0">
+              {activeCall.type === 'video' && activeCall.status === 'connected' && remoteStream ? (
+                <video 
+                  autoPlay 
+                  playsInline 
+                  ref={(node) => { if (node) node.srcObject = remoteStream; }} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#1B1143] via-[#0A0A0E] to-black">
+                  {/* Subtle stardust animation could go here */}
+                </div>
+              )}
+            </div>
 
-
-      {/* GLOBAL OVERLAY 4: CALL DIALING/CONNECTED OVERLAY */}
-      {activeCall && (
-        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-between bg-neutral-900 text-white p-12 transition-all duration-300">
-          {/* Top Status */}
-          <div className="text-center">
-            <span className="text-xs uppercase tracking-widest text-neutral-400 font-bold">
-              {activeCall.status === 'dialing' ? 'Dialing...' : '📞 Connected'}
-            </span>
-            <h3 className="text-3xl font-black mt-2">{activeCall.name}</h3>
-            {activeCall.status === 'connected' && (
-              <p className="text-neutral-400 font-mono text-lg mt-1">{formatDuration(callDuration)}</p>
+            {/* Draggable Local Video Preview (Picture in Picture) */}
+            {activeCall.type === 'video' && activeCall.status === 'connected' && localStream && isVideoEnabled && (
+              <motion.div 
+                drag
+                dragConstraints={{ top: 20, left: 20, right: window.innerWidth - 140, bottom: window.innerHeight - 200 }}
+                className="absolute z-40 w-28 h-40 md:w-40 md:h-56 bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/20 cursor-grab active:cursor-grabbing top-safe right-4 mt-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <video 
+                  autoPlay 
+                  playsInline 
+                  muted 
+                  ref={(node) => { if (node) node.srcObject = localStream; }} 
+                  className="w-full h-full object-cover"
+                />
+              </motion.div>
             )}
-            <p className="text-sm text-neutral-500 mt-1">Orbit Encrypted Connection</p>
-          </div>
 
-          {/* Center Avatar */}
-          <div className="relative">
-            {activeCall.pic ? (
-              <img src={activeCall.pic} alt={activeCall.name} className="w-32 h-32 rounded-full object-cover border-4 border-primary/40" />
-            ) : (
-              <div className="w-32 h-32 rounded-full border-4 border-primary/40 bg-neutral-800 flex items-center justify-center text-4xl font-black uppercase text-primary">
-                {activeCall.name?.[0]}
+            {/* Call Header / Info Layer */}
+            <AnimatePresence>
+              {(showControls || activeCall.status !== 'connected') && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="relative z-30 flex flex-col items-center pt-safe mt-12 px-6"
+                >
+                  <div className="text-center bg-black/30 backdrop-blur-md px-6 py-4 rounded-3xl border border-white/10 shadow-2xl">
+                    <span className="text-[10px] tracking-[0.3em] text-[#A084FF] font-bold uppercase block mb-2">
+                      {activeCall.status === 'dialing' ? 'Establishing Link...' : 'Orbit Encrypted Connection'}
+                    </span>
+                    <h3 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 drop-shadow-md">
+                      {activeCall.name}
+                    </h3>
+                    {activeCall.status === 'connected' && (
+                      <p className="text-white/70 font-mono text-xl mt-2 tracking-widest">{formatDuration(callDuration)}</p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Voice Call specific Avatar Ring */}
+            {activeCall.type === 'voice' && (
+              <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                <div className="relative">
+                  {/* Orbit Rings */}
+                  {activeCall.status === 'connected' && (
+                    <>
+                      <div className="absolute inset-0 rounded-full border border-[#8C6DF0]/40 animate-[spin_4s_linear_infinite] scale-[1.3] pointer-events-none" />
+                      <div className="absolute inset-0 rounded-full border border-[#8C6DF0]/30 animate-[spin_6s_linear_infinite_reverse] scale-[1.7] pointer-events-none" />
+                      <div className="absolute inset-0 rounded-full border border-[#8C6DF0]/15 animate-[spin_8s_linear_infinite] scale-[2.2] pointer-events-none" />
+                    </>
+                  )}
+                  {activeCall.status === 'dialing' && (
+                    <div className="absolute -inset-8 rounded-full bg-[#8C6DF0]/30 animate-ping pointer-events-none" />
+                  )}
+                  {/* Avatar */}
+                  {activeCall.pic ? (
+                    <img src={activeCall.pic} alt={activeCall.name} className="w-40 h-40 rounded-full object-cover border-[3px] border-[#8C6DF0]/50 shadow-[0_0_60px_rgba(140,109,240,0.4)]" />
+                  ) : (
+                    <div className="w-40 h-40 rounded-full border-[3px] border-[#8C6DF0]/50 bg-black/60 backdrop-blur-md flex items-center justify-center text-6xl font-black uppercase text-[#8C6DF0] shadow-[0_0_60px_rgba(140,109,240,0.4)]">
+                      {activeCall.name?.[0]}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
-            {activeCall.status === 'dialing' && (
-              <div className="absolute -inset-4 rounded-full border border-primary/20 animate-ping"></div>
-            )}
-          </div>
 
-          {/* Action Panel */}
-          <div className="flex flex-col items-center gap-6 w-full max-w-xs">
-            <div className="flex justify-around w-full">
-              <button
-                onClick={() => setIsMuted(!isMuted)}
-                className={`p-4 rounded-full transition-all cursor-pointer ${
-                  isMuted ? 'bg-red-500 text-white' : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
-                }`}
-              >
-                {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
-              </button>
-              <button
-                onClick={() => setIsSpeakerOn(!isSpeakerOn)}
-                className={`p-4 rounded-full transition-all cursor-pointer ${
-                  isSpeakerOn ? 'bg-primary text-white' : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
-                }`}
-                title="Speaker Mode"
-              >
-                {isSpeakerOn ? <Volume2 size={22} /> : <VolumeX size={22} />}
-              </button>
-            </div>
-            <button
-              onClick={handleEndCall}
-              className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-red-600/10 transition-colors cursor-pointer"
-            >
-              <PhoneOff size={20} /> End Call
-            </button>
-          </div>
-        </div>
-      )}
+            {/* Bottom Controls */}
+            <AnimatePresence>
+              {(showControls || activeCall.status !== 'connected') && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 50 }}
+                  className="absolute bottom-0 left-0 right-0 z-30 pb-safe mb-8 px-6"
+                >
+                  <div className="max-w-md mx-auto bg-black/40 backdrop-blur-xl border border-white/10 p-6 rounded-[2.5rem] shadow-2xl flex flex-col gap-6">
+                    <div className="flex justify-between items-center px-4">
+                      {/* Audio/Video Toggles */}
+                      <div className="flex flex-col items-center gap-2">
+                        <button
+                          onClick={() => setIsMuted(!isMuted)}
+                          className={`w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-lg ${
+                            isMuted ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'
+                          }`}
+                        >
+                          {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
+                        </button>
+                        <span className="text-[10px] font-bold tracking-wider uppercase text-white/50">{isMuted ? 'Muted' : 'Mic'}</span>
+                      </div>
+                      
+                      {activeCall.type === 'video' ? (
+                        <>
+                          <div className="flex flex-col items-center gap-2">
+                            <button
+                              onClick={() => setIsVideoEnabled(!isVideoEnabled)}
+                              className={`w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-lg ${
+                                !isVideoEnabled ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'
+                              }`}
+                            >
+                              {!isVideoEnabled ? <VideoOff size={24} /> : <Video size={24} />}
+                            </button>
+                            <span className="text-[10px] font-bold tracking-wider uppercase text-white/50">Camera</span>
+                          </div>
+                          
+                          {isVideoEnabled && (
+                            <div className="flex flex-col items-center gap-2 hidden md:flex">
+                              <button
+                                className={`w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all flex items-center justify-center shadow-lg`}
+                              >
+                                <Maximize size={24} />
+                              </button>
+                              <span className="text-[10px] font-bold tracking-wider uppercase text-white/50">Full</span>
+                            </div>
+                          )}
 
+                          {isVideoEnabled && (
+                            <div className="flex flex-col items-center gap-2">
+                              <button
+                                onClick={toggleCamera}
+                                className={`w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all flex items-center justify-center shadow-lg`}
+                              >
+                                <SwitchCamera size={24} />
+                              </button>
+                              <span className="text-[10px] font-bold tracking-wider uppercase text-white/50">Flip</span>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2">
+                          <button
+                            className={`w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all flex items-center justify-center shadow-lg`}
+                          >
+                            <Bluetooth size={24} />
+                          </button>
+                          <span className="text-[10px] font-bold tracking-wider uppercase text-white/50">Audio</span>
+                        </div>
+                      )}
+                    </div>
 
+                    <button
+                      onClick={handleEndCall}
+                      className="w-full py-5 bg-[#FF3B30] hover:bg-[#FF453A] text-white font-black uppercase tracking-widest rounded-full flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(255,59,48,0.4)] transition-all active:scale-95"
+                    >
+                      <PhoneOff size={22} /> End Connection
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* GLOBAL OVERLAY 7: FULL SCREEN INCOMING CALL */}
-      {incomingCall && !activeCall && (
-        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-between bg-neutral-900/95 backdrop-blur-xl text-white p-12 transition-all duration-300">
-          <div className="text-center mt-12 animate-in slide-in-from-top duration-500">
-            <span className="text-sm tracking-[0.2em] text-neutral-400 font-bold uppercase animate-pulse">
-              Incoming {incomingCall.type === 'video' ? 'Video' : 'Voice'} Call
-            </span>
-            <h3 className="text-4xl font-black mt-4 drop-shadow-lg">{incomingCall.callerName}</h3>
-            <p className="text-base text-neutral-400 mt-2">Orbit Encrypted Connection</p>
-          </div>
+      <AnimatePresence>
+        {incomingCall && !activeCall && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] flex flex-col items-center justify-between bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#1B1143] via-[#0A0A0E] to-black text-white p-8 md:p-12"
+          >
+            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm pointer-events-none" />
 
-          <div className="relative my-8">
-            {incomingCall.callerPic ? (
-              <img src={incomingCall.callerPic} alt={incomingCall.callerName} className="w-40 h-40 rounded-full object-cover border-4 border-green-500 shadow-[0_0_50px_rgba(34,197,94,0.3)] z-10 relative" />
-            ) : (
-              <div className="w-40 h-40 rounded-full border-4 border-green-500 bg-neutral-800 flex items-center justify-center text-5xl font-black uppercase text-green-500 shadow-[0_0_50px_rgba(34,197,94,0.3)] z-10 relative">
-                {incomingCall.callerName?.[0]}
+            <div className="relative z-10 text-center mt-12 md:mt-20">
+              <span className={`text-xs md:text-sm tracking-[0.3em] font-black uppercase animate-pulse drop-shadow-[0_0_10px_rgba(140,109,240,0.8)] ${incomingCall.type === 'video' ? 'text-[#0A84FF]' : 'text-[#8C6DF0]'}`}>
+                Incoming {incomingCall.type === 'video' ? 'Video' : 'Voice'} Transmission
+              </span>
+              <h3 className="text-4xl md:text-6xl font-black mt-6 text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 drop-shadow-2xl">
+                {incomingCall.callerName}
+              </h3>
+              <p className="text-sm text-white/50 mt-4 tracking-widest font-mono">Orbit Encrypted Network</p>
+            </div>
+
+            <div className="relative z-10 my-8 flex-1 flex items-center justify-center w-full">
+              <div className="relative">
+                {incomingCall.callerPic ? (
+                  <img src={incomingCall.callerPic} alt={incomingCall.callerName} className={`w-48 h-48 md:w-64 md:h-64 object-cover border-4 z-10 relative ${incomingCall.type === 'video' ? 'rounded-3xl border-[#0A84FF] shadow-[0_0_80px_rgba(10,132,255,0.4)]' : 'rounded-full border-[#8C6DF0] shadow-[0_0_80px_rgba(140,109,240,0.4)]'}`} />
+                ) : (
+                  <div className={`w-48 h-48 md:w-64 md:h-64 border-4 bg-black/60 backdrop-blur-md flex items-center justify-center text-7xl font-black uppercase z-10 relative ${incomingCall.type === 'video' ? 'rounded-3xl border-[#0A84FF] text-[#0A84FF] shadow-[0_0_80px_rgba(10,132,255,0.4)]' : 'rounded-full border-[#8C6DF0] text-[#8C6DF0] shadow-[0_0_80px_rgba(140,109,240,0.4)]'}`}>
+                    {incomingCall.callerName?.[0]}
+                  </div>
+                )}
+                
+                {/* Ripple effects */}
+                {incomingCall.type === 'voice' ? (
+                  <>
+                    <div className="absolute inset-0 rounded-full border-2 border-[#8C6DF0]/60 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                    <div className="absolute inset-0 rounded-full border-4 border-[#8C6DF0]/30 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite] delay-150" />
+                    <div className="absolute inset-0 rounded-full border-[8px] border-[#8C6DF0]/10 animate-[ping_4s_cubic-bezier(0,0,0.2,1)_infinite] delay-300" />
+                  </>
+                ) : (
+                  <>
+                    <div className="absolute inset-0 rounded-3xl border-2 border-[#0A84FF]/60 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                    <div className="absolute inset-0 rounded-3xl border-4 border-[#0A84FF]/30 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite] delay-150" />
+                  </>
+                )}
               </div>
-            )}
-            
-            {/* Ripple effect */}
-            <div className="absolute inset-0 rounded-full border-4 border-green-500/40 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-green-500/20 animate-[ping_2.5s_cubic-bezier(0,0,0.2,1)_infinite] delay-300"></div>
-          </div>
+            </div>
 
-          <div className="flex gap-12 mb-12 animate-in slide-in-from-bottom duration-500 w-full justify-center">
-            <div className="flex flex-col items-center gap-2">
-              <button
-                onClick={handleRejectCall}
-                className="w-16 h-16 bg-red-600 hover:bg-red-500 text-white rounded-full flex items-center justify-center shadow-[0_10px_25px_rgba(220,38,38,0.5)] transition-all transform hover:scale-110 active:scale-95 cursor-pointer"
-              >
-                <PhoneOff size={28} />
-              </button>
-              <span className="text-xs font-bold text-neutral-400">Decline</span>
+            <div className="relative z-10 flex gap-10 md:gap-20 mb-12 md:mb-20 w-full justify-center">
+              <div className="flex flex-col items-center gap-4">
+                <button
+                  onClick={handleRejectCall}
+                  className="w-20 h-20 md:w-24 md:h-24 bg-black/40 border border-[#FF3B30]/30 hover:bg-[#FF3B30]/20 text-[#FF3B30] rounded-full flex items-center justify-center backdrop-blur-xl shadow-[0_0_40px_rgba(255,59,48,0.2)] transition-all transform hover:scale-105 active:scale-95"
+                >
+                  <PhoneOff size={32} />
+                </button>
+                <span className="text-[11px] font-black tracking-widest text-white/50 uppercase">Decline</span>
+              </div>
+              
+              <div className="flex flex-col items-center gap-4">
+                <button
+                  onClick={handleAcceptCall}
+                  className={`w-20 h-20 md:w-24 md:h-24 text-white rounded-full flex items-center justify-center transition-all transform hover:scale-105 active:scale-95 animate-bounce ${incomingCall.type === 'video' ? 'bg-[#0A84FF] hover:bg-[#1E90FF] shadow-[0_0_50px_rgba(10,132,255,0.5)]' : 'bg-[#34C759] hover:bg-[#32D74B] shadow-[0_0_50px_rgba(52,199,89,0.5)]'}`}
+                  style={{ animationDuration: '2s' }}
+                >
+                  {incomingCall.type === 'video' ? <Video size={32} /> : <Phone size={32} />}
+                </button>
+                <span className={`text-[11px] font-black tracking-widest uppercase ${incomingCall.type === 'video' ? 'text-[#0A84FF]' : 'text-[#34C759]'}`}>Accept</span>
+              </div>
             </div>
-            
-            <div className="flex flex-col items-center gap-2">
-              <button
-                onClick={handleAcceptCall}
-                className="w-16 h-16 bg-green-500 hover:bg-green-400 text-white rounded-full flex items-center justify-center shadow-[0_10px_25px_rgba(34,197,94,0.5)] transition-all transform hover:scale-110 active:scale-95 animate-bounce cursor-pointer"
-              >
-                <Phone size={28} />
-              </button>
-              <span className="text-xs font-bold text-neutral-400">Accept</span>
-            </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* GLOBAL OVERLAY 8: MANAGE FRIENDS DRAWER */}
       {isManageFriendsOpen && <ManageFriends />}

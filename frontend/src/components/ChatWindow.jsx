@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import chatWindowBg from '../assets/images/chat-window.jpg';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, MoreHorizontal, CheckCheck, Check, Phone, Play, Pause, FileText, Search, Image as ImageIcon, Clock, MonitorPlay, Download, StopCircle, X, ChevronUp, ChevronDown, Eye } from 'lucide-react';
+import { ArrowLeft, MoreHorizontal, CheckCheck, Check, Phone, Video, Play, Pause, FileText, Search, Image as ImageIcon, Clock, MonitorPlay, Download, StopCircle, X, ChevronUp, ChevronDown, Eye } from 'lucide-react';
 import ChatInput from './ChatInput';
 import Select from './ui/Select';
 import { useChatStore } from '../store/useChatStore';
@@ -348,6 +348,10 @@ export default function ChatWindow({ onBack }) {
           
           <button onClick={() => triggerCall('voice')} className="p-2 hover:bg-white/10 rounded-md transition-colors cursor-pointer text-white/50 hover:text-white" title="Voice Channel">
             <Phone size={18} />
+          </button>
+          
+          <button onClick={() => triggerCall('video')} className="p-2 hover:bg-white/10 rounded-md transition-colors cursor-pointer text-white/50 hover:text-white" title="Video Channel">
+            <Video size={18} />
           </button>
           
           <div className="relative">

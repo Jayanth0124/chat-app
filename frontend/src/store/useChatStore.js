@@ -204,8 +204,8 @@ export const useChatStore = create((set, get) => ({
     });
 
     // ── Online status ─────────────────────────────────────────────────────
-    socket.on('friendStatusUpdate', ({ userId, isOnline, lastSeen }) => {
-      const { chats, selectedChat } = get();
+    socket.on('userStatusUpdate', ({ userId, isOnline, lastSeen }) => {
+      const { chats, selectedChat, users } = get();
 
       const updateParticipants = (participants) =>
         participants.map((p) =>
@@ -227,7 +227,58 @@ export const useChatStore = create((set, get) => ({
         };
       }
 
-      set({ chats: updatedChats, selectedChat: updatedSelectedChat });
+      const updatedUsers = users.map(u => 
+        (u._id === userId || u._id?.toString() === userId)
+          ? { ...u, isOnline, lastSeen }
+          : u
+      );
+
+      set({ chats: updatedChats, selectedChat: updatedSelectedChat, users: updatedUsers });
+    });
+
+    // ── Privacy Settings Updated ──────────────────────────────────────────
+    socket.on('privacySettingsUpdated', ({ userId, onlineStatus, isOnline, lastSeen }) => {
+      const { chats, selectedChat, users } = get();
+
+      // Similar to userStatusUpdate, but we might need to hide them if they chose 'nobody'.
+      // Actually, if we just use the provided 'isOnline' and 'lastSeen', it assumes the backend
+      // already calculated if we can see them. Wait, the backend emits `privacySettingsUpdated` globally
+      // with `isOnline: user.isOnline` (their actual state).
+      // The frontend needs to determine if *we* can see them.
+      // But since the user might be looking at their profile, we just refetch users for simplicity,
+      // or just apply an offline state to them if their new status is 'nobody'.
+      // For now, doing a full refresh of users/chats is safer if privacy changes.
+      // Or just let it update the list. We'll simply set them offline locally.
+      
+      const newIsOnline = onlineStatus === 'nobody' ? false : isOnline;
+
+      const updateParticipants = (participants) =>
+        participants.map((p) =>
+          (p._id === userId || p._id?.toString() === userId)
+            ? { ...p, isOnline: newIsOnline, lastSeen }
+            : p
+        );
+
+      const updatedChats = chats.map((c) => ({
+        ...c,
+        participants: updateParticipants(c.participants)
+      }));
+
+      let updatedSelectedChat = selectedChat;
+      if (selectedChat) {
+        updatedSelectedChat = {
+          ...selectedChat,
+          participants: updateParticipants(selectedChat.participants)
+        };
+      }
+
+      const updatedUsers = users.map(u => 
+        (u._id === userId || u._id?.toString() === userId)
+          ? { ...u, isOnline: newIsOnline, lastSeen }
+          : u
+      );
+
+      set({ chats: updatedChats, selectedChat: updatedSelectedChat, users: updatedUsers });
     });
 
     // ── Profile Updates ───────────────────────────────────────────────────

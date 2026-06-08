@@ -10,6 +10,7 @@ import Broadcast from '../models/Broadcast.js';
 import Notification from '../models/Notification.js';
 import Setting from '../models/Setting.js';
 import UsernameChangeRequest from '../models/UsernameChangeRequest.js';
+import Call from '../models/Call.js';
 import { sendPushNotification } from '../utils/webPush.js';
 
 export const getDashboardStats = async (req, res) => {
@@ -22,12 +23,14 @@ export const getDashboardStats = async (req, res) => {
     const bannedUsers = await User.countDocuments({ status: 'banned' });
     const totalChats = await Chat.countDocuments();
 
-    // Count friend requests
     const friendRequestsRes = await User.aggregate([
       { $project: { count: { $size: { $ifNull: ["$friendRequests", []] } } } },
       { $group: { _id: null, total: { $sum: "$count" } } }
     ]);
     const friendRequests = friendRequestsRes[0]?.total || 0;
+
+    const totalVoiceCalls = await Call.countDocuments({ type: 'voice' });
+    const totalVideoCalls = await Call.countDocuments({ type: 'video' });
 
     res.status(200).json({
       totalUsers,
@@ -37,7 +40,9 @@ export const getDashboardStats = async (req, res) => {
       friendRequests,
       reportsSubmitted,
       bannedUsers,
-      totalChats
+      totalChats,
+      totalVoiceCalls,
+      totalVideoCalls
     });
   } catch (error) {
     console.log("Error in getDashboardStats:", error);
@@ -585,12 +590,26 @@ export const updateUsernameRequest = async (req, res) => {
     const request = await UsernameChangeRequest.findById(id).populate('userId');
     if (!request) return res.status(404).json({ message: "Request not found" });
 
+    if (request.status !== 'pending') {
+      return res.status(400).json({ message: "Request has already been processed" });
+    }
+
     request.status = status;
+    request.approvedBy = req.user.displayName;
+    
+    let additional = 0;
+    if (status === 'approved') {
+      additional = parseInt(grantedChanges);
+      if (isNaN(additional) || additional < 1) {
+        return res.status(400).json({ message: "Must provide a valid number of granted changes" });
+      }
+      request.grantedChanges = additional;
+    }
+    
     if (adminNotes) request.adminNotes = adminNotes;
     await request.save();
 
     if (status === 'approved') {
-      const additional = parseInt(grantedChanges) || 3;
       await User.findByIdAndUpdate(request.userId._id, {
         $inc: { maxUsernameChanges: additional }
       });
@@ -612,6 +631,7 @@ export const updateUsernameRequest = async (req, res) => {
         title: 'Username Request Update',
         message: `Your request to change username to ${request.requestedUsername} was ${status}. ${adminNotes ? 'Admin Note: ' + adminNotes : ''}`
       });
+      req.io.to(request.userId._id.toString()).emit('usernameLimitsUpdated');
     }
 
     res.status(200).json({ message: `Request marked as ${status}`, request });

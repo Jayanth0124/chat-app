@@ -16,7 +16,7 @@ export default function UsernameRequests() {
 
   // Review Modal State
   const [adminNotes, setAdminNotes] = useState('');
-  const [grantedChanges, setGrantedChanges] = useState('3');
+  const [grantedChanges, setGrantedChanges] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -266,14 +266,14 @@ export default function UsernameRequests() {
                     <div className="flex flex-col sm:flex-row items-center gap-4">
                       <div className="w-full sm:w-1/3">
                         <label className="block text-xs font-bold text-on-surface-variant mb-1 ml-1">Grant Changes</label>
-                        <Select 
+                        <input
+                          type="number"
+                          min="1"
+                          max="1000"
                           value={grantedChanges}
-                          onChange={(val) => setGrantedChanges(val)}
-                          options={[
-                            { value: '1', label: '+1 Change' },
-                            { value: '3', label: '+3 Changes (Default)' },
-                            { value: '5', label: '+5 Changes' },
-                          ]}
+                          onChange={(e) => setGrantedChanges(e.target.value)}
+                          className="w-full px-4 py-3 bg-surface-container-lowest border-2 border-outline-variant/30 rounded-xl text-sm font-bold text-on-surface focus:outline-none focus:border-primary transition-colors"
+                          placeholder="e.g. 5"
                         />
                       </div>
                       
@@ -300,7 +300,15 @@ export default function UsernameRequests() {
                 <div className="flex-shrink-0 p-6 bg-surface border-t border-outline-variant/20">
                   <div className="p-4 rounded-2xl bg-surface-container border border-outline-variant/10">
                     <p className="text-sm font-bold text-on-surface mb-1">
-                      This request was <span className={selectedRequest.status === 'approved' ? 'text-green-500' : 'text-red-500'}>{selectedRequest.status}</span>.
+                      This request was <span className={selectedRequest.status === 'approved' ? 'text-green-500' : 'text-red-500'}>{selectedRequest.status}</span>
+                      {selectedRequest.status === 'approved' && selectedRequest.grantedChanges > 0 && (
+                        <span> granting <span className="text-primary">+{selectedRequest.grantedChanges} Changes</span></span>
+                      )}
+                      {selectedRequest.approvedBy && (
+                        <span className="text-on-surface-variant font-medium text-xs ml-2 border border-outline-variant/20 px-2 py-0.5 rounded-full bg-surface-container-lowest">
+                          by {selectedRequest.approvedBy}
+                        </span>
+                      )}
                     </p>
                     {selectedRequest.adminNotes && (
                       <p className="text-sm text-on-surface-variant mt-2 p-3 bg-surface-container-lowest rounded-xl italic">

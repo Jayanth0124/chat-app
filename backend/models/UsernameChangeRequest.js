@@ -29,6 +29,14 @@ const usernameChangeRequestSchema = new mongoose.Schema({
   adminNotes: {
     type: String,
     default: '',
+  },
+  grantedChanges: {
+    type: Number,
+    default: 0,
+  },
+  approvedBy: {
+    type: String,
+    default: '',
   }
 }, { timestamps: true });
 

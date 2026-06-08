@@ -21,13 +21,33 @@ export const getUsersForSidebar = async (req, res) => {
     const filteredUsers = await User.find(query).select("-password");
     
     const loggedInUser = await User.findById(loggedInUserId);
-    const myOnlineStatusEnabled = loggedInUser?.privacySettings?.onlineStatus !== false;
+    const myOnlineStatusLevel = loggedInUser?.privacySettings?.onlineStatus || 'nobody';
 
     const sanitizedUsers = filteredUsers.map(u => {
       const userObj = u.toObject();
-      const userOnlineStatusEnabled = u.privacySettings?.onlineStatus !== false;
+      const userOnlineStatusLevel = u.privacySettings?.onlineStatus || 'nobody';
 
-      if (!myOnlineStatusEnabled || !userOnlineStatusEnabled) {
+      // Determine relationship
+      const idA = loggedInUserId.toString();
+      const idB = u._id.toString();
+      const isFriend = loggedInUser.friends.map(id => id.toString()).includes(idB) && 
+                       u.friends.map(id => id.toString()).includes(idA);
+
+      // Check if user allows me to see their status
+      let canSeeThem = true;
+      if (userOnlineStatusLevel === 'nobody') canSeeThem = false;
+      if (userOnlineStatusLevel === 'specific_friends') {
+        const allowedList = u.privacySettings?.onlineStatusAllowed || [];
+        if (!allowedList.map(id => id.toString()).includes(idA)) {
+          canSeeThem = false;
+        }
+      }
+
+      // Check if I allow myself to broadcast my status (if I hide my status from everyone, maybe I can still see others? Actually, usually if you hide your status, you can't see others, but user prompt says:
+      // "Nobody: Hide online state from everyone. Hide last seen from everyone."
+      // The prompt didn't explicitly mention bidirectional restriction like WhatsApp. I'll just apply the rule based on their setting.
+
+      if (!canSeeThem) {
         userObj.isOnline = false;
         delete userObj.lastSeen;
       }
@@ -131,6 +151,9 @@ export const changeUsername = async (req, res) => {
       return res.status(400).json({ message: "This username is reserved by another account and cannot be claimed." });
     }
 
+    if (!user.previousUsernames) {
+      user.previousUsernames = [];
+    }
     user.previousUsernames.push(user.username);
     const oldUsername = user.username;
     user.username = cleanUsername;
@@ -174,23 +197,32 @@ export const getUserById = async (req, res) => {
     }
 
     const loggedInUser = await User.findById(req.user._id);
-    const myOnlineStatusEnabled = loggedInUser?.privacySettings?.onlineStatus !== false;
     const userObj = user.toObject();
-    const userOnlineStatusEnabled = user.privacySettings?.onlineStatus !== false;
+    
+    const idA = req.user._id.toString();
+    const idB = user._id.toString();
+    
+    const isFriendMe = loggedInUser.friends.map(id => id.toString()).includes(idB);
+    const isFriendOther = user.friends.map(id => id.toString()).includes(idA);
+    const isFriend = isFriendMe && isFriendOther;
 
-    if (!myOnlineStatusEnabled || !userOnlineStatusEnabled) {
+    const userOnlineStatusLevel = user.privacySettings?.onlineStatus || 'nobody';
+    let canSeeThem = true;
+    if (userOnlineStatusLevel === 'nobody') canSeeThem = false;
+    if (userOnlineStatusLevel === 'specific_friends') {
+      const allowedList = user.privacySettings?.onlineStatusAllowed || [];
+      if (!allowedList.map(id => id.toString()).includes(idA)) {
+        canSeeThem = false;
+      }
+    }
+
+    if (!canSeeThem) {
       userObj.isOnline = false;
       delete userObj.lastSeen;
     }
 
-    const idA = req.user._id.toString();
-    const idB = user._id.toString();
-
     const isBlockedByMe = loggedInUser.blockedUsers.map(id => id.toString()).includes(idB);
     const isBlockedByOther = user.blockedUsers.map(id => id.toString()).includes(idA);
-
-    const isFriendMe = loggedInUser.friends.map(id => id.toString()).includes(idB);
-    const isFriendOther = user.friends.map(id => id.toString()).includes(idA);
 
     let relationship = 'NONE';
     if (isBlockedByMe) {
@@ -215,8 +247,11 @@ export const getUserById = async (req, res) => {
     userObj.relationship = relationship;
 
     if (relationship !== 'FRIEND') {
-      userObj.isOnline = false;
-      delete userObj.lastSeen;
+      // already handled online visibility above, but we can re-evaluate if relationship isn't friend and setting is 'specific_friends'
+      if (userOnlineStatusLevel === 'specific_friends') {
+        userObj.isOnline = false;
+        delete userObj.lastSeen;
+      }
     }
 
     res.status(200).json(userObj);
@@ -267,33 +302,33 @@ export const getActiveBroadcasts = async (req, res) => {
 
 export const updatePrivacySettings = async (req, res) => {
   try {
-    const { readReceipts, onlineStatus } = req.body;
-    const userId = req.user._id;
+    const { readReceipts, onlineStatus, onlineStatusAllowed } = req.body;
+    const user = await User.findById(req.user._id);
 
-    const user = await User.findById(userId).populate('friends', '_id');
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (typeof readReceipts === 'boolean') {
+    if (readReceipts !== undefined) {
       user.privacySettings.readReceipts = readReceipts;
     }
     
     let onlineStatusChanged = false;
-    if (typeof onlineStatus === 'boolean' && user.privacySettings?.onlineStatus !== onlineStatus) {
+    if (onlineStatus !== undefined && user.privacySettings?.onlineStatus !== onlineStatus) {
       user.privacySettings.onlineStatus = onlineStatus;
+      onlineStatusChanged = true;
+    }
+    
+    if (onlineStatusAllowed !== undefined) {
+      user.privacySettings.onlineStatusAllowed = onlineStatusAllowed;
       onlineStatusChanged = true;
     }
 
     await user.save();
 
-    if (onlineStatusChanged && req.io && user.friends) {
-      user.friends.forEach((friend) => {
-        req.io.to(friend._id.toString()).emit('friendStatusUpdate', {
-          userId: user._id.toString(),
-          isOnline: onlineStatus ? user.isOnline : false,
-          lastSeen: user.lastActive || new Date()
-        });
+    if (onlineStatusChanged && req.io) {
+      // Broadcast the change immediately so clients update chat list/profile
+      req.io.emit('privacySettingsUpdated', {
+        userId: user._id.toString(),
+        onlineStatus: onlineStatus,
+        isOnline: user.isOnline,
+        lastSeen: user.lastActive || new Date()
       });
     }
 

@@ -100,7 +100,8 @@ const userSchema = new mongoose.Schema({
   }],
   privacySettings: {
     readReceipts: { type: Boolean, default: true },
-    onlineStatus: { type: Boolean, default: true }
+    onlineStatus: { type: String, enum: ['everyone', 'friends', 'specific_friends', 'nobody', 'true', 'false'], default: 'nobody' },
+    onlineStatusAllowed: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
   },
   socialLinks: {
     website: { type: String, default: "" },

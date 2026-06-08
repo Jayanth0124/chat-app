@@ -11,7 +11,9 @@ import {
   UserX, 
   ShieldCheck, 
   Loader2, 
-  RefreshCw 
+  RefreshCw,
+  Phone,
+  Video
 } from 'lucide-react';
 
 export default function Analytics() {
@@ -23,7 +25,9 @@ export default function Analytics() {
     friendRequests: 0,
     reportsSubmitted: 0,
     bannedUsers: 0,
-    totalChats: 0
+    totalChats: 0,
+    totalVoiceCalls: 0,
+    totalVideoCalls: 0
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -177,6 +181,32 @@ export default function Analytics() {
           <div className="mt-4">
             <span className="text-3xl font-black text-on-surface leading-none">{stats.totalChats}</span>
             <span className="text-[10px] text-on-surface-variant/70 font-semibold block mt-1">Active conversation rooms</span>
+          </div>
+        </div>
+
+        {/* Voice Calls */}
+        <div className="bg-surface border border-outline-variant/60 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[120px]">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-pink-500"></div>
+          <div className="flex justify-between items-start">
+            <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Voice Calls</h3>
+            <Phone size={16} className="text-pink-500" />
+          </div>
+          <div className="mt-4">
+            <span className="text-3xl font-black text-on-surface leading-none">{stats.totalVoiceCalls}</span>
+            <span className="text-[10px] text-on-surface-variant/70 font-semibold block mt-1">Total voice calls made</span>
+          </div>
+        </div>
+
+        {/* Video Calls */}
+        <div className="bg-surface border border-outline-variant/60 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[120px]">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-500"></div>
+          <div className="flex justify-between items-start">
+            <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Video Calls</h3>
+            <Video size={16} className="text-indigo-500" />
+          </div>
+          <div className="mt-4">
+            <span className="text-3xl font-black text-on-surface leading-none">{stats.totalVideoCalls}</span>
+            <span className="text-[10px] text-on-surface-variant/70 font-semibold block mt-1">Total video calls made</span>
           </div>
         </div>
       </div>
