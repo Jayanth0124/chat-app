@@ -12,6 +12,12 @@ export const handleSockets = (io) => {
       if (!userData || !userData._id) return;
       socket.join(userData._id);
       socket.userId = userData._id;
+      
+      // Join admin room if role is admin
+      if (userData.role === 'admin') {
+        socket.join('admins');
+      }
+      
       socket.emit('connected');
 
       try {

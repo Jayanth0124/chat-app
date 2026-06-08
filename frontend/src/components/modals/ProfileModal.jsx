@@ -32,6 +32,8 @@ export default function ProfileModal({ isOpen, onClose, user }) {
     ? new Date(user.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : '';
 
+  const activeSocials = Object.entries(user.socialLinks || {}).filter(([_, val]) => val && val.trim() !== '');
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -149,6 +151,25 @@ export default function ProfileModal({ isOpen, onClose, user }) {
                   <span>Role: {user.role === 'admin' ? 'Admin' : 'Orbit Member'}</span>
                 </div>
               </div>
+
+              {/* Social Links */}
+              {activeSocials.length > 0 && (
+                <div className="w-full mt-4">
+                  <div className="flex flex-wrap gap-2">
+                    {activeSocials.map(([platform, url]) => (
+                      <a 
+                        key={platform}
+                        href={url.startsWith('http') ? url : `https://${url}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 rounded-xl text-[11px] font-bold text-on-surface-variant flex items-center gap-1.5 transition-colors uppercase tracking-wider cursor-pointer"
+                      >
+                        {platform}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="w-full grid grid-cols-2 gap-2 mt-6">

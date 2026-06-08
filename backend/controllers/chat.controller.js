@@ -26,11 +26,14 @@ export const accessChat = async (req, res) => {
       return res.status(403).json({ message: "Cannot message banned users." });
     }
 
-    if (loggedInUser.blockedUsers.includes(userId) || recipient.blockedUsers.includes(loggedInUserId)) {
+    const isBlocked = loggedInUser.blockedUsers.map(id => id.toString()).includes(userId.toString()) || 
+                      recipient.blockedUsers.map(id => id.toString()).includes(loggedInUserId.toString());
+    if (isBlocked) {
       return res.status(403).json({ message: "Cannot message blocked users." });
     }
 
-    const areFriends = loggedInUser.friends.includes(userId) && recipient.friends.includes(loggedInUserId);
+    const areFriends = loggedInUser.friends.map(id => id.toString()).includes(userId.toString()) && 
+                       recipient.friends.map(id => id.toString()).includes(loggedInUserId.toString());
     if (!areFriends) {
       return res.status(403).json({ message: "You can only message accepted friends." });
     }
@@ -147,10 +150,12 @@ export const sendMessage = async (req, res) => {
       if (recipientUser.status === 'banned') {
         return res.status(403).json({ message: "Cannot message banned users." });
       }
-      if (senderUser.blockedUsers.includes(otherUser._id) || recipientUser.blockedUsers.includes(loggedInUserId)) {
+      if (senderUser.blockedUsers.map(id => id.toString()).includes(otherUser._id.toString()) || 
+          recipientUser.blockedUsers.map(id => id.toString()).includes(loggedInUserId.toString())) {
         return res.status(403).json({ message: "Cannot message blocked users." });
       }
-      const areFriends = senderUser.friends.includes(otherUser._id) && recipientUser.friends.includes(loggedInUserId);
+      const areFriends = senderUser.friends.map(id => id.toString()).includes(otherUser._id.toString()) && 
+                         recipientUser.friends.map(id => id.toString()).includes(loggedInUserId.toString());
       if (!areFriends) {
         return res.status(403).json({ message: "You can only message accepted friends." });
       }

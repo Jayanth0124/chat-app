@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import bcrypt from 'bcrypt';
 import generateToken from '../utils/generateToken.js';
 import SecurityLog from '../models/SecurityLog.js';
+import UsernameOwnership from '../models/UsernameOwnership.js';
 
 export const checkUsername = async (req, res) => {
   try {
@@ -10,7 +11,8 @@ export const checkUsername = async (req, res) => {
       return res.status(400).json({ available: false });
     }
     const existingUser = await User.findOne({ username: username.toLowerCase() });
-    res.status(200).json({ available: !existingUser });
+    const existingOwnership = await UsernameOwnership.findOne({ username: username.toLowerCase() });
+    res.status(200).json({ available: !existingUser && !existingOwnership });
   } catch (error) {
     console.error("Error in checkUsername controller:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -37,10 +39,11 @@ export const signup = async (req, res) => {
       return res.status(400).json({ message: "Email already exists" });
     }
 
-    // Check existing username
+    // Check existing username in User or Ownership
     const existingUsername = await User.findOne({ username: username.toLowerCase() });
-    if (existingUsername) {
-      return res.status(400).json({ message: "Username already exists" });
+    const existingOwnership = await UsernameOwnership.findOne({ username: username.toLowerCase() });
+    if (existingUsername || existingOwnership) {
+      return res.status(400).json({ message: "Username already exists or is reserved" });
     }
 
     // Hash password
@@ -56,6 +59,11 @@ export const signup = async (req, res) => {
 
     if (newUser) {
       await newUser.save();
+      
+      await UsernameOwnership.create({
+        userId: newUser._id,
+        username: newUser.username
+      });
       const token = generateToken(newUser._id, res);
 
       res.status(201).json({

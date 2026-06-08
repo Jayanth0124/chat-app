@@ -58,6 +58,10 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  maxUsernameChanges: {
+    type: Number,
+    default: 3
+  },
   previousUsernames: [{
     type: String
   }],
@@ -97,6 +101,15 @@ const userSchema = new mongoose.Schema({
   privacySettings: {
     readReceipts: { type: Boolean, default: true },
     onlineStatus: { type: Boolean, default: true }
+  },
+  socialLinks: {
+    website: { type: String, default: "" },
+    instagram: { type: String, default: "" },
+    twitter: { type: String, default: "" },
+    linkedin: { type: String, default: "" },
+    github: { type: String, default: "" },
+    youtube: { type: String, default: "" },
+    discord: { type: String, default: "" }
   }
 }, { timestamps: true });
 

@@ -13,6 +13,7 @@ import userRoutes from './routes/users.js';
 import chatRoutes from './routes/chat.js';
 import adminRoutes from './routes/admin.js';
 import callRoutes from './routes/calls.js';
+import supportRoutes from './routes/support.js';
 import cloudinary from './utils/cloudinary.js';
 
 dotenv.config();
@@ -52,6 +53,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/calls', callRoutes);
+app.use('/api/support', supportRoutes);
 
 app.get('/', (req, res) => {
   res.send('Chat App API is running...');
@@ -67,6 +69,27 @@ mongoose.connect(process.env.MONGODB_URI, {
 })
   .then(() => {
     console.log('Connected to MongoDB');
+
+    // Drop problematic unique indexes on support tickets and bug reports if they exist
+    mongoose.connection.once('open', async () => {
+      try {
+        const db = mongoose.connection.db;
+        try {
+          await db.collection('supporttickets').dropIndex('ticketId_1');
+          console.log('[INDEX] Dropped unique index ticketId_1 on supporttickets');
+        } catch (err) {
+          // ignore index-not-found errors
+        }
+        try {
+          await db.collection('bugreports').dropIndex('reportId_1');
+          console.log('[INDEX] Dropped unique index reportId_1 on bugreports');
+        } catch (err) {
+          // ignore index-not-found errors
+        }
+      } catch (e) {
+        console.error('Error dropping unique indexes:', e);
+      }
+    });
 
     // Periodic cleanup for expired messages and broadcasts (runs every 30 minutes)
     setInterval(async () => {

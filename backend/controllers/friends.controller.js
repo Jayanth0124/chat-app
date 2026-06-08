@@ -2,9 +2,86 @@ import User from '../models/User.js';
 import Chat from '../models/Chat.js';
 import Message from '../models/Message.js';
 
+/**
+ * Validates and sanitizes the relationship state between userA and userB to ensure mutual exclusivity.
+ * States can only be FRIEND, BLOCKED, PENDING_INCOMING, PENDING_OUTGOING, or NONE.
+ */
+export const validateAndSanitizeRelationship = async (userAId, userBId, io = null) => {
+  const userA = await User.findById(userAId);
+  const userB = await User.findById(userBId);
+  if (!userA || !userB) return;
+
+  const idA = userA._id.toString();
+  const idB = userB._id.toString();
+
+  const isBlockedByA = userA.blockedUsers.map(id => id.toString()).includes(idB);
+  const isBlockedByB = userB.blockedUsers.map(id => id.toString()).includes(idA);
+
+  if (isBlockedByA || isBlockedByB) {
+    // BLOCKED state overrides everything else. Remove friends and requests from both documents.
+    userA.friends = userA.friends.filter(id => id.toString() !== idB);
+    userA.friendRequests = userA.friendRequests.filter(id => id.toString() !== idB);
+    userA.sentRequests = userA.sentRequests.filter(id => id.toString() !== idB);
+
+    userB.friends = userB.friends.filter(id => id.toString() !== idA);
+    userB.friendRequests = userB.friendRequests.filter(id => id.toString() !== idA);
+    userB.sentRequests = userB.sentRequests.filter(id => id.toString() !== idA);
+  } else {
+    const isFriendA = userA.friends.map(id => id.toString()).includes(idB);
+    const isFriendB = userB.friends.map(id => id.toString()).includes(idA);
+
+    if (isFriendA && isFriendB) {
+      // FRIEND state: mutual friendship exists, clean up requests.
+      userA.friendRequests = userA.friendRequests.filter(id => id.toString() !== idB);
+      userA.sentRequests = userA.sentRequests.filter(id => id.toString() !== idB);
+
+      userB.friendRequests = userB.friendRequests.filter(id => id.toString() !== idA);
+      userB.sentRequests = userB.sentRequests.filter(id => id.toString() !== idA);
+    } else {
+      // Not mutual friends. Prune invalid one-sided friend entries.
+      if (isFriendA) {
+        userA.friends = userA.friends.filter(id => id.toString() !== idB);
+      }
+      if (isFriendB) {
+        userB.friends = userB.friends.filter(id => id.toString() !== idA);
+      }
+
+      // PENDING states
+      const isIncomingA = userA.friendRequests.map(id => id.toString()).includes(idB);
+      const isOutgoingA = userA.sentRequests.map(id => id.toString()).includes(idB);
+      const isIncomingB = userB.friendRequests.map(id => id.toString()).includes(idA);
+      const isOutgoingB = userB.sentRequests.map(id => id.toString()).includes(idA);
+
+      if (isIncomingA || isOutgoingB) {
+        // B sent request to A. Ensure incoming on A's side, outgoing on B's side.
+        userA.sentRequests = userA.sentRequests.filter(id => id.toString() !== idB);
+        if (!isIncomingA) userA.friendRequests.push(userB._id);
+
+        userB.friendRequests = userB.friendRequests.filter(id => id.toString() !== idA);
+        if (!isOutgoingB) userB.sentRequests.push(userA._id);
+      } else if (isOutgoingA || isIncomingB) {
+        // A sent request to B. Ensure outgoing on A's side, incoming on B's side.
+        userA.friendRequests = userA.friendRequests.filter(id => id.toString() !== idB);
+        if (!isOutgoingA) userA.sentRequests.push(userB._id);
+
+        userB.sentRequests = userB.sentRequests.filter(id => id.toString() !== idA);
+        if (!isIncomingB) userB.friendRequests.push(userA._id);
+      }
+    }
+  }
+
+  await userA.save();
+  await userB.save();
+
+  if (io) {
+    io.to(idA).emit('relationshipUpdated', { otherUserId: idB });
+    io.to(idB).emit('relationshipUpdated', { otherUserId: idA });
+  }
+};
+
 export const searchUsers = async (req, res) => {
   try {
-    const { q: query } = req.query; // frontend sends ?q=...
+    const { q: query } = req.query;
     const loggedInUserId = req.user._id;
 
     if (!query || !query.trim()) {
@@ -28,7 +105,6 @@ export const searchUsers = async (req, res) => {
       searchFilter.role = { $ne: 'admin' };
     }
 
-    // Search by username or displayName, case-insensitive, excluding blocked/banned/admin relationships
     const users = await User.find(searchFilter).select('username displayName profilePic');
 
     const queryLower = query.toLowerCase();
@@ -38,11 +114,9 @@ export const searchUsers = async (req, res) => {
       const aDisplayName = (a.displayName || '').toLowerCase();
       const bDisplayName = (b.displayName || '').toLowerCase();
 
-      // 1. Exact username match
       if (aUsername === queryLower && bUsername !== queryLower) return -1;
       if (bUsername === queryLower && aUsername !== queryLower) return 1;
 
-      // 2. Partial username match (starts with)
       const aStartsWith = aUsername.startsWith(queryLower);
       const bStartsWith = bUsername.startsWith(queryLower);
       if (aStartsWith && !bStartsWith) return -1;
@@ -53,7 +127,6 @@ export const searchUsers = async (req, res) => {
       if (aContains && !bContains) return -1;
       if (bContains && !aContains) return 1;
 
-      // 3. Display name match
       const aDNStartsWith = aDisplayName.startsWith(queryLower);
       const bDNStartsWith = bDisplayName.startsWith(queryLower);
       if (aDNStartsWith && !bDNStartsWith) return -1;
@@ -85,21 +158,27 @@ export const sendFriendRequest = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    if (sender.friends.includes(userId)) {
-      return res.status(400).json({ error: "Already friends" });
-    }
+    const isBlockedBySender = sender.blockedUsers.map(id => id.toString()).includes(userId);
+    const isBlockedByRecipient = recipient.blockedUsers.map(id => id.toString()).includes(loggedInUserId.toString());
 
-    if (sender.sentRequests.includes(userId)) {
-      return res.status(400).json({ error: "Request already sent" });
-    }
-
-    if (sender.blockedUsers.includes(userId) || recipient.blockedUsers.includes(loggedInUserId)) {
+    if (isBlockedBySender || isBlockedByRecipient) {
       return res.status(400).json({ error: "Cannot send friend request: user is blocked." });
     }
 
-    // Update recipient's friendRequests and sender's sentRequests
+    if (sender.friends.map(id => id.toString()).includes(userId)) {
+      return res.status(400).json({ error: "Already friends" });
+    }
+
+    if (sender.sentRequests.map(id => id.toString()).includes(userId)) {
+      return res.status(400).json({ error: "Request already sent" });
+    }
+
+    // Add friend requests
     await User.findByIdAndUpdate(userId, { $addToSet: { friendRequests: loggedInUserId } });
     await User.findByIdAndUpdate(loggedInUserId, { $addToSet: { sentRequests: userId } });
+
+    // Validate and clean up
+    await validateAndSanitizeRelationship(loggedInUserId, userId, req.io);
 
     // Emit real-time notification to recipient
     if (req.io) {
@@ -123,12 +202,19 @@ export const acceptFriendRequest = async (req, res) => {
     const loggedInUserId = req.user._id;
 
     const loggedInUser = await User.findById(loggedInUserId);
+    const otherUser = await User.findById(userId);
 
-    if (!loggedInUser.friendRequests.includes(userId)) {
+    if (!loggedInUser.friendRequests.map(id => id.toString()).includes(userId)) {
       return res.status(400).json({ error: "No friend request from this user" });
     }
 
-    // Add to friends, remove from requests
+    const isBlockedByMe = loggedInUser.blockedUsers.map(id => id.toString()).includes(userId);
+    const isBlockedByOther = otherUser.blockedUsers.map(id => id.toString()).includes(loggedInUserId.toString());
+    if (isBlockedByMe || isBlockedByOther) {
+      return res.status(400).json({ error: "Cannot accept: user is blocked" });
+    }
+
+    // Add to friends, remove request
     await User.findByIdAndUpdate(loggedInUserId, {
       $addToSet: { friends: userId },
       $pull: { friendRequests: userId }
@@ -138,6 +224,9 @@ export const acceptFriendRequest = async (req, res) => {
       $addToSet: { friends: loggedInUserId },
       $pull: { sentRequests: loggedInUserId }
     });
+
+    // Run resolver to make sure state is unified and consistent
+    await validateAndSanitizeRelationship(loggedInUserId, userId, req.io);
 
     // Emit real-time notification to the original sender
     if (req.io) {
@@ -160,7 +249,6 @@ export const rejectFriendRequest = async (req, res) => {
     const { userId } = req.params;
     const loggedInUserId = req.user._id;
 
-    // Remove from requests
     await User.findByIdAndUpdate(loggedInUserId, {
       $pull: { friendRequests: userId }
     });
@@ -168,6 +256,8 @@ export const rejectFriendRequest = async (req, res) => {
     await User.findByIdAndUpdate(userId, {
       $pull: { sentRequests: loggedInUserId }
     });
+
+    await validateAndSanitizeRelationship(loggedInUserId, userId, req.io);
 
     res.status(200).json({ message: "Friend request rejected" });
   } catch (error) {
@@ -181,7 +271,6 @@ export const getFriends = async (req, res) => {
     const loggedInUserId = req.user._id;
     const user = await User.findById(loggedInUserId).populate('friends', '-password');
     
-    // Privacy check
     const myOnlineStatusEnabled = user.privacySettings?.onlineStatus !== false;
     
     const sanitizedFriends = user.friends.map(friend => {
@@ -209,9 +298,25 @@ export const getPendingRequests = async (req, res) => {
       .populate('friendRequests', '-password')
       .populate('sentRequests', '-password');
       
+    // Sanitize incoming requests (they are not friends yet)
+    const sanitizedIncoming = user.friendRequests.map(reqUser => {
+      const u = reqUser.toObject();
+      u.isOnline = false;
+      delete u.lastSeen;
+      return u;
+    });
+
+    // Sanitize outgoing requests (they are not friends yet)
+    const sanitizedOutgoing = user.sentRequests.map(reqUser => {
+      const u = reqUser.toObject();
+      u.isOnline = false;
+      delete u.lastSeen;
+      return u;
+    });
+      
     res.status(200).json({
-      incoming: user.friendRequests,
-      outgoing: user.sentRequests
+      incoming: sanitizedIncoming,
+      outgoing: sanitizedOutgoing
     });
   } catch (error) {
     console.error("Error in getPendingRequests:", error);
@@ -224,7 +329,6 @@ export const removeFriend = async (req, res) => {
     const { userId } = req.params;
     const loggedInUserId = req.user._id;
 
-    // Remove each other from friends array and any pending requests
     await User.findByIdAndUpdate(loggedInUserId, {
       $pull: { friends: userId, friendRequests: userId, sentRequests: userId }
     });
@@ -232,6 +336,8 @@ export const removeFriend = async (req, res) => {
     await User.findByIdAndUpdate(userId, {
       $pull: { friends: loggedInUserId, friendRequests: loggedInUserId, sentRequests: loggedInUserId }
     });
+
+    await validateAndSanitizeRelationship(loggedInUserId, userId, req.io);
 
     // Find and delete the one-on-one chat between these two users
     const chat = await Chat.findOne({
@@ -244,14 +350,13 @@ export const removeFriend = async (req, res) => {
       await Message.deleteMany({ chat: chatId });
       await Chat.findByIdAndDelete(chatId);
 
-      // Notify both via socket so it immediately vanishes from their lists
       if (req.io) {
         req.io.to(loggedInUserId.toString()).emit('chatDeleted', { chatId });
         req.io.to(userId.toString()).emit('chatDeleted', { chatId });
       }
     }
 
-    res.status(200).json({ message: "Friend removed and conversation deleted successfully" });
+    res.status(200).json({ message: "Friend removed successfully" });
   } catch (error) {
     console.error("Error in removeFriend:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -263,15 +368,17 @@ export const blockUser = async (req, res) => {
     const { userId } = req.params;
     const loggedInUserId = req.user._id;
 
-    // Remove from friends and requests, add to blockedUsers
+    if (userId === loggedInUserId.toString()) {
+      return res.status(400).json({ error: "Cannot block yourself" });
+    }
+
+    // Add to blocked list
     await User.findByIdAndUpdate(loggedInUserId, {
-      $pull: { friends: userId, friendRequests: userId, sentRequests: userId },
       $addToSet: { blockedUsers: userId }
     });
-    
-    await User.findByIdAndUpdate(userId, {
-      $pull: { friends: loggedInUserId, friendRequests: loggedInUserId, sentRequests: loggedInUserId }
-    });
+
+    // Resolve relationship and delete old friendship/request traces
+    await validateAndSanitizeRelationship(loggedInUserId, userId, req.io);
 
     // Find and delete the one-on-one chat between these two users
     const chat = await Chat.findOne({
@@ -284,16 +391,44 @@ export const blockUser = async (req, res) => {
       await Message.deleteMany({ chat: chatId });
       await Chat.findByIdAndDelete(chatId);
 
-      // Notify both via socket so it immediately vanishes from their lists
       if (req.io) {
         req.io.to(loggedInUserId.toString()).emit('chatDeleted', { chatId });
         req.io.to(userId.toString()).emit('chatDeleted', { chatId });
       }
     }
 
-    res.status(200).json({ message: "User blocked and conversation deleted successfully" });
+    res.status(200).json({ message: "User blocked successfully" });
   } catch (error) {
     console.error("Error in blockUser:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const unblockUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const loggedInUserId = req.user._id;
+
+    await User.findByIdAndUpdate(loggedInUserId, {
+      $pull: { blockedUsers: userId }
+    });
+
+    await validateAndSanitizeRelationship(loggedInUserId, userId, req.io);
+
+    res.status(200).json({ message: "User unblocked successfully" });
+  } catch (error) {
+    console.error("Error in unblockUser:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getBlockedUsers = async (req, res) => {
+  try {
+    const loggedInUserId = req.user._id;
+    const user = await User.findById(loggedInUserId).populate('blockedUsers', 'username displayName profilePic');
+    res.status(200).json(user.blockedUsers || []);
+  } catch (error) {
+    console.error("Error in getBlockedUsers:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

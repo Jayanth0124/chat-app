@@ -17,7 +17,7 @@ const auditLogSchema = new mongoose.Schema({
   targetModel: {
     type: String,
     required: true,
-    enum: ['User', 'Chat', 'Message']
+    enum: ['User', 'Chat', 'Message', 'UsernameChangeRequest']
   },
   details: {
     type: String

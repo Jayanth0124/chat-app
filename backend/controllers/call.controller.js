@@ -31,6 +31,29 @@ export const createCall = async (req, res) => {
       return res.status(400).json({ error: 'receiverId and type are required' });
     }
 
+    const caller = await User.findById(callerId);
+    const receiver = await User.findById(receiverId);
+
+    if (!receiver) {
+      return res.status(404).json({ error: 'Receiver not found' });
+    }
+
+    if (receiver.status === 'banned') {
+      return res.status(403).json({ error: 'Cannot call banned users.' });
+    }
+
+    const isBlocked = caller.blockedUsers.map(id => id.toString()).includes(receiverId.toString()) ||
+                      receiver.blockedUsers.map(id => id.toString()).includes(callerId.toString());
+    if (isBlocked) {
+      return res.status(403).json({ error: 'Cannot call blocked users.' });
+    }
+
+    const areFriends = caller.friends.map(id => id.toString()).includes(receiverId.toString()) &&
+                       receiver.friends.map(id => id.toString()).includes(callerId.toString());
+    if (!areFriends) {
+      return res.status(403).json({ error: 'You can only call accepted friends.' });
+    }
+
     const call = await Call.create({
       caller: callerId,
       receiver: receiverId,

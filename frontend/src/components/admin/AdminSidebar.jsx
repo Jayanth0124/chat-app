@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, MessageSquare, AlertCircle, Shield, Activity, Bell, LogOut, Database, X } from 'lucide-react';
+import { LayoutDashboard, Users, MessageSquare, AlertCircle, Shield, Activity, Bell, LogOut, Database, X, LifeBuoy, Fingerprint } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 
@@ -50,6 +50,8 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
           <NavItem to="/admin/users" icon={<Users size={18} strokeWidth={2.5} />} label="Users" onClick={() => setIsOpen(false)} />
           <NavItem to="/admin/reports" icon={<AlertCircle size={18} strokeWidth={2.5} />} label="Reports" onClick={() => setIsOpen(false)} />
           <NavItem to="/admin/moderation" icon={<MessageSquare size={18} strokeWidth={2.5} />} label="Moderation" onClick={() => setIsOpen(false)} />
+          <NavItem to="/admin/support" icon={<LifeBuoy size={18} strokeWidth={2.5} />} label="Support Center" onClick={() => setIsOpen(false)} />
+          <NavItem to="/admin/username-requests" icon={<Fingerprint size={18} strokeWidth={2.5} />} label="Identity" onClick={() => setIsOpen(false)} />
           
           <p className="md:hidden lg:block text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-2 ml-2 mt-6">System</p>
           <NavItem to="/admin/database" icon={<Database size={18} strokeWidth={2.5} />} label="Database Usage" onClick={() => setIsOpen(false)} />

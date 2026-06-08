@@ -8,6 +8,7 @@ import Report from '../models/Report.js';
 import SecurityLog from '../models/SecurityLog.js';
 import Broadcast from '../models/Broadcast.js';
 import Setting from '../models/Setting.js';
+import UsernameChangeRequest from '../models/UsernameChangeRequest.js';
 import { sendPushNotification } from '../utils/webPush.js';
 
 export const getDashboardStats = async (req, res) => {
@@ -537,6 +538,66 @@ export const bulkDeleteMessagesByAdmin = async (req, res) => {
     res.status(200).json({ message: `Successfully deleted ${messageIds.length} messages` });
   } catch (error) {
     console.error("Error in bulkDeleteMessagesByAdmin:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getUsernameRequests = async (req, res) => {
+  try {
+    const requests = await UsernameChangeRequest.find()
+      .populate('userId', 'username displayName profilePic email')
+      .sort({ createdAt: -1 });
+    res.status(200).json(requests);
+  } catch (error) {
+    console.error("Error in getUsernameRequests:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const updateUsernameRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, adminNotes, grantedChanges } = req.body;
+
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: "Status must be approved or rejected" });
+    }
+
+    const request = await UsernameChangeRequest.findById(id).populate('userId');
+    if (!request) return res.status(404).json({ message: "Request not found" });
+
+    request.status = status;
+    if (adminNotes) request.adminNotes = adminNotes;
+    await request.save();
+
+    if (status === 'approved') {
+      const additional = parseInt(grantedChanges) || 3;
+      await User.findByIdAndUpdate(request.userId._id, {
+        $inc: { maxUsernameChanges: additional }
+      });
+    }
+
+    // Log admin audit
+    await AuditLog.create({
+      adminId: req.user._id,
+      action: status === 'approved' ? 'APPROVE_USERNAME_REQUEST' : 'REJECT_USERNAME_REQUEST',
+      targetId: request._id,
+      targetModel: 'UsernameChangeRequest',
+      details: `Admin ${status} username request for ${request.requestedUsername}. Notes: ${adminNotes || 'None'}`
+    });
+
+    // Notify user via socket
+    if (req.io) {
+      req.io.to(request.userId._id.toString()).emit('adminNotification', {
+        type: 'username_request',
+        title: 'Username Request Update',
+        message: `Your request to change username to ${request.requestedUsername} was ${status}. ${adminNotes ? 'Admin Note: ' + adminNotes : ''}`
+      });
+    }
+
+    res.status(200).json({ message: `Request marked as ${status}`, request });
+  } catch (error) {
+    console.error("Error in updateUsernameRequest:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

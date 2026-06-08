@@ -1,6 +1,6 @@
 import express from 'express';
 import { protectRoute } from '../middleware/auth.middleware.js';
-import { getUsersForSidebar, updateProfile, changeUsername, getUserById, getActiveBroadcasts, updatePrivacySettings } from '../controllers/user.controller.js';
+import { getUsersForSidebar, updateProfile, changeUsername, getUserById, getActiveBroadcasts, updatePrivacySettings, requestUsernameChange, getUsernameChangeRequests } from '../controllers/user.controller.js';
 import { getSettings } from '../controllers/admin.controller.js';
 import { 
   searchUsers, 
@@ -10,16 +10,21 @@ import {
   getFriends, 
   getPendingRequests,
   removeFriend,
-  blockUser
+  blockUser,
+  unblockUser,
+  getBlockedUsers
 } from '../controllers/friends.controller.js';
 
 const router = express.Router();
 
 router.get('/settings', protectRoute, getSettings);
 router.get('/', protectRoute, getUsersForSidebar);
+router.get('/blocked', protectRoute, getBlockedUsers);
 router.put('/profile', protectRoute, updateProfile);
 router.put('/update-profile', protectRoute, updateProfile);
 router.put('/change-username', protectRoute, changeUsername);
+router.post('/username-request', protectRoute, requestUsernameChange);
+router.get('/username-request', protectRoute, getUsernameChangeRequests);
 router.put('/privacy', protectRoute, updatePrivacySettings);
 router.get('/notifications/broadcasts', protectRoute, getActiveBroadcasts);
 // Friend System Routes
@@ -31,6 +36,7 @@ router.post('/accept/:userId', protectRoute, acceptFriendRequest);
 router.post('/reject/:userId', protectRoute, rejectFriendRequest);
 router.delete('/remove/:userId', protectRoute, removeFriend);
 router.post('/block/:userId', protectRoute, blockUser);
+router.post('/unblock/:userId', protectRoute, unblockUser);
 
 // Web Push Notification Routing
 import { getPublicKey } from '../utils/webPush.js';

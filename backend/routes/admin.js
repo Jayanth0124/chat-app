@@ -19,7 +19,9 @@ import {
   updateSetting,
   getDatabaseUsageStats,
   getUserConversationsByAdmin,
-  getConversationMessagesByAdmin
+  getConversationMessagesByAdmin,
+  getUsernameRequests,
+  updateUsernameRequest
 } from '../controllers/admin.controller.js';
 
 const router = express.Router();
@@ -46,5 +48,8 @@ router.get('/notifications/broadcast', getBroadcasts);
 router.delete('/notifications/broadcast/:id', deleteBroadcast);
 router.get('/settings', getSettings);
 router.post('/settings', updateSetting);
+
+router.get('/username-requests', getUsernameRequests);
+router.put('/username-requests/:id', updateUsernameRequest);
 
 export default router;

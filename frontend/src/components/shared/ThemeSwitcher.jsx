@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Check, Send, Sparkles } from 'lucide-react';
+import { Check, Send } from 'lucide-react';
+import jayanthPic from '../../assets/images/jayanth.jpg';
 
 const THEMES = [
   { id: 'deep-space', name: 'Deep Space', color: '#030712', border: '#6366F1' },
@@ -25,9 +26,6 @@ export default function ThemeSwitcher() {
       
       {/* Theme Selection Bento */}
       <div className="bg-surface p-6 sm:p-8 rounded-3xl border border-outline-variant/20 flex flex-col h-full relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none text-primary">
-          <Sparkles size={120} />
-        </div>
         <div className="relative z-10 mb-8">
           <h2 className="text-xl font-black text-on-surface tracking-tight mb-1">Color Systems</h2>
           <p className="text-sm font-medium text-on-surface-variant">Select your primary workspace aesthetic.</p>
@@ -79,7 +77,7 @@ export default function ThemeSwitcher() {
           <div className="h-[64px] bg-surface-container-lowest border-b border-outline-variant/30 px-4 sm:px-6 flex items-center gap-4 shrink-0">
             <div className="relative">
               <div className="w-10 h-10 rounded-full bg-surface-container-high border border-outline-variant/30 flex items-center justify-center overflow-hidden">
-                <img src="../images/jayanth.jpg" alt="Jayanth Chowdary" className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.parentElement.innerHTML = '<span class="text-primary font-bold">J</span>'; }} />
+                <img src={jayanthPic} alt="Jayanth Chowdary" className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.parentElement.innerHTML = '<span class="text-primary font-bold">J</span>'; }} />
               </div>
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-surface-container-lowest"></div>
             </div>

@@ -28,6 +28,8 @@ import SecurityCenter from './components/admin/SecurityCenter';
 import NotificationCenter from './components/admin/NotificationCenter';
 import ChatModeration from './components/admin/ChatModeration';
 import DatabaseUsage from './pages/admin/DatabaseUsage';
+import AdminSupportCenter from './pages/admin/SupportCenter';
+import UsernameRequests from './pages/admin/UsernameRequests';
 import InAppNotification from './components/InAppNotification';
 import ConfirmDialog from './components/ui/ConfirmDialog';
 import { subscribeUserToPush, unsubscribeUserFromPush } from './lib/pushSubscription';
@@ -242,6 +244,8 @@ export default function App() {
             <Route path="notifications" element={<NotificationCenter />} />
             <Route path="moderation" element={<ChatModeration />} />
             <Route path="database" element={<DatabaseUsage />} />
+            <Route path="support" element={<AdminSupportCenter />} />
+            <Route path="username-requests" element={<UsernameRequests />} />
           </Route>
         )}
 

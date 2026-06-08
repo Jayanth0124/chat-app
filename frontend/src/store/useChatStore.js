@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { useAuthStore } from './useAuthStore';
 import { useNotificationStore } from './useNotificationStore';
 import { useLayoutStore } from './useLayoutStore';
+import { useFriendStore } from './useFriendStore';
 
 export const useChatStore = create((set, get) => ({
   users: [],
@@ -122,12 +123,42 @@ export const useChatStore = create((set, get) => ({
           isPermanent: !!isPermanent,
           expiresAt
         });
-      toast(`📣 Announcement: ${message}`, { duration: 6000 });
     });
 
     socket.on('broadcastDeleted', ({ id }) => {
       const ns = useNotificationStore.getState();
       ns.removeNotification(id);
+    });
+
+    // ── Support / Bug Notifications ─────────────────────────────────────────
+    socket.on('ticketUpdated', ({ ticket, actionType, message }) => {
+      const ns = useNotificationStore.getState();
+      ns.addNotification({
+        id: `ticket-${ticket._id}-${Date.now()}`,
+        type: 'system',
+        title: `Ticket ${actionType}`,
+        body: message,
+      });
+    });
+
+    socket.on('bugUpdated', ({ bug, actionType, message }) => {
+      const ns = useNotificationStore.getState();
+      ns.addNotification({
+        id: `bug-${bug._id}-${Date.now()}`,
+        type: 'system',
+        title: `Bug Report ${actionType}`,
+        body: message,
+      });
+    });
+
+    socket.on('adminNotification', ({ type, title, message }) => {
+      const ns = useNotificationStore.getState();
+      ns.addNotification({
+        id: `admin-${Date.now()}`,
+        type: 'system',
+        title: title || 'Admin Alert',
+        body: message,
+      });
     });
 
     // ── Chat deleted ──────────────────────────────────────────────────────
@@ -199,6 +230,43 @@ export const useChatStore = create((set, get) => ({
       set({ chats: updatedChats, selectedChat: updatedSelectedChat });
     });
 
+    // ── Profile Updates ───────────────────────────────────────────────────
+    socket.on('userProfileUpdated', ({ userId, updatedData }) => {
+      const { chats, selectedChat, users } = get();
+
+      const updateParticipants = (participants) =>
+        participants.map((p) =>
+          (p._id === userId || p._id?.toString() === userId)
+            ? { ...p, ...updatedData }
+            : p
+        );
+
+      const updatedChats = chats.map((c) => ({
+        ...c,
+        participants: updateParticipants(c.participants)
+      }));
+
+      let updatedSelectedChat = selectedChat;
+      if (selectedChat) {
+        updatedSelectedChat = {
+          ...selectedChat,
+          participants: updateParticipants(selectedChat.participants)
+        };
+      }
+
+      const updatedUsers = users.map(u => 
+        (u._id === userId || u._id?.toString() === userId)
+          ? { ...u, ...updatedData }
+          : u
+      );
+
+      set({ chats: updatedChats, selectedChat: updatedSelectedChat, users: updatedUsers });
+      
+      // Also trigger a refresh of friend store if needed, by calling getFriends
+      // But we don't strictly need to do it forcefully, as users usually refresh the page 
+      // or we can import useFriendStore
+    });
+
     // ── Vanish mode changed ───────────────────────────────────────────────
     socket.on('vanishModeChanged', ({ chatId, vanishMode }) => {
       const { chats, selectedChat } = get();
@@ -220,7 +288,6 @@ export const useChatStore = create((set, get) => ({
         body: message || `${from?.displayName} sent you a friend request`,
         avatar: from?.profilePic,
       });
-      toast(`${from?.displayName} sent you a friend request`, { icon: '👋' });
     });
 
     socket.on('friendRequestAccepted', ({ from, message }) => {
@@ -230,7 +297,22 @@ export const useChatStore = create((set, get) => ({
         body: message || `${from?.displayName} accepted your friend request`,
         avatar: from?.profilePic,
       });
-      toast.success(`${from?.displayName} accepted your friend request`);
+    });
+
+    socket.on('relationshipUpdated', ({ otherUserId }) => {
+      // Refresh friends and requests list
+      useFriendStore.getState().getFriends();
+      useFriendStore.getState().getRequests();
+      
+      // Refresh chats list
+      get().fetchChats();
+      
+      // If the current chat is with this user, deselect it
+      const currentSelectedChat = get().selectedChat;
+      if (currentSelectedChat?.participants?.some(p => p._id === otherUserId || p._id?.toString() === otherUserId)) {
+        get().setSelectedChat(null);
+        toast.error('The conversation is no longer active.');
+      }
     });
 
     // ── Incoming call ─────────────────────────────────────────────────────

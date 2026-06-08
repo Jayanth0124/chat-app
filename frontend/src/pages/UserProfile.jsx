@@ -16,29 +16,51 @@ export default function UserProfile() {
   const [error, setError] = useState(null);
   const [isFullscreenDp, setIsFullscreenDp] = useState(false);
 
-  const { friends, outgoingRequests, sendRequest, removeFriend, blockUser, getFriends, getRequests } = useFriendStore();
-  const { accessChat } = useChatStore();
+  const { friends, outgoingRequests, sendRequest, acceptRequest, rejectRequest, removeFriend, blockUser, unblockUser, getFriends, getRequests } = useFriendStore();
+  const { accessChat, socket } = useChatStore();
   const { user } = useAuthStore();
 
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const res = await axiosInstance.get(`/users/${id}`);
-        setProfileUser(res.data);
-      } catch (err) {
-        console.error('Error fetching user profile:', err);
-        setError(err.response?.data?.message || 'Failed to load user profile');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchUserProfile = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const res = await axiosInstance.get(`/users/${id}`);
+      setProfileUser(res.data);
+    } catch (err) {
+      console.error('Error fetching user profile:', err);
+      setError(err.response?.data?.message || 'Failed to load user profile');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchUserProfile();
     getFriends();
     getRequests();
   }, [id, getFriends, getRequests]);
+
+  useEffect(() => {
+    const handleRelationshipUpdate = ({ otherUserId }) => {
+      if (otherUserId === id) {
+        axiosInstance.get(`/users/${id}`)
+          .then(res => setProfileUser(res.data))
+          .catch(err => console.error('Error refreshing profile:', err));
+        getFriends();
+        getRequests();
+      }
+    };
+    
+    if (socket) {
+      socket.on('relationshipUpdated', handleRelationshipUpdate);
+    }
+    
+    return () => {
+      if (socket) {
+        socket.off('relationshipUpdated', handleRelationshipUpdate);
+      }
+    };
+  }, [id, socket, getFriends, getRequests]);
 
   if (isLoading) {
     return (
@@ -77,12 +99,18 @@ export default function UserProfile() {
     );
   }
 
-  const isFriend = friends.some((f) => f._id === profileUser._id);
-  const requestSent = outgoingRequests.some((r) => r._id === profileUser._id);
+  const isFriend = profileUser.relationship === 'FRIEND';
+  const requestSent = profileUser.relationship === 'PENDING_OUTGOING';
+  const requestReceived = profileUser.relationship === 'PENDING_INCOMING';
   const isSelf = user?._id === profileUser._id;
+  const isYouBlocked = profileUser.relationship === 'YOU_BLOCKED';
+  const isBlockedYou = profileUser.relationship === 'BLOCKED_YOU';
+  const isAnyBlocked = isYouBlocked || isBlockedYou;
   
   // Privacy logic: if not friend and not self, profile details are restricted
-  const showFullProfile = isFriend || isSelf;
+  const showFullProfile = (isFriend || isSelf) && !isAnyBlocked;
+
+  const activeSocials = Object.entries(profileUser.socialLinks || {}).filter(([_, val]) => val && val.trim() !== '');
 
   const handleMessage = async () => {
     try {
@@ -119,7 +147,25 @@ export default function UserProfile() {
     if (confirmed) {
       await blockUser(profileUser._id);
       toast.success(`${profileUser.displayName} blocked successfully`);
-      navigate(-1);
+      // Refresh state
+      const res = await axiosInstance.get(`/users/${id}`);
+      setProfileUser(res.data);
+    }
+  };
+
+  const handleUnblock = async () => {
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Unblock User",
+      message: `Are you sure you want to unblock ${profileUser.displayName}?`,
+      confirmText: "Unblock",
+      danger: false
+    });
+    if (confirmed) {
+      await unblockUser(profileUser._id);
+      toast.success(`${profileUser.displayName} unblocked successfully`);
+      // Refresh state
+      const res = await axiosInstance.get(`/users/${id}`);
+      setProfileUser(res.data);
     }
   };
 
@@ -127,8 +173,33 @@ export default function UserProfile() {
     try {
       await sendRequest(profileUser._id);
       toast.success(`Friend request sent to ${profileUser.displayName}`);
+      // Refresh state
+      const res = await axiosInstance.get(`/users/${id}`);
+      setProfileUser(res.data);
     } catch (err) {
       console.error('Failed to send request:', err);
+    }
+  };
+
+  const handleAcceptRequest = async () => {
+    try {
+      await acceptRequest(profileUser._id);
+      toast.success(`You are now friends with ${profileUser.displayName}`);
+      const res = await axiosInstance.get(`/users/${id}`);
+      setProfileUser(res.data);
+    } catch (err) {
+      console.error('Failed to accept request:', err);
+    }
+  };
+
+  const handleRejectRequest = async () => {
+    try {
+      await rejectRequest(profileUser._id);
+      toast.success(`Friend request declined`);
+      const res = await axiosInstance.get(`/users/${id}`);
+      setProfileUser(res.data);
+    } catch (err) {
+      console.error('Failed to reject request:', err);
     }
   };
 
@@ -175,70 +246,105 @@ export default function UserProfile() {
                   />
                 </div>
                 {/* Active status indicator badge */}
-                <div 
-                  className={`absolute bottom-2 right-2 w-5.5 h-5.5 rounded-full border-[3px] border-surface flex items-center justify-center shadow-md ${
-                    profileUser.isOnline ? 'bg-green-500' : 'bg-neutral-500'
-                  }`}
-                  title={profileUser.isOnline ? 'Online' : 'Offline'}
-                >
-                  {profileUser.isOnline && <div className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />}
-                </div>
+                {!isAnyBlocked && (
+                  <div 
+                    className={`absolute bottom-2 right-2 w-5.5 h-5.5 rounded-full border-[3px] border-surface flex items-center justify-center shadow-md ${
+                      profileUser.isOnline ? 'bg-green-500' : 'bg-neutral-500'
+                    }`}
+                    title={profileUser.isOnline ? 'Online' : 'Offline'}
+                  >
+                    {profileUser.isOnline && <div className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />}
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons for Friends / Contacts */}
               <div className="flex flex-wrap gap-2.5 sm:mb-2">
-                {showFullProfile && !isSelf && (
-                  <button
-                    onClick={handleMessage}
-                    className="py-2.5 px-4 bg-primary hover:opacity-90 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md shadow-black/10 cursor-pointer active:scale-98 transition-all"
-                  >
-                    <MessageSquare size={13.5} />
-                    Send Message
-                  </button>
-                )}
-
                 {!isSelf && (
-                  isFriend ? (
-                    <button
-                      onClick={handleUnfriend}
-                      className="py-2.5 px-4 rounded-xl border border-outline-variant hover:bg-red-500/5 hover:border-red-500/15 text-red-500 hover:text-red-600 transition-all text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
-                    >
-                      <UserMinus size={13.5} />
-                      Unfriend
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleAddFriend}
-                      disabled={requestSent}
-                      className={`py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all active:scale-95 ${
-                        requestSent 
-                          ? 'bg-surface-container-low border border-outline-variant text-on-surface-variant/50 cursor-default'
-                          : 'bg-primary/10 text-primary hover:bg-primary/20 border border-primary/10'
-                      }`}
-                    >
-                      {requestSent ? (
-                        <>
-                          <UserCheck size={13.5} />
-                          Request Sent
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus size={13.5} />
-                          Add Friend
-                        </>
-                      )}
-                    </button>
-                  )
-                )}
+                  <>
+                    {/* Unblock button if we blocked them */}
+                    {isYouBlocked && (
+                      <button
+                        onClick={handleUnblock}
+                        className="py-2.5 px-4 rounded-xl bg-primary text-white hover:opacity-90 transition-all text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                      >
+                        <ShieldAlert size={13.5} />
+                        Unblock User
+                      </button>
+                    )}
 
-                {!isSelf && (
-                  <button
-                    onClick={handleBlock}
-                    className="py-2.5 px-4 rounded-xl bg-surface-container-low border border-outline-variant hover:bg-red-500/10 text-on-surface-variant hover:text-red-500 hover:border-red-500/20 transition-all text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
-                  >
-                    <ShieldAlert size={13.5} />
-                    Block User
-                  </button>
+                    {/* Interactive buttons only if neither party is blocked */}
+                    {!isAnyBlocked && (
+                      <>
+                        {isFriend && (
+                          <button
+                            onClick={handleMessage}
+                            className="py-2.5 px-4 bg-primary hover:opacity-90 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md shadow-black/10 cursor-pointer active:scale-98 transition-all"
+                          >
+                            <MessageSquare size={13.5} />
+                            Send Message
+                          </button>
+                        )}
+
+                        {isFriend ? (
+                          <button
+                            onClick={handleUnfriend}
+                            className="py-2.5 px-4 rounded-xl border border-outline-variant hover:bg-red-500/5 hover:border-red-500/15 text-red-500 hover:text-red-600 transition-all text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                          >
+                            <UserMinus size={13.5} />
+                            Unfriend
+                          </button>
+                        ) : requestReceived ? (
+                          <div className="flex gap-2 w-full sm:w-auto">
+                            <button
+                              onClick={handleAcceptRequest}
+                              className="flex-1 sm:flex-none py-2.5 px-4 bg-primary hover:opacity-90 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md shadow-black/10 cursor-pointer active:scale-98 transition-all"
+                            >
+                              <UserCheck size={13.5} />
+                              Accept Request
+                            </button>
+                            <button
+                              onClick={handleRejectRequest}
+                              className="py-2.5 px-4 rounded-xl border border-outline-variant hover:bg-surface-container-highest text-on-surface hover:text-red-500 transition-all text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                            >
+                              <X size={13.5} />
+                              Decline
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={handleAddFriend}
+                            disabled={requestSent}
+                            className={`py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all active:scale-95 ${
+                              requestSent 
+                                ? 'bg-surface-container-low border border-outline-variant text-on-surface-variant/50 cursor-default'
+                                : 'bg-primary/10 text-primary hover:bg-primary/20 border border-primary/10'
+                            }`}
+                          >
+                            {requestSent ? (
+                              <>
+                                <UserCheck size={13.5} />
+                                Request Sent
+                              </>
+                            ) : (
+                              <>
+                                <UserPlus size={13.5} />
+                                Add Friend
+                              </>
+                            )}
+                          </button>
+                        )}
+
+                        <button
+                          onClick={handleBlock}
+                          className="py-2.5 px-4 rounded-xl bg-surface-container-low border border-outline-variant hover:bg-red-500/10 text-on-surface-variant hover:text-red-500 hover:border-red-500/20 transition-all text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                        >
+                          <ShieldAlert size={13.5} />
+                          Block User
+                        </button>
+                      </>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -251,21 +357,23 @@ export default function UserProfile() {
               <p className="text-[13px] text-on-surface-variant/80 font-bold tracking-wide">@{profileUser.username}</p>
               
               <div className="pt-2 flex items-center gap-2 text-xs">
-                {profileUser.isOnline ? (
-                  <span className="text-green-600 dark:text-green-400 font-bold bg-green-500/10 px-3 py-0.5 rounded-full border border-green-500/10">
-                    Online Now
-                  </span>
-                ) : (
-                  <span 
-                    style={{ 
-                      backgroundColor: 'color-mix(in srgb, var(--outline-variant) 15%, transparent)',
-                      borderColor: 'color-mix(in srgb, var(--outline-variant) 10%, transparent)'
-                    }}
-                    className="text-on-surface-variant/70 font-semibold px-3 py-0.5 rounded-full border flex items-center gap-1"
-                  >
-                    <Clock size={11} className="text-primary" />
-                    {formattedLastSeen ? `Active at ${formattedLastSeen}` : 'Offline'}
-                  </span>
+                {!isAnyBlocked && (
+                  profileUser.isOnline ? (
+                    <span className="text-green-600 dark:text-green-400 font-bold bg-green-500/10 px-3 py-0.5 rounded-full border border-green-500/10">
+                      Online Now
+                    </span>
+                  ) : (
+                    <span 
+                      style={{ 
+                        backgroundColor: 'color-mix(in srgb, var(--outline-variant) 15%, transparent)',
+                        borderColor: 'color-mix(in srgb, var(--outline-variant) 10%, transparent)'
+                      }}
+                      className="text-on-surface-variant/70 font-semibold px-3 py-0.5 rounded-full border flex items-center gap-1"
+                    >
+                      <Clock size={11} className="text-primary" />
+                      {formattedLastSeen ? `Active at ${formattedLastSeen}` : 'Offline'}
+                    </span>
+                  )
                 )}
               </div>
             </div>
@@ -273,7 +381,21 @@ export default function UserProfile() {
             {/* Divider */}
             <hr className="w-full border-t border-outline-variant/30 my-6" />
 
-            {showFullProfile ? (
+            {isAnyBlocked ? (
+              <div className="w-full py-8 flex flex-col items-center justify-center text-center select-none bg-red-500/5 rounded-2xl border border-red-500/15">
+                <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mb-3 text-red-500">
+                  <ShieldAlert size={20} />
+                </div>
+                <h3 className="text-sm font-bold text-red-500">
+                  {isYouBlocked ? 'You Have Blocked This User' : 'Blocked User'}
+                </h3>
+                <p className="text-xs text-on-surface-variant/70 mt-1 max-w-[280px]">
+                  {isYouBlocked 
+                    ? 'Unblock this user if you wish to allow requests or messaging.' 
+                    : 'You cannot interact with this user.'}
+                </p>
+              </div>
+            ) : showFullProfile ? (
               <>
                 {/* Bio Section */}
                 <div 
@@ -292,7 +414,7 @@ export default function UserProfile() {
                 {/* Metadata Grid */}
                 <div className="w-full mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-[13px] text-on-surface-variant/80 pl-1 font-bold">
                   <div className="flex items-center gap-3.5">
-                    <Calendar size={15} className="text-primary" />
+                     <Calendar size={15} className="text-primary" />
                     <span>Joined {formattedJoinDate}</span>
                   </div>
                   <div className="flex items-center gap-3.5">
@@ -300,6 +422,26 @@ export default function UserProfile() {
                     <span>Role: {profileUser.role === 'admin' ? 'Admin' : 'Orbit Member'}</span>
                   </div>
                 </div>
+
+                {/* Social Links Section */}
+                {activeSocials.length > 0 && (
+                  <div className="w-full mt-6">
+                    <span className="text-[10px] font-bold text-on-surface-variant/75 uppercase tracking-wider block mb-2.5">Social Profiles</span>
+                    <div className="flex flex-wrap gap-2.5">
+                      {activeSocials.map(([platform, url]) => (
+                        <a 
+                          key={platform}
+                          href={url.startsWith('http') ? url : `https://${url}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3.5 py-2 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 rounded-xl text-xs font-bold text-on-surface-variant flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-95 uppercase tracking-wider cursor-pointer shadow-sm"
+                        >
+                          {platform}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <div className="w-full py-8 flex flex-col items-center justify-center text-center select-none bg-surface-container-low/50 rounded-2xl border border-outline-variant/30">

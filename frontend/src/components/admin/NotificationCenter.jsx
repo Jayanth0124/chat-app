@@ -3,6 +3,7 @@ import { axiosInstance } from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { BellRing, Send, Loader2, Clock, Globe, ShieldAlert, Users, History, Trash2 } from 'lucide-react';
 import { useConfirmStore } from '../../store/useConfirmStore';
+import Select from '../ui/Select';
 
 export default function NotificationCenter() {
   const [audience, setAudience] = useState('All Users');
@@ -123,22 +124,23 @@ export default function NotificationCenter() {
         <form onSubmit={handleSendBroadcast} className="space-y-5">
           <div>
             <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Audience</label>
-            <select 
+            <Select
               value={audience}
-              onChange={(e) => {
-                setAudience(e.target.value);
-                if (e.target.value !== 'Specific User') {
+              onChange={(val) => {
+                setAudience(val);
+                if (val !== 'Specific User') {
                   setTargetUserId('');
                   setTargetUserSearch('');
                 }
               }}
-              className="w-full px-4 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant/60 focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none text-on-surface text-sm cursor-pointer"
-            >
-              <option value="All Users">All Users</option>
-              <option value="Active Users (Last 24h)">Active Users (Last 24h)</option>
-              <option value="Moderators Only">Moderators Only</option>
-              <option value="Specific User">Specific User</option>
-            </select>
+              options={[
+                'All Users',
+                'Active Users (Last 24h)',
+                'Moderators Only',
+                'Specific User'
+              ]}
+              className="bg-surface-container-low"
+            />
           </div>
 
           {audience === 'Specific User' && (

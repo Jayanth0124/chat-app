@@ -116,5 +116,16 @@ export const useFriendStore = create((set, get) => ({
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to block user');
     }
+  },
+
+  unblockUser: async (userId) => {
+    try {
+      await axiosInstance.post(`/users/unblock/${userId}`);
+      toast.success('User unblocked');
+      get().getFriends();
+      get().getRequests();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to unblock user');
+    }
   }
 }));

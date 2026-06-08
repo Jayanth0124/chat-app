@@ -3,6 +3,7 @@ import chatWindowBg from '../assets/images/chat-window.jpg';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, MoreHorizontal, CheckCheck, Check, Phone, Play, Pause, FileText, Search, Image as ImageIcon, Clock, MonitorPlay, Download, StopCircle, X, ChevronUp, ChevronDown, Eye } from 'lucide-react';
 import ChatInput from './ChatInput';
+import Select from './ui/Select';
 import { useChatStore } from '../store/useChatStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLayoutStore } from '../store/useLayoutStore';
@@ -914,17 +915,18 @@ function ReportModal({ message, onClose, onSubmit }) {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Reason</label>
-            <select
+            <Select
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="bg-black/50 border border-white/10 rounded-md px-3 py-2.5 text-[13px] focus:outline-none focus:border-[#0A84FF] text-white/90 cursor-pointer"
-            >
-              <option value="Spam">Spam / Noise</option>
-              <option value="Harassment">Hostile / Harassment</option>
-              <option value="Hate Speech">Restricted Language</option>
-              <option value="Inappropriate Content">Inappropriate Payload</option>
-              <option value="Other">Other Protocol Violation</option>
-            </select>
+              onChange={(val) => setReason(val)}
+              options={[
+                { value: 'Spam', label: 'Spam / Noise' },
+                { value: 'Harassment', label: 'Hostile / Harassment' },
+                { value: 'Hate Speech', label: 'Restricted Language' },
+                { value: 'Inappropriate Content', label: 'Inappropriate Payload' },
+                { value: 'Other', label: 'Other Protocol Violation' }
+              ]}
+              className="bg-black/50 border-white/10"
+            />
           </div>
 
           <div className="flex flex-col gap-2">
