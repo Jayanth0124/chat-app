@@ -43,7 +43,7 @@ export default function App() {
 
   useEffect(() => {
     checkAuth();
-    
+
     // Enforce 2 second minimum display duration for splash screen
     const timer = setTimeout(() => {
       setShowSplash(false);
@@ -67,22 +67,22 @@ export default function App() {
 
     const handleKey = (e) => {
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-      const isScreenshot = 
-        e.key === 'PrintScreen' || 
+      const isScreenshot =
+        e.key === 'PrintScreen' ||
         e.code === 'PrintScreen' ||
         (isMac && e.metaKey && e.shiftKey && ['3', '4', '5'].includes(e.key)) ||
         (!isMac && e.shiftKey && (e.metaKey || e.ctrlKey || e.key === 'Meta') && (e.key === 's' || e.key === 'S'));
 
       if (isScreenshot) {
         setIsScreenshotBlocked(true);
-        
+
         // Zero-latency DOM manipulation to beat the OS screen freeze
         const mask = document.getElementById('zero-latency-mask');
         if (mask) {
           mask.style.opacity = '1';
           mask.style.pointerEvents = 'auto';
         }
-        
+
         // Hide content temporarily without showing any warning message
         setTimeout(() => {
           setIsScreenshotBlocked(false);
@@ -96,7 +96,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKey, { capture: true, passive: false });
     window.addEventListener('keyup', handleKey, { capture: true, passive: false });
-    
+
     return () => {
       window.removeEventListener('keydown', handleKey, { capture: true });
       window.removeEventListener('keyup', handleKey, { capture: true });
@@ -122,23 +122,23 @@ export default function App() {
         const { action, callData } = event.data;
         if (action === 'accept_call') {
           setActiveCall({
-             callId: callData.callId,
-             name: callData.callerName,
-             pic: callData.callerPic,
-             type: callData.callType,
-             status: 'connected',
-             receiverId: user?._id,
-             callerId: callData.callerId,
-             direction: 'incoming'
+            callId: callData.callId,
+            name: callData.callerName,
+            pic: callData.callerPic,
+            type: callData.callType,
+            status: 'connected',
+            receiverId: user?._id,
+            callerId: callData.callerId,
+            direction: 'incoming'
           });
           const { socket } = useChatStore.getState();
           if (socket) {
-             socket.emit('call:answer', { to: callData.callerId, callId: callData.callId });
+            socket.emit('call:answer', { to: callData.callerId, callId: callData.callId });
           }
         } else if (action === 'decline_call') {
           const { socket } = useChatStore.getState();
           if (socket) {
-             socket.emit('call:reject', { to: callData.callerId, callId: callData.callId });
+            socket.emit('call:reject', { to: callData.callerId, callId: callData.callId });
           }
           // Clear any incoming call UI if the app happened to be open
           window.dispatchEvent(new CustomEvent('orbit:callEnded', { detail: { callId: callData.callId } }));
@@ -163,30 +163,114 @@ export default function App() {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-neutral-950 text-white font-sans overflow-hidden">
         <div className="relative flex flex-col items-center select-none animate-in fade-in zoom-in duration-700">
-          <div className="relative w-28 h-28 flex items-center justify-center mb-6">
-            <div className="absolute inset-0 rounded-full border border-dashed border-primary/30 animate-[spin_12s_linear_infinite]"></div>
-            <div className="absolute -inset-3 rounded-full border border-primary/10 animate-[spin_8s_linear_infinite_reverse]"></div>
-            <img 
-              src="/logo.png" 
-              alt="Orbit Logo" 
-              className="w-20 h-20 rounded-2xl object-cover shadow-2xl relative z-10 animate-[pulse_2s_ease-in-out_infinite]"
-            />
+
+          {/* New 3D Loader */}
+          <div className="loader-container mb-8">
+            <div className="sphere-core"></div>
+            <div className="ring ring-1"></div>
+            <div className="ring ring-2"></div>
+            <div className="ring ring-3"></div>
           </div>
+
           <h1 className="text-3xl font-black tracking-tight text-white uppercase mt-2">
             Orbit
           </h1>
           <p className="text-neutral-400 text-xs tracking-wider uppercase mt-1">
             Premium Secured Messenger
           </p>
-          <div className="w-32 h-[3px] bg-neutral-800 rounded-full overflow-hidden mt-8">
-            <div className="h-full bg-primary rounded-full animate-[loading-bar_1.5s_infinite_ease-in-out]"></div>
-          </div>
         </div>
-        <style dangerouslySetInnerHTML={{__html: `
-          @keyframes loading-bar {
-            0% { transform: translateX(-100%); }
-            50% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
+        <style dangerouslySetInnerHTML={{
+          __html: `
+          .loader-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            perspective: 800px;
+            transform-style: preserve-3d;
+          }
+
+          .sphere-core {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle at 40% 40%, #00eaff, #0066ff);
+            border-radius: 50%;
+            box-shadow: 0 0 25px rgba(0, 234, 255, 0.5);
+            animation: core-pulse 2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+          }
+
+          .ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px solid rgba(0, 234, 255, 0.7);
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(0, 234, 255, 0.3);
+            transform-style: preserve-3d;
+          }
+
+          .ring-1 {
+            animation: rotateX 2.5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+          }
+
+          .ring-2 {
+            animation: rotateY 2s cubic-bezier(0.55, 0, 0.45, 1) infinite;
+            width: 120px;
+            height: 120px;
+            top: 15px;
+            left: 15px;
+            border-color: rgba(0, 234, 255, 0.5);
+          }
+
+          .ring-3 {
+            animation: rotateXY 3s cubic-bezier(0.7, 0, 0.3, 1) infinite;
+            width: 90px;
+            height: 90px;
+            top: 30px;
+            left: 30px;
+            border-color: rgba(0, 234, 255, 0.3);
+          }
+
+          @keyframes rotateX {
+            0% { transform: rotateX(0deg); }
+            50% { transform: rotateX(180deg); }
+            100% { transform: rotateX(360deg); }
+          }
+
+          @keyframes rotateY {
+            0% { transform: rotateY(0deg); }
+            50% { transform: rotateY(180deg); }
+            100% { transform: rotateY(360deg); }
+          }
+
+          @keyframes rotateXY {
+            0% { transform: rotateX(0deg) rotateY(0deg); }
+            50% { transform: rotateX(90deg) rotateY(180deg); }
+            100% { transform: rotateX(360deg) rotateY(360deg); }
+          }
+
+          @keyframes core-pulse {
+            0%, 100% {
+              transform: translate(-50%, -50%) scale(1);
+              box-shadow: 0 0 25px rgba(0, 234, 255, 0.5);
+            }
+            50% {
+              transform: translate(-50%, -50%) scale(1.1);
+              box-shadow: 0 0 35px rgba(0, 234, 255, 0.7);
+            }
+          }
+
+          .loader-container:hover .sphere-core {
+            background: radial-gradient(circle at 40% 40%, #ff66ff, #6600ff);
+            box-shadow: 0 0 35px rgba(255, 102, 255, 0.7);
+          }
+
+          .loader-container:hover .ring {
+            border-color: rgba(255, 102, 255, 0.7);
+            box-shadow: 0 0 20px rgba(255, 102, 255, 0.5);
           }
         `}} />
       </div>
@@ -198,8 +282,8 @@ export default function App() {
   return (
     <>
       {/* Zero Latency DOM Mask to beat OS screenshot freeze */}
-      <div 
-        id="zero-latency-mask" 
+      <div
+        id="zero-latency-mask"
         className="fixed inset-0 z-[10000] bg-black transition-opacity duration-75"
         style={{ opacity: 0, pointerEvents: 'none' }}
       ></div>
@@ -212,9 +296,9 @@ export default function App() {
       <Routes>
         {/* Welcome Page or Main Workspace */}
         <Route path="/" element={
-          !isAuthenticated ? <Welcome /> : 
-          userRole === 'admin' ? <Navigate to="/admin" replace /> : 
-          <UserLayout />
+          !isAuthenticated ? <Welcome /> :
+            userRole === 'admin' ? <Navigate to="/admin" replace /> :
+              <UserLayout />
         }>
           <Route index element={<Chat />} />
           <Route path="calls" element={<Calls />} />
@@ -231,7 +315,7 @@ export default function App() {
         {/* Public Authentication Routes */}
         <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to={userRole === 'admin' ? "/admin" : "/"} />} />
         <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to={userRole === 'admin' ? "/admin" : "/"} />} />
-        
+
         {/* Fallback for old /auth route during transition */}
         <Route path="/auth" element={<Navigate to="/login" replace />} />
 
