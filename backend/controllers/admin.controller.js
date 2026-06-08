@@ -7,6 +7,7 @@ import AuditLog from '../models/AuditLog.js';
 import Report from '../models/Report.js';
 import SecurityLog from '../models/SecurityLog.js';
 import Broadcast from '../models/Broadcast.js';
+import Notification from '../models/Notification.js';
 import Setting from '../models/Setting.js';
 import UsernameChangeRequest from '../models/UsernameChangeRequest.js';
 import { sendPushNotification } from '../utils/webPush.js';
@@ -326,17 +327,35 @@ export const sendBroadcast = async (req, res) => {
 
     // Emit broadcast notification via socket to target audience only
     if (req.io && recipients.length > 0) {
-      recipients.forEach((recipient) => {
-        req.io.to(recipient._id.toString()).emit('broadcastNotification', {
-          id: broadcastRecord._id,
-          message: message.trim(),
-          audience: audience || 'All Users',
-          sender: req.user.displayName || req.user.username,
-          createdAt: broadcastRecord.createdAt,
-          isPermanent: broadcastRecord.isPermanent,
-          expiresAt: broadcastRecord.expiresAt
+      const notifsToInsert = recipients.map(r => ({
+        userId: r._id,
+        type: 'system',
+        title: `Announcement (${audience || 'All Users'})`,
+        body: message.trim(),
+        isPermanent: !!isPermanent,
+        expiresAt,
+        metadata: { broadcastId: broadcastRecord._id }
+      }));
+      
+      try {
+        const insertedNotifs = await Notification.insertMany(notifsToInsert);
+        const notifMap = {};
+        insertedNotifs.forEach(n => notifMap[n.userId.toString()] = n._id);
+
+        recipients.forEach((recipient) => {
+          req.io.to(recipient._id.toString()).emit('broadcastNotification', {
+            id: notifMap[recipient._id.toString()], // Use the new Notification ID
+            message: message.trim(),
+            audience: audience || 'All Users',
+            sender: req.user.displayName || req.user.username,
+            createdAt: broadcastRecord.createdAt,
+            isPermanent: broadcastRecord.isPermanent,
+            expiresAt: broadcastRecord.expiresAt
+          });
         });
-      });
+      } catch (err) {
+        console.error("Failed to insert broadcast notifications:", err);
+      }
     }
 
     // Trigger push notifications for the broadcast in the background

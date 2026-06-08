@@ -18,6 +18,7 @@ import AddFriends from './pages/AddFriends';
 import Discover from './pages/Discover';
 import Calls from './pages/Calls';
 import Friends from './pages/Friends';
+import Activity from './pages/Activity';
 import Profile from './pages/Profile';
 import UserProfile from './pages/UserProfile';
 import AdminDashboard from './pages/AdminDashboard';
@@ -218,6 +219,7 @@ export default function App() {
           <Route index element={<Chat />} />
           <Route path="calls" element={<Calls />} />
           <Route path="friends" element={<Friends />} />
+          <Route path="activity" element={<Activity />} />
           <Route path="profile" element={<Profile />} />
           <Route path="user-profile/:id" element={<UserProfile />} />
           <Route path="settings" element={<Settings />} />

@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import Chat from '../models/Chat.js';
 import Message from '../models/Message.js';
+import Notification from '../models/Notification.js';
 
 /**
  * Validates and sanitizes the relationship state between userA and userB to ensure mutual exclusivity.
@@ -183,9 +184,20 @@ export const sendFriendRequest = async (req, res) => {
     // Emit real-time notification to recipient
     if (req.io) {
       const senderData = await User.findById(loggedInUserId).select('displayName profilePic username');
+      
+      const newNotif = await Notification.create({
+        userId,
+        type: 'friendRequest',
+        title: 'Friend Request',
+        body: `${senderData.displayName} sent you a friend request`,
+        avatar: senderData.profilePic,
+        metadata: { senderId: loggedInUserId }
+      });
+
       req.io.to(userId.toString()).emit('friendRequestReceived', {
+        id: newNotif._id,
         from: senderData,
-        message: `${senderData.displayName} sent you a friend request`
+        message: newNotif.body
       });
     }
 
@@ -231,9 +243,20 @@ export const acceptFriendRequest = async (req, res) => {
     // Emit real-time notification to the original sender
     if (req.io) {
       const accepterData = await User.findById(loggedInUserId).select('displayName profilePic username');
+      
+      const newNotif = await Notification.create({
+        userId,
+        type: 'friendAccepted',
+        title: 'Request Accepted',
+        body: `${accepterData.displayName} accepted your friend request`,
+        avatar: accepterData.profilePic,
+        metadata: { senderId: loggedInUserId }
+      });
+
       req.io.to(userId.toString()).emit('friendRequestAccepted', {
+        id: newNotif._id,
         from: accepterData,
-        message: `${accepterData.displayName} accepted your friend request`
+        message: newNotif.body
       });
     }
 

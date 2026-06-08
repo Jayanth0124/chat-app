@@ -15,7 +15,6 @@ export default function UserSidebar() {
     setLogoutOpen,
     setSearchFriendsOpen,
     setManageFriendsOpen,
-    setNotificationsOpen,
   } = useLayoutStore();
 
   const { incomingRequests, getRequests } = useFriendStore();
@@ -37,10 +36,10 @@ export default function UserSidebar() {
       badge: incomingRequests?.length > 0 ? incomingRequests.length : null,
     },
     {
+      to: '/activity',
       icon: <Bell size={22} />,
-      label: 'Notifications',
-      type: 'button',
-      onClick: () => setNotificationsOpen(true),
+      label: 'Activity Center',
+      type: 'link',
       badge: unreadCount > 0 ? unreadCount : null,
     },
     { to: '/settings', icon: <Settings size={22} />, label: 'Settings', type: 'link' },

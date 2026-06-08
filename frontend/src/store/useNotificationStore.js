@@ -1,55 +1,36 @@
 import { create } from 'zustand';
-
-const LOCAL_STORAGE_KEY = 'orbit_notifications';
-const DISMISSED_KEY = 'orbit_dismissed_notifications';
-
-const loadSavedNotifications = () => {
-  try {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!saved) return [];
-    const parsed = JSON.parse(saved);
-    const now = Date.now();
-    return parsed.filter((n) => {
-      if (n.isPermanent) return true;
-      const createdTime = new Date(n.createdAt).getTime();
-      return now - createdTime < 24 * 60 * 60 * 1000;
-    }).map(n => ({ ...n, isHistorical: true }));
-  } catch (err) {
-    console.error("Failed to load notifications from localStorage:", err);
-    return [];
-  }
-};
-
-const getDismissedIds = () => {
-  try {
-    const saved = localStorage.getItem(DISMISSED_KEY);
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
-};
+import { axiosInstance } from '../lib/axios';
 
 export const useNotificationStore = create((set, get) => ({
-  notifications: loadSavedNotifications(),
+  notifications: [],
   unreadCount: 0,
+  isLoading: false,
+
+  fetchNotifications: async () => {
+    try {
+      set({ isLoading: true });
+      const res = await axiosInstance.get('/notifications');
+      const notifications = res.data.map(n => ({ ...n, isHistorical: true }));
+      const unreadCount = notifications.filter(n => !n.isRead).length;
+      set({ notifications, unreadCount, isLoading: false });
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+      set({ isLoading: false });
+    }
+  },
 
   addNotification: (notif) => {
-    const id = notif.id || (Date.now() + Math.random().toString());
+    // Check for duplicate by ID if it's already in the store
     const { notifications } = get();
-    const dismissedIds = getDismissedIds();
-    
-    // If user dismissed this notification, do not add it
-    if (dismissedIds.includes(id)) {
-      return id;
+    if (notifications.some((n) => n._id === notif.id || n.id === notif.id)) {
+      return notif.id;
     }
     
-    if (notifications.some((n) => n.id === id)) {
-      return id; // Duplicate notification, do not add
-    }
-    
+    // Convert incoming socket notifs to backend format
     const newNotif = { 
       ...notif, 
-      id, 
+      _id: notif.id || (Date.now() + Math.random().toString()),
+      isRead: false,
       createdAt: notif.createdAt || new Date().toISOString(),
       isPermanent: !!notif.isPermanent
     };
@@ -60,92 +41,61 @@ export const useNotificationStore = create((set, get) => ({
       unreadCount: state.unreadCount + 1
     }));
     
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
-    return id;
+    return newNotif._id;
   },
 
-  addHistoricalNotifications: (notifs) => {
-    const { notifications } = get();
-    const dismissedIds = getDismissedIds();
-    let updated = [...notifications];
-    let addedAny = false;
-
-    notifs.forEach((notif) => {
-      const id = notif.id || notif._id;
-      if (dismissedIds.includes(id)) return;
-      if (updated.some((n) => n.id === id)) return;
-
-      const newNotif = {
-        id,
-        type: 'system',
-        title: notif.title || `Announcement (${notif.audience})`,
-        body: notif.message || notif.body,
-        isPermanent: !!notif.isPermanent,
-        createdAt: notif.createdAt,
-        isHistorical: true
-      };
-      updated.push(newNotif);
-      addedAny = true;
+  markAsRead: async (id) => {
+    const { notifications, unreadCount } = get();
+    const updated = notifications.map(n => 
+      (n._id === id || n.id === id) ? { ...n, isRead: true } : n
+    );
+    
+    set({ 
+      notifications: updated, 
+      unreadCount: Math.max(0, unreadCount - 1) 
     });
 
-    if (addedAny) {
-      // Sort newest first
-      updated.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      set({ notifications: updated.slice(0, 50) });
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+    try {
+      await axiosInstance.put(`/notifications/${id}/read`);
+    } catch (err) {
+      console.error("Failed to mark notification read:", err);
     }
   },
 
-  removeNotification: (id) => {
+  markAllRead: async () => {
     const { notifications } = get();
-    const updated = notifications.filter((n) => n.id !== id);
-    set({ notifications: updated });
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+    const updated = notifications.map(n => ({ ...n, isRead: true }));
+    set({ notifications: updated, unreadCount: 0 });
 
-    // Save in dismissed set so it doesn't show up again
     try {
-      const dismissedIds = getDismissedIds();
-      if (!dismissedIds.includes(id)) {
-        dismissedIds.push(id);
-        localStorage.setItem(DISMISSED_KEY, JSON.stringify(dismissedIds));
-      }
+      await axiosInstance.put('/notifications/read-all');
     } catch (err) {
-      console.error(err);
+      console.error("Failed to mark all read:", err);
     }
   },
 
-  clearAll: () => {
-    const { notifications } = get();
-    // Add all current IDs to dismissed
-    try {
-      const dismissedIds = getDismissedIds();
-      notifications.forEach((n) => {
-        if (!dismissedIds.includes(n.id)) {
-          dismissedIds.push(n.id);
-        }
-      });
-      localStorage.setItem(DISMISSED_KEY, JSON.stringify(dismissedIds));
-    } catch (err) {
-      console.error(err);
-    }
+  removeNotification: async (id) => {
+    const { notifications, unreadCount } = get();
+    const notifToRemove = notifications.find(n => (n._id === id || n.id === id));
+    
+    const updated = notifications.filter((n) => n._id !== id && n.id !== id);
+    const newUnreadCount = notifToRemove && !notifToRemove.isRead ? Math.max(0, unreadCount - 1) : unreadCount;
+    
+    set({ notifications: updated, unreadCount: newUnreadCount });
 
+    try {
+      await axiosInstance.delete(`/notifications/${id}`);
+    } catch (err) {
+      console.error("Failed to delete notification:", err);
+    }
+  },
+
+  clearAll: async () => {
     set({ notifications: [], unreadCount: 0 });
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
-  },
-
-  markAllRead: () => set({ unreadCount: 0 }),
-
-  cleanupExpired: () => {
-    const { notifications } = get();
-    const now = Date.now();
-    const updated = notifications.filter((n) => {
-      if (n.isPermanent) return true;
-      const createdTime = new Date(n.createdAt).getTime();
-      return now - createdTime < 24 * 60 * 60 * 1000;
-    });
-    if (updated.length !== notifications.length) {
-      set({ notifications: updated });
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+    try {
+      await axiosInstance.delete('/notifications/all');
+    } catch (err) {
+      console.error("Failed to clear notifications:", err);
     }
   }
 }));

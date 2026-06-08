@@ -14,6 +14,7 @@ import chatRoutes from './routes/chat.js';
 import adminRoutes from './routes/admin.js';
 import callRoutes from './routes/calls.js';
 import supportRoutes from './routes/support.js';
+import notificationRoutes from './routes/notifications.js';
 import cloudinary from './utils/cloudinary.js';
 
 dotenv.config();
@@ -54,6 +55,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/calls', callRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/', (req, res) => {
   res.send('Chat App API is running...');

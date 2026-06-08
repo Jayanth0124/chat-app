@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import UserSidebar from '../components/UserSidebar';
-import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Volume2, VolumeX, PhoneOff, PhoneIncoming, Check, Loader2, Bell, Trash2, ShieldAlert, UserPlus, UserCheck } from 'lucide-react';
+import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Volume2, VolumeX, PhoneOff, PhoneIncoming, Check, Loader2, Bell, Trash2, ShieldAlert, UserPlus, UserCheck, Bug, HelpCircle, Inbox, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 import { useChatStore } from '../store/useChatStore';
 import { useNotificationStore } from '../store/useNotificationStore';
+import { useFriendStore } from '../store/useFriendStore';
 import { axiosInstance } from '../lib/axios';
 import toast from 'react-hot-toast';
 import ManageFriends from '../components/ManageFriends';
@@ -16,7 +17,6 @@ export default function UserLayout() {
   const { user, logout } = useAuthStore();
   const { 
     isLogoutOpen, setLogoutOpen,
-    isNotificationsOpen, setNotificationsOpen,
     activeCall, setActiveCall,
     incomingCall, setIncomingCall,
     isManageFriendsOpen, setManageFriendsOpen,
@@ -33,7 +33,7 @@ export default function UserLayout() {
   const callTimerRef = useState(null);
 
   const { socket, selectedChat, chats, setSelectedChat, accessChat } = useChatStore();
-  const { notifications, clearAll, removeNotification, markAllRead } = useNotificationStore();
+  const { notifications, clearAll, removeNotification, markAllRead, unreadCount } = useNotificationStore();
 
   const handleNotificationClick = (notif) => {
     // 1. Close drawer
@@ -59,42 +59,10 @@ export default function UserLayout() {
     }
   };
 
+  // Fetch notifications on mount
   useEffect(() => {
-    if (isNotificationsOpen) {
-      markAllRead();
-    }
-  }, [isNotificationsOpen, markAllRead]);
-
-  // Fetch active system announcements/broadcasts on mount
-  useEffect(() => {
-    const fetchAnnouncements = async () => {
-      try {
-        const res = await axiosInstance.get('/users/notifications/broadcasts');
-        const { addHistoricalNotifications, cleanupExpired } = useNotificationStore.getState();
-        
-        // 1. Run 24h cleanup on mount
-        cleanupExpired();
-
-        // 2. Add historical announcements to store
-        if (Array.isArray(res.data)) {
-          addHistoricalNotifications(res.data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch system announcements:", err);
-      }
-    };
-
-    fetchAnnouncements();
-
-    // Run 24h cleanup every 5 minutes
-    const interval = setInterval(() => {
-      const { cleanupExpired } = useNotificationStore.getState();
-      cleanupExpired();
-    }, 5 * 60 * 1000);
-
+    useNotificationStore.getState().fetchNotifications();
     fetchCallHistory();
-
-    return () => clearInterval(interval);
   }, []);
 
   const latestMissedCall = callHistory.find(c => c.status === 'missed' && c.caller?._id !== user?._id);
@@ -476,11 +444,14 @@ export default function UserLayout() {
         </button>
 
         <button 
-          onClick={() => setLogoutOpen(true)}
-          className="flex flex-col items-center gap-0.5 p-2 rounded-xl text-on-surface-variant/80 hover:text-red-500 transition-colors"
+          onClick={() => navigate('/activity')}
+          className={`relative flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/activity' ? 'text-primary' : 'text-on-surface-variant/80'}`}
         >
-          <LogOut size={20} />
-          <span className="text-[10px] font-semibold">Exit</span>
+          <Bell size={20} />
+          {unreadCount > 0 && (
+            <span className="absolute top-1 right-2 w-3 h-3 bg-primary rounded-full border-2 border-surface"></span>
+          )}
+          <span className="text-[10px] font-semibold">Activity</span>
         </button>
       </div>
 
@@ -516,106 +487,7 @@ export default function UserLayout() {
         </div>
       )}
 
-      {/* GLOBAL OVERLAY 3.5: NOTIFICATIONS CENTER DRAWER */}
-      {isNotificationsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-end bg-black/45 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md h-[90vh] md:h-full bg-surface border border-outline-variant/60 shadow-2xl rounded-2xl md:rounded-l-2xl md:rounded-r-none flex flex-col animate-in slide-in-from-right duration-300">
-            {/* Header */}
-            <div className="p-4 border-b border-outline-variant/60 flex justify-between items-center bg-surface-container-low">
-              <div className="flex items-center gap-2">
-                <Bell size={20} className="text-primary animate-bounce" />
-                <h3 className="font-bold text-lg text-on-surface">System Notifications</h3>
-              </div>
-              <div className="flex items-center gap-2">
-                {notifications.length > 0 && (
-                  <button 
-                    onClick={clearAll}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-red-500 hover:bg-red-500/10 rounded-lg font-semibold transition-colors"
-                  >
-                    <Trash2 size={13} />
-                    Clear All
-                  </button>
-                )}
-                <button 
-                  onClick={() => setNotificationsOpen(false)}
-                  className="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
 
-            {/* List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {notifications.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3">
-                    <Bell size={22} />
-                  </div>
-                  <h4 className="font-bold text-sm">No new notifications</h4>
-                  <p className="text-xs text-on-surface-variant/80 mt-1 max-w-xs">System alerts and system-wide broadcast updates will show up here.</p>
-                </div>
-              ) : (
-                notifications.map((notif) => {
-                  const isSystem = notif.type === 'system';
-                  return (
-                    <div 
-                      key={notif.id}
-                      onClick={() => handleNotificationClick(notif)}
-                      className={`p-3.5 rounded-xl border flex gap-3 transition-colors cursor-pointer ${
-                        isSystem 
-                          ? 'bg-red-500/5 border-red-500/20 hover:bg-red-500/10' 
-                          : 'bg-surface-container-low border-outline-variant/50 hover:bg-surface-container-high'
-                      }`}
-                    >
-                      {/* Icon / Avatar */}
-                      <div className="shrink-0">
-                        {notif.avatar ? (
-                          <img src={notif.avatar} className="w-9 h-9 rounded-full object-cover border border-outline-variant/30" alt="" />
-                        ) : (
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white ${
-                            notif.type === 'system' ? 'bg-red-500' :
-                            notif.type === 'friendRequest' ? 'bg-violet-500' :
-                            notif.type === 'friendAccepted' ? 'bg-green-500' :
-                            notif.type === 'message' ? 'bg-primary' : 'bg-primary'
-                          }`}>
-                            {notif.type === 'system' ? <ShieldAlert size={16} /> :
-                             notif.type === 'friendRequest' ? <UserPlus size={16} /> :
-                             notif.type === 'friendAccepted' ? <UserCheck size={16} /> :
-                             notif.type === 'message' ? <MessageSquare size={16} /> : <Bell size={16} />}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start gap-2">
-                          <p className="font-bold text-[13px] text-on-surface leading-tight truncate">{notif.title}</p>
-                          <span className="text-[10px] text-on-surface-variant/70 shrink-0 font-medium font-sans">
-                            {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                        <p className="text-[12px] text-on-surface-variant leading-relaxed mt-1 break-words">{notif.body}</p>
-                      </div>
-
-                      {/* Remove item */}
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeNotification(notif.id);
-                        }}
-                        className="p-1 rounded-full text-on-surface-variant/50 hover:text-on-surface-variant hover:bg-surface-container-high transition-all shrink-0 h-fit"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* GLOBAL OVERLAY 4: CALL DIALING/CONNECTED OVERLAY */}
       {activeCall && (

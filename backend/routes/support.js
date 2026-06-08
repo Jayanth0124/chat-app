@@ -2,6 +2,7 @@ import express from 'express';
 import { protectRoute, requireAdmin } from '../middleware/auth.middleware.js';
 import SupportTicket from '../models/SupportTicket.js';
 import BugReport from '../models/BugReport.js';
+import Notification from '../models/Notification.js';
 import cloudinary from '../utils/cloudinary.js';
 
 const router = express.Router();
@@ -30,6 +31,9 @@ router.post('/tickets', protectRoute, async (req, res) => {
 
     // Socket alert to admins
     if (req.io) {
+      // NOTE: For 'admins' we don't have a specific userId to save to DB easily here without fetching all admins.
+      // Since it's a broadcast to 'admins' room, we can just emit it or save it if we query admins.
+      // Orbit adminNotification isn't strictly personal, so we'll just emit.
       req.io.to('admins').emit('adminNotification', {
         type: 'new_ticket',
         title: 'New Support Ticket',
@@ -190,10 +194,20 @@ router.put('/admin/tickets/:id', protectRoute, requireAdmin, async (req, res) =>
 
     // Notify user via Socket
     if (req.io && ticket.user) {
+      const msg = `Your support ticket (#${ticket.ticketId}) status has been updated to "${status}".`;
+      const newNotif = await Notification.create({
+        userId: ticket.user._id,
+        type: 'support_reply',
+        title: 'Status Updated',
+        body: msg,
+        metadata: { ticketId: ticket._id }
+      });
+
       req.io.to(ticket.user._id.toString()).emit('ticketUpdated', {
+        id: newNotif._id,
         ticket,
         actionType: 'Status Updated',
-        message: `Your support ticket (#${ticket.ticketId}) status has been updated to "${status}".`
+        message: msg
       });
     }
 
@@ -238,10 +252,20 @@ router.post('/admin/tickets/:id/reply', protectRoute, requireAdmin, async (req, 
 
     // Notify user via Socket
     if (req.io && updatedTicket.user) {
+      const msg = `Support team replied: "${response.substring(0, 45)}${response.length > 45 ? '...' : ''}"`;
+      const newNotif = await Notification.create({
+        userId: updatedTicket.user._id,
+        type: 'support_reply',
+        title: 'Ticket Replied',
+        body: msg,
+        metadata: { ticketId: updatedTicket._id }
+      });
+
       req.io.to(updatedTicket.user._id.toString()).emit('ticketUpdated', {
+        id: newNotif._id,
         ticket: updatedTicket,
         actionType: 'Replied',
-        message: `Support team replied: "${response.substring(0, 45)}${response.length > 45 ? '...' : ''}"`
+        message: msg
       });
     }
 
@@ -277,10 +301,20 @@ router.put('/admin/bugs/:id', protectRoute, requireAdmin, async (req, res) => {
 
     // Notify user via Socket if status changed
     if (status && req.io && bug.user) {
+      const msg = `Your bug report (#${bug.reportId}) status has been updated to "${status}".`;
+      const newNotif = await Notification.create({
+        userId: bug.user._id,
+        type: 'bug_update',
+        title: 'Status Updated',
+        body: msg,
+        metadata: { bugId: bug._id }
+      });
+
       req.io.to(bug.user._id.toString()).emit('bugUpdated', {
+        id: newNotif._id,
         bug,
         actionType: 'Status Updated',
-        message: `Your bug report (#${bug.reportId}) status has been updated to "${status}".`
+        message: msg
       });
     }
 
@@ -325,10 +359,20 @@ router.post('/admin/bugs/:id/reply', protectRoute, requireAdmin, async (req, res
 
     // Notify user via Socket
     if (req.io && updatedBug.user) {
+      const msg = `Admin replied to your bug report: "${response.substring(0, 45)}${response.length > 45 ? '...' : ''}"`;
+      const newNotif = await Notification.create({
+        userId: updatedBug.user._id,
+        type: 'bug_update',
+        title: 'Bug Report Replied',
+        body: msg,
+        metadata: { bugId: updatedBug._id }
+      });
+
       req.io.to(updatedBug.user._id.toString()).emit('bugUpdated', {
+        id: newNotif._id,
         bug: updatedBug,
         actionType: 'Replied',
-        message: `Admin replied to your bug report: "${response.substring(0, 45)}${response.length > 45 ? '...' : ''}"`
+        message: msg
       });
     }
 
