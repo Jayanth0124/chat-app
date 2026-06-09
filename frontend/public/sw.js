@@ -42,8 +42,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          const resClone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
+          if (response && response.status === 200) {
+            const resClone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
+          }
           return response;
         })
         .catch(() => caches.match(event.request))
@@ -61,8 +63,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.match(event.request).then(cachedResponse => {
         const fetchPromise = fetch(event.request).then(networkResponse => {
-          const resClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
+          if (networkResponse && networkResponse.status === 200) {
+            const resClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
+          }
           return networkResponse;
         }).catch(() => { /* Silent network failure */ });
         return cachedResponse || fetchPromise;
@@ -76,8 +80,10 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then(cachedResponse => {
       if (cachedResponse) return cachedResponse;
       return fetch(event.request).then(networkResponse => {
-        const resClone = networkResponse.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
+        if (networkResponse && networkResponse.status === 200) {
+          const resClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
+        }
         return networkResponse;
       }).catch(() => { /* Silent failure */ });
     })
@@ -85,95 +91,132 @@ self.addEventListener('fetch', (event) => {
 });
 
 // Push Notifications
-self.addEventListener('push', async function(event) {
+self.addEventListener('push', function(event) {
   if (event.data) {
-    try {
-      const data = event.data.json();
-      
-      const isCallEnded = data.type === 'call_ended';
-      const isMissedCall = data.type === 'missed_call';
-      
-      // If the push is to cancel an existing ringing notification
-      if (isCallEnded || isMissedCall) {
-        const notifications = await self.registration.getNotifications();
-        const callId = data.data?.callId;
-        
-        // Find and close any existing ringing notifications for this call
-        for (const notification of notifications) {
-          if (notification.data && notification.data.callId === callId && notification.data.type === 'incoming_call') {
-            notification.close();
-          }
-        }
-        
-        // If it's just a silent cancel, don't show anything new
-        if (isCallEnded) return;
-        
-        // Otherwise, show the missed call notification
-      }
+    event.waitUntil((async () => {
+      try {
+        const data = event.data.json();
+        const type = data.type;
+        const callId = data.data?.callId || data.callId;
 
-      const isCall = data.data && data.data.type === 'incoming_call';
-
-      const options = {
-        body: data.body || '',
-        icon: data.icon || '/logo.png',
-        badge: data.badge || '/logo.png',
-        vibrate: isCall ? [500, 250, 500, 250, 500, 250, 500, 250] : [100, 50, 100],
-        requireInteraction: isCall,
-        data: data.data || {}
-      };
-
-      if (isCall) {
-        options.actions = [
-          { action: 'accept_call', title: '✅ Accept' },
-          { action: 'decline_call', title: '❌ Decline' }
+        const callTerminatingTypes = [
+          'call_ended', 
+          'call_rejected', 
+          'call_accepted', 
+          'call_cancelled', 
+          'call_timeout', 
+          'missed_call'
         ];
-      }
 
-      await self.registration.showNotification(data.title || 'Orbit', options);
-    } catch (e) {
-      const options = {
-        body: event.data.text(),
-        icon: '/logo.png',
-        badge: '/logo.png',
-        vibrate: [100, 50, 100]
-      };
-      await self.registration.showNotification('Orbit Announcement', options);
-    }
+        // If it's a terminating event, clean up any existing incoming call notifications for this call
+        if (callTerminatingTypes.includes(type)) {
+          const notifications = await self.registration.getNotifications();
+          for (const notification of notifications) {
+            if (notification.data && notification.data.callId === callId && notification.data.type === 'incoming_call') {
+              notification.close();
+            }
+          }
+
+          // Generate "Missed Call" explicitly for un-answered/cancelled calls only
+          const missedCallTypes = ['call_cancelled', 'call_timeout', 'missed_call'];
+          if (missedCallTypes.includes(type)) {
+            const callerName = data.data?.callerName || data.callerName || 'Someone';
+            await self.registration.showNotification('Missed Call', {
+              body: `${callerName} tried to call you\nTap to open chat`,
+              icon: '/logo.png',
+              badge: '/logo.png',
+              data: { url: '/chat', callId, type: 'missed_call_notice' }
+            });
+          }
+          // Important: Stop execution. Do not show another incoming_call notification!
+          return;
+        }
+
+        const isCall = type === 'incoming_call' || (data.data && data.data.type === 'incoming_call');
+
+        const options = {
+          body: data.body || '',
+          icon: data.icon || '/logo.png',
+          badge: data.badge || '/logo.png',
+          vibrate: isCall ? [500, 250, 500, 250, 500, 250, 500, 250] : [100, 50, 100],
+          requireInteraction: isCall,
+          data: data.data || {}
+        };
+
+        if (isCall) {
+          options.actions = [
+            { action: 'accept_call', title: '✅ Accept' },
+            { action: 'decline_call', title: '❌ Decline' }
+          ];
+        }
+
+        await self.registration.showNotification(data.title || 'Orbit', options);
+      } catch (e) {
+        const options = {
+          body: event.data.text(),
+          icon: '/logo.png',
+          badge: '/logo.png',
+          vibrate: [100, 50, 100]
+        };
+        await self.registration.showNotification('Orbit Announcement', options);
+      }
+    })());
   }
 });
 
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || '/';
-  const action = event.action;
-  const data = event.notification.data || {};
 
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(windowClients) {
-      let client = null;
-      for (let i = 0; i < windowClients.length; i++) {
-        if (windowClients[i].url.includes(self.registration.scope)) {
-          client = windowClients[i];
-          break;
-        }
-      }
+  event.waitUntil((async () => {
+    const targetUrl = event.notification.data?.url || '/';
+    const action = event.action;
+    const data = event.notification.data || {};
 
-      const navigateTo = (action === 'accept_call' || action === 'view_call' || !action) ? '/calls' : targetUrl;
-      const finalAction = action || 'view_call';
+    const navigateTo = (action === 'accept_call' || action === 'view_call' || !action) ? '/calls' : targetUrl;
+    const finalAction = action || 'view_call';
 
-      if (client && 'focus' in client) {
-        client.focus();
-        client.postMessage({ type: 'CALL_ACTION', action: finalAction, callData: data });
-        return client.navigate(navigateTo);
-      } else if (clients.openWindow) {
-        return clients.openWindow(navigateTo).then(newClient => {
-          if (newClient) {
-            setTimeout(() => {
-              newClient.postMessage({ type: 'CALL_ACTION', action: finalAction, callData: data });
-            }, 3000);
+    // Strict Verification: Prevents stale incoming call notifications from opening the app and ringing!
+    if (data.type === 'incoming_call' && data.callId) {
+      try {
+        const response = await fetch(`/api/calls/${data.callId}`);
+        if (response.ok) {
+          const callData = await response.json();
+          // If the DB says it's not ringing/dialing, it is STALE!
+          if (callData.status !== 'ringing' && callData.status !== 'dialing') {
+            await self.registration.showNotification('Missed Call', {
+              body: 'Call already ended.',
+              icon: '/logo.png',
+              badge: '/logo.png',
+              data: { url: '/chat', type: 'missed_call_notice' }
+            });
+            return; // Abort navigation/client focus entirely
           }
-        });
+        }
+      } catch (e) {
+        console.error('[SW] Could not verify call status', e);
       }
-    })
-  );
+    }
+
+    const windowClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    let client = null;
+    for (let i = 0; i < windowClients.length; i++) {
+      if (windowClients[i].url.includes(self.registration.scope)) {
+        client = windowClients[i];
+        break;
+      }
+    }
+
+    if (client && 'focus' in client) {
+      client.focus();
+      client.postMessage({ type: 'CALL_ACTION', action: finalAction, callData: data });
+      return client.navigate(navigateTo);
+    } else if (clients.openWindow) {
+      const newClient = await clients.openWindow(navigateTo);
+      if (newClient) {
+        setTimeout(() => {
+          newClient.postMessage({ type: 'CALL_ACTION', action: finalAction, callData: data });
+        }, 3000);
+      }
+    }
+  })());
 });

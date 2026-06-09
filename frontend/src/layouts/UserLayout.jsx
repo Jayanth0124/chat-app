@@ -176,7 +176,6 @@ export default function UserLayout() {
   }, [isSpeakerOn]);
 
   const cleanupWebRTC = () => {
-    console.log('[WebRTC] Running full cleanup...');
     let tracksStopped = 0;
     
     // 1. Stop all local microphone/camera tracks from the primary stream reference
@@ -185,7 +184,6 @@ export default function UserLayout() {
         localStreamRef.current.getTracks().forEach(track => {
           track.stop();
           tracksStopped++;
-          console.log(`[WebRTC] Stopped local track: ${track.kind} (${track.label})`);
         });
       } catch (e) {
         console.error('[WebRTC] Error stopping local tracks:', e);
@@ -201,11 +199,9 @@ export default function UserLayout() {
           if (sender.track && sender.track.readyState !== 'ended') {
             sender.track.stop();
             tracksStopped++;
-            console.log(`[WebRTC] Stopped zombie sender track: ${sender.track.kind} (${sender.track.label})`);
           }
         });
         pcRef.current.close(); 
-        console.log('[WebRTC] RTCPeerConnection closed.');
       } catch (e) {
         console.error('[WebRTC] Error closing RTCPeerConnection:', e);
       }
@@ -220,7 +216,6 @@ export default function UserLayout() {
           remoteTracks.forEach(track => {
             track.stop();
             tracksStopped++;
-            console.log(`[WebRTC] Stopped remote track: ${track.kind}`);
           });
         }
       } catch (e) {
@@ -238,8 +233,6 @@ export default function UserLayout() {
       audioManager.stopIncoming();
       audioManager.stopOutgoing();
     }
-    
-    console.log(`[WebRTC] Cleanup complete. Total tracks stopped: ${tracksStopped}. All media resources released.`);
   };
 
   useEffect(() => {

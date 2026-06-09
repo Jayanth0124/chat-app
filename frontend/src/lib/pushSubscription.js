@@ -19,7 +19,6 @@ export async function registerServiceWorker() {
   if ('serviceWorker' in navigator && 'PushManager' in window) {
     try {
       const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('[SW] Service Worker registered:', registration);
       return registration;
     } catch (error) {
       console.error('[SW] Service Worker registration failed:', error);
@@ -30,7 +29,6 @@ export async function registerServiceWorker() {
 
 export async function subscribeUserToPush() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    console.log('[PUSH] Push notifications are not supported on this browser/device.');
     return;
   }
 
@@ -49,7 +47,6 @@ export async function subscribeUserToPush() {
     // 2. Request permission from user
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
-      console.log('[PUSH] Notification permission denied.');
       return;
     }
 
@@ -60,7 +57,6 @@ export async function subscribeUserToPush() {
     };
 
     const subscription = await registration.pushManager.subscribe(subscribeOptions);
-    console.log('[PUSH] User subscribed successfully:', subscription);
 
     // 4. Save subscription on backend
     await axiosInstance.post('/users/push/subscribe', { subscription: subscription.toJSON() });
@@ -85,7 +81,6 @@ export async function unsubscribeUserFromPush() {
       await axiosInstance.post('/users/push/unsubscribe', { endpoint: subscription.endpoint });
       // 2. Unsubscribe locally
       await subscription.unsubscribe();
-      console.log('[PUSH] Unsubscribed successfully.');
     }
   } catch (error) {
     console.error('[PUSH] Failed to unsubscribe:', error);
