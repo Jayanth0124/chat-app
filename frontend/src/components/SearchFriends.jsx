@@ -127,7 +127,7 @@ export default function SearchFriends() {
                       <img
                         src={
                           user.profilePic ||
-                          `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random`
+                          '/logo.png'
                         }
                         alt={user.username}
                         className="w-10 h-10 rounded-full object-cover shadow-sm shrink-0"

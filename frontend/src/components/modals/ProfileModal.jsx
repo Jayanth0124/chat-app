@@ -78,7 +78,7 @@ export default function ProfileModal({ isOpen, onClose, user }) {
                 <div className="absolute -inset-0.5 bg-gradient-to-tr from-primary to-primary-variant rounded-full blur opacity-30 group-hover:opacity-50 transition duration-300" />
                 <div className="relative p-1 bg-surface rounded-full shadow-md border border-outline-variant/25">
                   <img 
-                    src={user.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random`} 
+                    src={user.profilePic || '/logo.png'} 
                     alt={user.displayName} 
                     className="w-20 h-20 rounded-full object-cover bg-surface-container-high"
                   />

@@ -81,7 +81,7 @@ export default function Discover() {
                     >
                       <div className="flex items-center gap-3">
                         <img
-                          src={user.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random`}
+                          src={user.profilePic || '/logo.png'}
                           alt="avatar"
                           className="w-11 h-11 rounded-full object-cover shadow-sm"
                         />

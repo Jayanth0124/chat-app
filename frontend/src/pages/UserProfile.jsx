@@ -240,7 +240,7 @@ export default function UserProfile() {
                   onClick={() => setIsFullscreenDp(true)}
                 >
                   <img 
-                    src={profileUser.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileUser.displayName)}&background=random`} 
+                    src={profileUser.profilePic || '/logo.png'} 
                     alt={profileUser.displayName} 
                     className="w-28 h-28 rounded-full object-cover bg-surface-container-high"
                   />
@@ -471,7 +471,7 @@ export default function UserProfile() {
             <X size={24} />
           </button>
           <img 
-            src={profileUser.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileUser.displayName)}&background=random`} 
+            src={profileUser.profilePic || '/logo.png'} 
             alt={profileUser.displayName}
             className="max-w-full max-h-[90vh] object-contain select-none animate-in zoom-in-95 duration-300 shadow-2xl rounded-lg"
             onClick={(e) => e.stopPropagation()}

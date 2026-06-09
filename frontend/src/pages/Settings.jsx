@@ -415,13 +415,7 @@ export default function Settings() {
           <div className="relative shrink-0 flex flex-col items-center justify-center">
             <div className="relative group">
               <div className="w-32 h-32 md:w-36 md:h-36 rounded-full bg-surface-container-high border-[5px] border-background flex items-center justify-center overflow-hidden ring-1 ring-outline-variant/20 shadow-lg transition-transform duration-300 group-hover:scale-[1.02]">
-                {profilePic ? (
-                  <img src={profilePic} alt="profile" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-5xl font-black text-on-surface-variant uppercase">
-                    {displayName?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'J'}
-                  </span>
-                )}
+                  <img src={profilePic || '/logo.png'} alt="profile" className="w-full h-full object-cover" />
               </div>
               
               <label className="absolute bottom-1 right-1 w-10 h-10 bg-surface rounded-full border border-outline-variant/30 flex items-center justify-center cursor-pointer shadow-md text-on-surface-variant hover:text-primary hover:border-primary/50 hover:bg-surface-container transition-all active:scale-90">

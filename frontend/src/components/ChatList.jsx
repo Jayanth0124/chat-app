@@ -130,7 +130,7 @@ function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContext
         >
           <div className="w-[48px] h-[48px] rounded-full overflow-hidden shadow-lg border border-white/5 bg-black/50">
             <img 
-              src={!chat.isGroupChat ? getSenderPic(user, chat.participants) || `https://ui-avatars.com/api/?name=${getSender(user, chat.participants)}` : chat.groupName} 
+              src={!chat.isGroupChat ? getSenderPic(user, chat.participants) || '/logo.png' : chat.groupName} 
               alt="avatar" 
               className="w-full h-full object-cover" 
             />
@@ -516,7 +516,7 @@ export default function ChatList({ activeChat, setActiveChat }) {
                         >
                           <div className="flex items-center gap-3 text-[14px] text-white/80 font-medium">
                             {isObj ? (
-                              <img src={q.profilePic || `https://ui-avatars.com/api/?name=${q.displayName}`} alt={q.username} className="w-7 h-7 rounded-full object-cover opacity-80" />
+                              <img src={q.profilePic || '/logo.png'} alt={q.username} className="w-7 h-7 rounded-full object-cover opacity-80" />
                             ) : (
                               <Clock size={16} className="text-white/40" />
                             )}
@@ -552,7 +552,7 @@ export default function ChatList({ activeChat, setActiveChat }) {
                     onClick={() => selectSearchResult(u)}
                     className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 cursor-pointer transition-colors border border-transparent"
                   >
-                    <img src={u.profilePic || `https://ui-avatars.com/api/?name=${u.displayName}`} alt={u.username} className="w-9 h-9 rounded-full object-cover" />
+                    <img src={u.profilePic || '/logo.png'} alt={u.username} className="w-9 h-9 rounded-full object-cover" />
                     <div className="flex-1 min-w-0">
                       <p className="text-[14px] font-medium text-white/90 truncate">{u.displayName}</p>
                       <p className="text-[12px] text-white/50">@{u.username}</p>
@@ -636,7 +636,7 @@ export default function ChatList({ activeChat, setActiveChat }) {
                     onClick={() => handleStartChat(u._id)}
                     className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 cursor-pointer transition-colors"
                   >
-                    <img src={u.profilePic || `https://ui-avatars.com/api/?name=${u.displayName}`} alt={u.username} className="w-10 h-10 rounded-full object-cover border border-white/10" />
+                    <img src={u.profilePic || '/logo.png'} alt={u.username} className="w-10 h-10 rounded-full object-cover border border-white/10" />
                     <div className="flex-1 text-left">
                       <p className="text-[14px] font-medium text-white/90">{u.displayName}</p>
                       <p className="text-[12px] text-white/40">@{u.username}</p>

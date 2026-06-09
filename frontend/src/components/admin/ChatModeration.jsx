@@ -231,11 +231,7 @@ export default function ChatModeration() {
             <div className="max-w-2xl mx-auto py-8">
               <div className="flex flex-col items-center text-center mb-8">
                 <div className="w-24 h-24 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-3xl uppercase mb-4 shadow-sm border border-primary/20">
-                  {selectedUser.profilePic ? (
-                    <img src={selectedUser.profilePic} alt="Profile" className="w-full h-full rounded-full object-cover" />
-                  ) : (
-                    (selectedUser.displayName || selectedUser.username)[0]
-                  )}
+                  <img src={selectedUser.profilePic || '/logo.png'} alt="Profile" className="w-full h-full rounded-full object-cover" />
                 </div>
                 <h2 className="text-2xl font-bold text-on-surface">{selectedUser.displayName || selectedUser.username}</h2>
                 <p className="text-on-surface-variant text-sm mt-1">@{selectedUser.username} • {selectedUser.email}</p>

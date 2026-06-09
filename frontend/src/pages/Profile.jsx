@@ -74,11 +74,12 @@ export default function Profile() {
     e.target.value = null;
   };
 
-  const handleSaveChanges = async (e) => {
+  const handleSaveChanges = async (e, newProfilePic = null) => {
     if (e) e.preventDefault();
     const payload = { displayName, bio };
-    if (profilePic && profilePic !== user?.profilePic) {
-      payload.profilePic = profilePic;
+    const picToSave = newProfilePic || profilePic;
+    if (picToSave && picToSave !== user?.profilePic) {
+      payload.profilePic = picToSave;
     }
     await updateProfile(payload);
     setIsEditing(false);
@@ -91,7 +92,7 @@ export default function Profile() {
     } catch (err) {}
   };
 
-  const currentDp = profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName || 'User')}&background=random&size=256`;
+  const currentDp = profilePic || '/logo.png';
   const usernameChangesLeft = (user?.maxUsernameChanges || 3) - (user?.usernameChanges || 0);
   const changesLeft = Math.max(0, usernameChangesLeft);
   
@@ -485,7 +486,7 @@ export default function Profile() {
         onConfirm={(adjustedDataUrl) => {
           setProfilePic(adjustedDataUrl);
           setIsAdjustOpen(false);
-          handleSaveChanges(); // auto save on avatar change
+          handleSaveChanges(null, adjustedDataUrl); // auto save on avatar change
         }}
         aspectMode="circle"
       />

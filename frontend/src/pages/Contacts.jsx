@@ -73,7 +73,7 @@ export default function Contacts() {
               {friends.map(friend => (
                 <div key={friend._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-surface rounded-2xl border border-outline-variant/60 gap-4 shadow-sm hover:shadow transition-shadow">
                   <div className="flex items-center gap-4">
-                    <img src={friend.profilePic || `https://ui-avatars.com/api/?name=${friend.displayName}`} alt="avatar" className="w-12 h-12 rounded-full object-cover shadow-sm" />
+                    <img src={friend.profilePic || '/logo.png'} alt="avatar" className="w-12 h-12 rounded-full object-cover shadow-sm" />
                     <div>
                       <p className="text-[16px] font-bold text-on-surface">{friend.displayName}</p>
                       <p className="text-xs text-on-surface-variant">@{friend.username}</p>

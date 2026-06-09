@@ -226,7 +226,7 @@ export default function ChatWindow({ onBack }) {
   };
 
   const chatName = !selectedChat.isGroupChat ? getSender(user, selectedChat.participants) : selectedChat.groupName;
-  const chatPic = !selectedChat.isGroupChat ? getSenderPic(user, selectedChat.participants) || `https://ui-avatars.com/api/?name=${chatName}` : selectedChat.groupName;
+  const chatPic = !selectedChat.isGroupChat ? getSenderPic(user, selectedChat.participants) || '/logo.png' : selectedChat.groupName;
 
   const otherParticipant = selectedChat.participants?.find(p => p._id !== user._id);
   const isOnline = otherParticipant?.isOnline || false;

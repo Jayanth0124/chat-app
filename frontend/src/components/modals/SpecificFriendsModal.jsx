@@ -113,7 +113,7 @@ export default function SpecificFriendsModal({ isOpen, onClose }) {
                     }`}
                   >
                     <img 
-                      src={friend.profilePic || `https://ui-avatars.com/api/?name=${friend.displayName}&background=random`}
+                      src={friend.profilePic || '/logo.png'}
                       alt={friend.displayName}
                       className="w-12 h-12 rounded-full object-cover bg-white/5"
                     />

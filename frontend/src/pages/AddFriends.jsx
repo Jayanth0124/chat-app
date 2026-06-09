@@ -111,7 +111,7 @@ export default function AddFriends() {
                     >
                       <div className="flex items-center gap-3">
                         <img
-                          src={user.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random`}
+                          src={user.profilePic || '/logo.png'}
                           alt="avatar"
                           className="w-10 h-10 rounded-full shadow-sm object-cover"
                         />
@@ -160,7 +160,7 @@ export default function AddFriends() {
                     <div key={req._id} className="flex items-center justify-between p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-sm">
                       <div className="flex items-center gap-3">
                         <img
-                          src={req.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.displayName)}&background=random`}
+                          src={req.profilePic || '/logo.png'}
                           alt="avatar"
                           className="w-10 h-10 rounded-full shadow-sm object-cover"
                         />
@@ -204,7 +204,7 @@ export default function AddFriends() {
                     <div key={req._id} className="flex items-center justify-between p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-sm">
                       <div className="flex items-center gap-3">
                         <img
-                          src={req.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.displayName)}&background=random`}
+                          src={req.profilePic || '/logo.png'}
                           alt="avatar"
                           className="w-10 h-10 rounded-full shadow-sm object-cover"
                         />

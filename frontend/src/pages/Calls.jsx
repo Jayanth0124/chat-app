@@ -343,7 +343,7 @@ export default function Calls() {
                             <div className="flex items-center gap-4">
                               <div className="relative shrink-0">
                                 <img
-                                  src={other?.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(other?.displayName || '?')}`}
+                                  src={other?.profilePic || '/logo.png'}
                                   alt={other?.displayName}
                                   className="w-14 h-14 rounded-2xl object-cover shadow-sm pointer-events-none"
                                 />
@@ -422,7 +422,7 @@ export default function Calls() {
                     <div className="flex flex-col gap-3 mb-8">
                       {mostContacted.map(contact => (
                         <div key={`top-${contact._id}`} className="flex items-center gap-3 bg-surface p-3 rounded-2xl border border-outline-variant/20 cursor-pointer hover:border-primary/30 transition-colors" onClick={() => handleStartCall(contact)}>
-                          <img src={contact.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(contact.displayName)}`} className="w-10 h-10 rounded-xl object-cover" alt=""/>
+                          <img src={contact.profilePic || '/logo.png'} className="w-10 h-10 rounded-xl object-cover" alt=""/>
                           <div className="flex-1 overflow-hidden">
                             <p className="text-sm font-bold text-on-surface truncate">{contact.displayName}</p>
                             <p className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">@{contact.username}</p>
@@ -458,7 +458,7 @@ export default function Calls() {
                         recentContacts.map(contact => (
                           <div key={`recent-${contact._id}`} onClick={() => handleStartCall(contact)} className="flex flex-col items-center gap-2 cursor-pointer group shrink-0">
                             <div className="relative">
-                              <img src={contact.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(contact.displayName)}`} className="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover border-2 border-surface shadow-md group-hover:scale-105 transition-transform" alt=""/>
+                              <img src={contact.profilePic || '/logo.png'} className="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover border-2 border-surface shadow-md group-hover:scale-105 transition-transform" alt=""/>
                               <div className="absolute inset-0 bg-primary/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
                                 <Phone size={20} className="text-white fill-current shadow-lg" />
                               </div>
@@ -483,7 +483,7 @@ export default function Calls() {
                         onlineFriends.map(friend => (
                           <div key={`online-${friend._id}`} onClick={() => handleStartCall(friend)} className="flex flex-col items-center gap-2 cursor-pointer group shrink-0">
                             <div className="relative">
-                              <img src={friend.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.displayName)}`} className="w-14 h-14 md:w-16 md:h-16 rounded-[1rem] md:rounded-[1.25rem] object-cover border-2 border-surface shadow-md group-hover:scale-105 transition-transform" alt=""/>
+                              <img src={friend.profilePic || '/logo.png'} className="w-14 h-14 md:w-16 md:h-16 rounded-[1rem] md:rounded-[1.25rem] object-cover border-2 border-surface shadow-md group-hover:scale-105 transition-transform" alt=""/>
                               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-surface"></div>
                               <div className="absolute inset-0 bg-green-500/20 rounded-[1rem] md:rounded-[1.25rem] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
                                 <Phone size={20} className="text-white fill-current shadow-lg" />
@@ -527,7 +527,7 @@ export default function Calls() {
                         <div className="flex items-center gap-4">
                           <div className="relative shrink-0">
                             <img
-                              src={friend.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.displayName)}`}
+                              src={friend.profilePic || '/logo.png'}
                               alt={friend.displayName}
                               className="w-12 h-12 rounded-2xl object-cover shadow-sm group-hover:scale-105 transition-transform"
                             />
@@ -588,7 +588,7 @@ export default function Calls() {
                     <>
                       <div className="flex items-center gap-4 mb-6">
                         <img 
-                          src={otherUser?.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser?.displayName || '?')}`} 
+                          src={otherUser?.profilePic || '/logo.png'} 
                           className="w-16 h-16 rounded-2xl object-cover shadow-md" alt=""
                         />
                         <div>

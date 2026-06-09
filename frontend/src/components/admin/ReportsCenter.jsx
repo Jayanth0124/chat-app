@@ -160,11 +160,7 @@ export default function ReportsCenter() {
                   <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30">
                     <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider block mb-1">Reporter</span>
                     <div className="flex items-center gap-2">
-                      {report.reporter?.profilePic ? (
-                        <img src={report.reporter.profilePic} alt="profile" className="w-6 h-6 rounded-full object-cover" />
-                      ) : (
-                        <User size={14} className="text-on-surface-variant" />
-                      )}
+                      <img src={report.reporter?.profilePic || '/logo.png'} alt="profile" className="w-6 h-6 rounded-full object-cover" />
                       <span className="text-xs font-bold">{reporterName}</span>
                       <span className="text-xs text-on-surface-variant">(@{report.reporter?.username})</span>
                     </div>
@@ -173,11 +169,7 @@ export default function ReportsCenter() {
                   <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30">
                     <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider block mb-1">Offender</span>
                     <div className="flex items-center gap-2">
-                      {report.reportedUser?.profilePic ? (
-                        <img src={report.reportedUser.profilePic} alt="profile" className="w-6 h-6 rounded-full object-cover" />
-                      ) : (
-                        <User size={14} className="text-on-surface-variant" />
-                      )}
+                      <img src={report.reportedUser?.profilePic || '/logo.png'} alt="profile" className="w-6 h-6 rounded-full object-cover" />
                       <span className="text-xs font-bold text-red-500">{offenderName}</span>
                       <span className="text-xs text-on-surface-variant">(@{report.reportedUser?.username})</span>
                     </div>

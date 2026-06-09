@@ -151,13 +151,7 @@ export default function UsernameRequests() {
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full overflow-hidden bg-surface-container border border-outline-variant/20 flex-shrink-0">
-                        {req.userId?.profilePic ? (
-                          <img src={req.userId.profilePic} alt="Avatar" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
-                            <UserRound size={20} />
-                          </div>
-                        )}
+                        <img src={req.userId?.profilePic || '/logo.png'} alt="Avatar" className="w-full h-full object-cover" />
                       </div>
                       <div>
                         <h4 className="text-sm font-bold text-on-surface truncate max-w-[150px]">{req.userId?.displayName}</h4>
@@ -205,13 +199,7 @@ export default function UsernameRequests() {
                   </button>
                   <div className="flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl overflow-hidden bg-surface-container border-2 border-surface shadow-sm">
-                      {selectedRequest.userId?.profilePic ? (
-                        <img src={selectedRequest.userId.profilePic} alt="Avatar" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
-                          <UserRound size={28} />
-                        </div>
-                      )}
+                      <img src={selectedRequest.userId?.profilePic || '/logo.png'} alt="Avatar" className="w-full h-full object-cover" />
                     </div>
                     <div>
                       <h2 className="text-xl font-black text-on-surface leading-tight">{selectedRequest.userId?.displayName}</h2>

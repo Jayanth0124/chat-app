@@ -113,7 +113,7 @@ export default function UserSidebar() {
             <img
               src={
                 user?.profilePic ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || 'User')}&background=random`
+                '/logo.png'
               }
               alt="profile"
               className="w-9 h-9 rounded-full object-cover"

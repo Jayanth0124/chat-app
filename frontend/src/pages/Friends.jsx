@@ -262,13 +262,7 @@ export default function Friends() {
                 >
                   <div className="relative">
                     <div className="w-10 h-10 rounded-full bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center overflow-hidden shrink-0">
-                      {user.profilePic ? (
-                        <img src={user.profilePic} alt={user.username} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-on-surface-variant font-bold text-sm uppercase">
-                          {(user.displayName || user.username)[0]}
-                        </span>
-                      )}
+                      <img src={user.profilePic || '/logo.png'} alt={user.username} className="w-full h-full object-cover" />
                     </div>
                     {activeNav === 'friends' && (
                       <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-surface ${user.isOnline ? 'bg-emerald-500' : 'bg-on-surface-variant/40'}`} />
@@ -416,13 +410,7 @@ export default function Friends() {
             <div className="absolute -bottom-10 left-6">
               <div className="w-20 h-20 rounded-2xl bg-surface p-1 shadow-lg">
                 <div className="w-full h-full rounded-xl bg-surface-container-highest flex items-center justify-center overflow-hidden border border-outline-variant/20">
-                  {selectedUser.profilePic ? (
-                    <img src={selectedUser.profilePic} alt={selectedUser.username} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-on-surface-variant font-bold text-2xl uppercase">
-                      {(selectedUser.displayName || selectedUser.username)[0]}
-                    </span>
-                  )}
+                  <img src={selectedUser.profilePic || '/logo.png'} alt={selectedUser.username} className="w-full h-full object-cover" />
                 </div>
               </div>
             </div>
@@ -576,7 +564,7 @@ export default function Friends() {
             {getActiveList().map(user => (
               <div key={user._id} onClick={() => setSelectedUser(user)} className="flex items-center gap-4 p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/30 active:bg-surface-container-low cursor-pointer">
                 <div className="w-12 h-12 rounded-full bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center overflow-hidden shrink-0 relative">
-                  {user.profilePic ? <img src={user.profilePic} className="w-full h-full object-cover" /> : <span className="font-bold text-sm uppercase">{(user.displayName || user.username)[0]}</span>}
+                  <img src={user.profilePic || '/logo.png'} className="w-full h-full object-cover" />
                   {activeNav === 'friends' && <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-surface ${user.isOnline ? 'bg-emerald-500' : 'bg-on-surface-variant/40'}`} />}
                 </div>
                 <div className="flex-1 min-w-0">

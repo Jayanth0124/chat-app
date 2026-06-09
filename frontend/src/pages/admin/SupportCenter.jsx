@@ -405,13 +405,7 @@ export default function SupportCenter() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
                           <div className="w-5 h-5 rounded-md bg-surface-container-high border border-outline-variant/30 overflow-hidden shrink-0">
-                            {item.user?.profilePic ? (
-                              <img src={item.user.profilePic} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[9px] font-black uppercase text-primary bg-primary/10">
-                                {item.user?.displayName?.charAt(0) || '?'}
-                              </div>
-                            )}
+                            <img src={item.user?.profilePic || '/logo.png'} alt="" className="w-full h-full object-cover" />
                           </div>
                           <span className="text-[11px] font-semibold text-on-surface-variant truncate max-w-[120px]">
                             {item.user?.displayName}
@@ -459,13 +453,7 @@ export default function SupportCenter() {
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <div className="w-14 h-14 rounded-2xl bg-surface-container-high border border-outline-variant/30 overflow-hidden shadow-sm">
-                        {activeItem.user?.profilePic ? (
-                          <img src={activeItem.user.profilePic} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xl font-black uppercase text-primary bg-primary/10">
-                            {activeItem.user?.displayName?.charAt(0) || '?'}
-                          </div>
-                        )}
+                        <img src={activeItem.user?.profilePic || '/logo.png'} alt="" className="w-full h-full object-cover" />
                       </div>
                     </div>
                     <div>
@@ -511,13 +499,7 @@ export default function SupportCenter() {
                 {/* Initial Post (First Bubble) */}
                 <div className="flex gap-4">
                   <div className="w-8 h-8 rounded-full bg-surface-container border border-outline-variant/20 overflow-hidden shrink-0 mt-1">
-                    {activeItem.user?.profilePic ? (
-                      <img src={activeItem.user.profilePic} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs font-bold text-on-surface">
-                        {activeItem.user?.displayName?.charAt(0) || 'U'}
-                      </div>
-                    )}
+                    <img src={activeItem.user?.profilePic || '/logo.png'} alt="" className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 max-w-[85%]">
                     <div className="flex items-baseline gap-2 mb-1.5">
@@ -594,12 +576,12 @@ export default function SupportCenter() {
                       <div className="w-8 h-8 rounded-full bg-surface-container border border-outline-variant/20 overflow-hidden shrink-0 mt-1">
                         {reply.sender?.profilePic ? (
                           <img src={reply.sender.profilePic} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className={`w-full h-full flex items-center justify-center text-xs font-black uppercase ${
-                            isStaff ? 'text-white bg-primary' : 'text-on-surface'
-                          }`}>
-                            {isStaff ? <Shield size={14} /> : (reply.sender?.displayName?.charAt(0) || 'U')}
+                        ) : isStaff ? (
+                          <div className={`w-full h-full flex items-center justify-center text-xs font-black uppercase text-white bg-primary`}>
+                            <Shield size={14} />
                           </div>
+                        ) : (
+                          <img src="/logo.png" alt="" className="w-full h-full object-cover" />
                         )}
                       </div>
                       <div className={`flex-1 max-w-[80%] ${isStaff ? 'flex flex-col items-end' : ''}`}>
