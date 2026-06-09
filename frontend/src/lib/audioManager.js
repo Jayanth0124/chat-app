@@ -6,50 +6,74 @@ class AudioManager {
       messageSent: new Audio('/src/assets/audio/message_sent.wav'),
     };
 
-    // Configure incoming call audio
+    // Configure loop states
     this.sounds.incoming.loop = true;
-    
-    // Configure outgoing call audio
     this.sounds.outgoing.loop = true;
 
-    // Preload
-    Object.values(this.sounds).forEach(audio => {
+    // Preload & initialize logs
+    Object.entries(this.sounds).forEach(([name, audio]) => {
       audio.load();
+      console.log(`[Audio] Initialized '${name}' (readyState: ${audio.readyState}, muted: ${audio.muted}, volume: ${audio.volume})`);
     });
 
     this.outgoingTimeout = null;
   }
 
+  logEvent(name, action, audio) {
+    console.log(`[Audio] ${action} '${name}' | readyState: ${audio?.readyState} | vol: ${audio?.volume} | muted: ${audio?.muted}`);
+  }
+
+  handlePlayError(name, err) {
+    if (err.name === 'NotAllowedError') {
+      console.error(`[Audio] Autoplay blocked for '${name}'. Browser requires user interaction before playing audio.`);
+    } else {
+      console.error(`[Audio] Playback failed for '${name}':`, err);
+    }
+  }
+
   setSpeakerMode(isOn) {
-    // Earpiece mode requires a very low volume to feel realistic on generic web browsers
+    const oldVol = this.sounds.outgoing.volume;
     this.sounds.outgoing.volume = isOn ? 1.0 : 0.05;
+    console.log(`[Audio] setSpeakerMode(${isOn}) | outgoing ring vol changed from ${oldVol} to ${this.sounds.outgoing.volume}`);
   }
 
   playIncoming() {
-    this.sounds.incoming.currentTime = 0;
-    this.sounds.incoming.play().catch(e => console.warn('Audio play failed:', e));
+    const audio = this.sounds.incoming;
+    audio.currentTime = 0;
+    this.logEvent('incoming', 'play() requested', audio);
+    audio.play()
+      .then(() => console.log(`[Audio] Playing 'incoming' successfully.`))
+      .catch(e => this.handlePlayError('incoming', e));
   }
 
   stopIncoming() {
-    this.sounds.incoming.pause();
-    this.sounds.incoming.currentTime = 0;
+    const audio = this.sounds.incoming;
+    audio.pause();
+    audio.currentTime = 0;
+    this.logEvent('incoming', 'stop() requested', audio);
   }
 
   playOutgoing(onTimeout) {
-    this.sounds.outgoing.currentTime = 0;
-    this.sounds.outgoing.play().catch(e => console.warn('Audio play failed:', e));
+    const audio = this.sounds.outgoing;
+    audio.currentTime = 0;
+    this.logEvent('outgoing', 'play() requested', audio);
+    audio.play()
+      .then(() => console.log(`[Audio] Playing 'outgoing' successfully.`))
+      .catch(e => this.handlePlayError('outgoing', e));
     
-    // 35 second timeout for outgoing calls
     if (this.outgoingTimeout) clearTimeout(this.outgoingTimeout);
     this.outgoingTimeout = setTimeout(() => {
+      console.log(`[Audio] Outgoing call timeout reached (35s). Auto-stopping.`);
       this.stopOutgoing();
       if (onTimeout) onTimeout();
     }, 35000);
   }
 
   stopOutgoing() {
-    this.sounds.outgoing.pause();
-    this.sounds.outgoing.currentTime = 0;
+    const audio = this.sounds.outgoing;
+    audio.pause();
+    audio.currentTime = 0;
+    this.logEvent('outgoing', 'stop() requested', audio);
     if (this.outgoingTimeout) {
       clearTimeout(this.outgoingTimeout);
       this.outgoingTimeout = null;
@@ -57,10 +81,12 @@ class AudioManager {
   }
 
   playMessageSent() {
-    // Clone node allows playing overlapping sounds if sent rapidly, but user asked for "no overlapping" for calls.
-    // For message sent, we'll just reset and play to ensure low latency.
-    this.sounds.messageSent.currentTime = 0;
-    this.sounds.messageSent.play().catch(e => console.warn('Audio play failed:', e));
+    const audio = this.sounds.messageSent;
+    audio.currentTime = 0;
+    this.logEvent('messageSent', 'play() requested', audio);
+    audio.play()
+      .then(() => console.log(`[Audio] Playing 'messageSent' successfully.`))
+      .catch(e => this.handlePlayError('messageSent', e));
   }
 }
 

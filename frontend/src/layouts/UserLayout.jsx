@@ -154,7 +154,10 @@ export default function UserLayout() {
       remoteAudioRef.current = audio;
     }
     return () => {
+      cleanupWebRTC();
       if (remoteAudioRef.current) {
+        remoteAudioRef.current.pause();
+        remoteAudioRef.current.srcObject = null;
         remoteAudioRef.current.remove();
         remoteAudioRef.current = null;
       }
@@ -170,21 +173,56 @@ export default function UserLayout() {
   }, [isSpeakerOn]);
 
   const cleanupWebRTC = () => {
+    console.log('[WebRTC] Running full cleanup...');
+    
+    // 1. Close RTCPeerConnection
     if (pcRef.current) {
-      try { pcRef.current.close(); } catch (e) {}
+      try { 
+        pcRef.current.close(); 
+        console.log('[WebRTC] RTCPeerConnection closed.');
+      } catch (e) {
+        console.error('[WebRTC] Error closing RTCPeerConnection:', e);
+      }
       pcRef.current = null;
     }
+
+    // 2. Stop all local microphone/camera tracks immediately to kill browser recording indicator
     if (localStreamRef.current) {
       try {
-        localStreamRef.current.getTracks().forEach(track => track.stop());
-      } catch (e) {}
+        localStreamRef.current.getTracks().forEach(track => {
+          track.stop();
+          console.log(`[WebRTC] Stopped local track: ${track.kind}`);
+        });
+      } catch (e) {
+        console.error('[WebRTC] Error stopping local tracks:', e);
+      }
       localStreamRef.current = null;
       setLocalStream(null);
     }
+
+    // 3. Stop remote tracks and clear remote audio element
     if (remoteAudioRef.current) {
+      try {
+        if (remoteAudioRef.current.srcObject) {
+          const remoteTracks = remoteAudioRef.current.srcObject.getTracks();
+          remoteTracks.forEach(track => {
+            track.stop();
+            console.log(`[WebRTC] Stopped remote track: ${track.kind}`);
+          });
+        }
+      } catch (e) {
+        console.error('[WebRTC] Error stopping remote tracks:', e);
+      }
       remoteAudioRef.current.srcObject = null;
+      remoteAudioRef.current.pause();
     }
     setRemoteStream(null);
+
+    // 4. Force stop any playing call audio to prevent ghost ringing
+    audioManager.stopIncoming();
+    audioManager.stopOutgoing();
+    
+    console.log('[WebRTC] Cleanup complete. Media resources released.');
   };
 
   useEffect(() => {
