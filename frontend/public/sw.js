@@ -1,8 +1,29 @@
-self.addEventListener('push', function(event) {
+self.addEventListener('push', async function(event) {
   if (event.data) {
     try {
       const data = event.data.json();
       
+      const isCallEnded = data.type === 'call_ended';
+      const isMissedCall = data.type === 'missed_call';
+      
+      // If the push is to cancel an existing ringing notification
+      if (isCallEnded || isMissedCall) {
+        const notifications = await self.registration.getNotifications();
+        const callId = data.data?.callId;
+        
+        // Find and close any existing ringing notifications for this call
+        for (const notification of notifications) {
+          if (notification.data && notification.data.callId === callId && notification.data.type === 'incoming_call') {
+            notification.close();
+          }
+        }
+        
+        // If it's just a silent cancel, don't show anything new
+        if (isCallEnded) return;
+        
+        // Otherwise, show the missed call notification
+      }
+
       const isCall = data.data && data.data.type === 'incoming_call';
 
       const options = {
@@ -21,9 +42,7 @@ self.addEventListener('push', function(event) {
         ];
       }
 
-      event.waitUntil(
-        self.registration.showNotification(data.title || 'Orbit', options)
-      );
+      await self.registration.showNotification(data.title || 'Orbit', options);
     } catch (e) {
       const options = {
         body: event.data.text(),
@@ -31,9 +50,7 @@ self.addEventListener('push', function(event) {
         badge: '/logo.png',
         vibrate: [100, 50, 100]
       };
-      event.waitUntil(
-        self.registration.showNotification('Orbit Announcement', options)
-      );
+      await self.registration.showNotification('Orbit Announcement', options);
     }
   }
 });

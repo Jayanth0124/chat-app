@@ -58,7 +58,7 @@ export const createCall = async (req, res) => {
       caller: callerId,
       receiver: receiverId,
       type,
-      status: 'missed' // default; will be updated when call ends
+      status: 'ringing' // Defaulting to ringing now
     });
 
     await call.populate('caller', 'displayName profilePic username');
@@ -109,6 +109,30 @@ export const updateCall = async (req, res) => {
     res.status(200).json(call);
   } catch (error) {
     console.error('Error in updateCall:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// GET /api/calls/:callId — fetch a specific call's real-time status
+export const getCall = async (req, res) => {
+  try {
+    const { callId } = req.params;
+    const call = await Call.findById(callId)
+      .populate('caller', 'displayName profilePic username')
+      .populate('receiver', 'displayName profilePic username');
+
+    if (!call) {
+      return res.status(404).json({ error: 'Call not found' });
+    }
+
+    // Verify user is authorized to view this call
+    if (call.caller._id.toString() !== req.user._id.toString() && call.receiver._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    res.status(200).json(call);
+  } catch (error) {
+    console.error('Error in getCall:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

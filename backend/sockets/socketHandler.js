@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Message from '../models/Message.js';
 import Call from '../models/Call.js';
+import { sendPushNotification } from '../utils/webPush.js';
 
 export const handleSockets = (io) => {
   io.on('connection', (socket) => {
@@ -132,7 +133,10 @@ export const handleSockets = (io) => {
     });
 
     // Receiver answers
-    socket.on('call:answer', ({ to, callId }) => {
+    socket.on('call:answer', async ({ to, callId }) => {
+      try {
+        await Call.findByIdAndUpdate(callId, { status: 'in_progress' });
+      } catch (e) {}
       io.to(to.toString()).emit('call:answered', { callId });
     });
 
@@ -140,8 +144,31 @@ export const handleSockets = (io) => {
     socket.on('call:reject', async ({ to, callId }) => {
       try {
         await Call.findByIdAndUpdate(callId, { status: 'rejected' });
+        // Send a hidden push to clear the ringing notification on the receiver's device
+        await sendPushNotification(to, { type: 'call_ended', data: { callId } });
       } catch (e) {}
       io.to(to.toString()).emit('call:rejected', { callId });
+    });
+
+    // Caller cancels before receiver answers
+    socket.on('call:cancel', async ({ to, callId }) => {
+      try {
+        const call = await Call.findByIdAndUpdate(callId, { status: 'cancelled' }).populate('caller', 'displayName');
+        if (call) {
+          // Send missed call push notification
+          const payload = {
+            type: 'missed_call',
+            title: 'Missed Call',
+            body: `You missed a call from ${call.caller.displayName}`,
+            icon: call.caller.profilePic || '/logo.png',
+            data: { callId: call._id }
+          };
+          await sendPushNotification(to, payload);
+        }
+      } catch (e) {
+        console.error('Error cancelling call:', e);
+      }
+      io.to(to.toString()).emit('call:ended', { callId, duration: 0 });
     });
 
     // Either side ends the call
@@ -151,6 +178,7 @@ export const handleSockets = (io) => {
           status: 'completed',
           duration: duration || 0
         });
+        await sendPushNotification(to, { type: 'call_ended', data: { callId } });
       } catch (e) {}
       io.to(to.toString()).emit('call:ended', { callId, duration });
     });

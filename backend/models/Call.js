@@ -18,8 +18,8 @@ const callSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['missed', 'completed', 'rejected'],
-    default: 'missed'
+    enum: ['ringing', 'in_progress', 'missed', 'completed', 'rejected', 'cancelled'],
+    default: 'ringing'
   },
   duration: {
     type: Number, // seconds

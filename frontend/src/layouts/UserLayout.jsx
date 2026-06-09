@@ -388,16 +388,23 @@ export default function UserLayout() {
   const handleEndCall = async () => {
     if (!activeCall) return;
     const otherId = activeCall.receiverId;
+    const isDialing = activeCall.status === 'dialing';
+    
     if (socket && otherId) {
-      socket.emit('call:end', {
-        to: otherId,
-        callId: activeCall.callId,
-        duration: callDuration
-      });
+      if (isDialing) {
+        socket.emit('call:cancel', { to: otherId, callId: activeCall.callId });
+      } else {
+        socket.emit('call:end', {
+          to: otherId,
+          callId: activeCall.callId,
+          duration: callDuration
+        });
+      }
     }
+    
     if (activeCall.callId) {
       try {
-        const finalStatus = activeCall.status === 'connected' ? 'completed' : 'missed';
+        const finalStatus = isDialing ? 'cancelled' : (activeCall.status === 'connected' ? 'completed' : 'missed');
         await axiosInstance.patch(`/calls/${activeCall.callId}`, {
           status: finalStatus,
           duration: callDuration

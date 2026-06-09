@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Loader2, ShieldAlert } from 'lucide-react';
+import toast from 'react-hot-toast';
 import ToastProvider from './components/ui/ToastProvider';
+import { axiosInstance } from './lib/axios';
 import { useAuthStore } from './store/useAuthStore';
 import { useChatStore } from './store/useChatStore';
 import { useSettingsStore } from './store/useSettingsStore';
@@ -117,9 +119,25 @@ export default function App() {
   const { setActiveCall } = useLayoutStore();
 
   useEffect(() => {
-    const handleServiceWorkerMessage = (event) => {
+    const handleServiceWorkerMessage = async (event) => {
       if (event.data && event.data.type === 'CALL_ACTION') {
         const { action, callData } = event.data;
+        
+        // Verify call status from backend before launching any UI
+        try {
+          const res = await axiosInstance.get(`/calls/${callData.callId}`);
+          const callStatus = res.data.status;
+          
+          if (callStatus !== 'ringing' && callStatus !== 'in_progress') {
+            toast.error('This call has already ended.', { icon: '📞' });
+            return; // Ignore stale action completely
+          }
+        } catch (e) {
+          console.error('Failed to verify call status:', e);
+          toast.error('This call has already ended.', { icon: '📞' });
+          return;
+        }
+
         if (action === 'accept_call') {
           setActiveCall({
             callId: callData.callId,
