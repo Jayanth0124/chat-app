@@ -149,8 +149,8 @@ export default function ChatWindow({ onBack }) {
 
       setActiveCall({
         callId: callRecord._id,
-        name: chatName,
-        pic: chatPic,
+        name: !selectedChat.isGroupChat ? getSender(user, selectedChat.participants) : selectedChat.groupName,
+        pic: !selectedChat.isGroupChat ? getSenderPic(user, selectedChat.participants) : null,
         type,
         status: 'dialing',
         receiverId: otherParticipant._id,

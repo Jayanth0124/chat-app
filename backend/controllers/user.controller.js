@@ -4,6 +4,7 @@ import cloudinary from '../utils/cloudinary.js';
 import { validateAndSanitizeRelationship } from './friends.controller.js';
 import UsernameOwnership from '../models/UsernameOwnership.js';
 import UsernameChangeRequest from '../models/UsernameChangeRequest.js';
+import Connection from '../models/Connection.js';
 
 export const getUsersForSidebar = async (req, res) => {
   try {
@@ -403,6 +404,37 @@ export const getUsernameChangeRequests = async (req, res) => {
     res.status(200).json(requests);
   } catch (error) {
     console.error("Error in getUsernameChangeRequests:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getConnection = async (req, res) => {
+  try {
+    const loggedInUserId = req.user._id;
+    const { id: otherUserId } = req.params;
+
+    if (!otherUserId) {
+      return res.status(400).json({ message: "Other User ID is required" });
+    }
+
+    const sortedUsers = [loggedInUserId.toString(), otherUserId.toString()].sort();
+
+    let connection = await Connection.findOne({
+      users: sortedUsers
+    });
+
+    if (!connection) {
+      connection = {
+        totalScore: 0,
+        chatCount: 0,
+        voiceCallDuration: 0,
+        videoCallDuration: 0
+      };
+    }
+
+    res.status(200).json(connection);
+  } catch (error) {
+    console.error("Error in getConnection:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

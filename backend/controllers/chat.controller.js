@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import Report from '../models/Report.js';
 import cloudinary, { deleteFromCloudinary } from '../utils/cloudinary.js';
 import { sendPushNotification } from '../utils/webPush.js';
+import Connection from '../models/Connection.js';
 
 export const accessChat = async (req, res) => {
   const { userId } = req.body;
@@ -238,6 +239,25 @@ export const sendMessage = async (req, res) => {
           });
         }
       });
+    }
+
+    // Update Orbit Connection Score
+    if (!chat.isGroupChat && chat.participants.length === 2) {
+      const otherUser = chat.participants.find(p => p._id.toString() !== loggedInUserId.toString());
+      if (otherUser) {
+        const otherUserId = otherUser._id;
+        const scoreIncrement = (computedMessageType === 'audio' || computedMessageType === 'video' || computedMessageType === 'image') ? 2 : 1;
+
+        const sortedUsers = [loggedInUserId.toString(), otherUserId.toString()].sort();
+
+        await Connection.findOneAndUpdate(
+          { users: sortedUsers },
+          { 
+            $inc: { totalScore: scoreIncrement, chatCount: 1 }
+          },
+          { upsert: true, new: true }
+        );
+      }
     }
 
     res.json(message);

@@ -1,6 +1,7 @@
 import Call from '../models/Call.js';
 import User from '../models/User.js';
 import { sendPushNotification } from '../utils/webPush.js';
+import Connection from '../models/Connection.js';
 
 // GET /api/calls — fetch call history for the logged-in user
 export const getCallHistory = async (req, res) => {
@@ -104,6 +105,26 @@ export const updateCall = async (req, res) => {
 
     if (!call) {
       return res.status(404).json({ error: 'Call not found' });
+    }
+
+    if (status === 'completed' && duration) {
+      const callerId = call.caller._id;
+      const receiverId = call.receiver._id;
+      const scoreIncrement = Math.floor(duration / 10);
+      const isVideo = call.type === 'video';
+
+      const sortedUsers = [callerId.toString(), receiverId.toString()].sort();
+
+      await Connection.findOneAndUpdate(
+        { users: sortedUsers },
+        {
+          $inc: {
+            totalScore: scoreIncrement,
+            ...(isVideo ? { videoCallDuration: duration } : { voiceCallDuration: duration })
+          }
+        },
+        { upsert: true, new: true }
+      );
     }
 
     res.status(200).json(call);

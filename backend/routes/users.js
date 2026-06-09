@@ -1,6 +1,6 @@
 import express from 'express';
 import { protectRoute } from '../middleware/auth.middleware.js';
-import { getUsersForSidebar, updateProfile, changeUsername, getUserById, getActiveBroadcasts, updatePrivacySettings, requestUsernameChange, getUsernameChangeRequests } from '../controllers/user.controller.js';
+import { getUsersForSidebar, updateProfile, changeUsername, getUserById, getActiveBroadcasts, updatePrivacySettings, requestUsernameChange, getUsernameChangeRequests, getConnection } from '../controllers/user.controller.js';
 import { getSettings } from '../controllers/admin.controller.js';
 import { 
   searchUsers, 
@@ -80,6 +80,7 @@ router.post('/push/unsubscribe', protectRoute, async (req, res) => {
 });
 
 // Retrieve user by ID (defined at the very end to avoid shadowing static routes)
+router.get('/:id/connection', protectRoute, getConnection);
 router.get('/:id', protectRoute, getUserById);
 
 export default router;
