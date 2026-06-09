@@ -113,50 +113,74 @@ export default function Profile() {
         </button>
       </div>
 
-      {/* Massive Profile Hero */}
-      <div className="relative w-full pt-40 pb-24 px-8 flex flex-col items-center justify-center min-h-[60vh] md:min-h-[70vh] bg-gradient-to-b from-white/[0.02] to-transparent border-b border-white/5">
+      {/* Compact Profile Hero */}
+      <div className="relative w-full pt-20 pb-8 px-8 flex flex-col items-center justify-center bg-gradient-to-b from-white/[0.02] to-transparent border-b border-white/5">
         
-        {/* Large Avatar */}
-        <div className="relative mb-10">
+        {/* Compact Avatar */}
+        <div className="relative mb-3">
           <div 
-            className="w-48 h-48 md:w-64 md:h-64 rounded-[3rem] overflow-hidden border border-white/10 bg-[#050505] shadow-2xl relative transition-transform duration-500 hover:scale-105 cursor-pointer"
+            className="w-32 h-32 md:w-40 md:h-40 rounded-[2rem] overflow-hidden border border-white/10 bg-[#050505] shadow-2xl relative transition-transform duration-500 hover:scale-105 cursor-pointer"
             onClick={() => setIsFullscreenDp(true)}
           >
               <Avatar
                 src={currentDp}
                 name={displayName || user?.username}
                 sizeClass="w-full h-full"
-                textClass="text-5xl md:text-7xl"
+                textClass="text-4xl md:text-5xl"
                 roundedClass="rounded-none"
               />
           </div>
           
           {/* Edit DP Button */}
-          <label className="absolute -bottom-2 -right-2 md:bottom-2 md:-right-6 w-12 h-12 md:w-14 md:h-14 bg-[#8C6DF0] hover:bg-[#7b5bea] text-white rounded-[1rem] flex items-center justify-center shadow-[0_8px_30px_rgba(140,109,240,0.4)] transition-transform hover:scale-110 cursor-pointer z-30 border-[4px] border-[#0A0A0E]">
-            <Edit3 size={20} strokeWidth={2.5} />
+          <label className="absolute -bottom-2 -right-2 md:bottom-1 md:-right-4 w-10 h-10 md:w-12 md:h-12 bg-[#8C6DF0] hover:bg-[#7b5bea] text-white rounded-[1rem] flex items-center justify-center shadow-[0_8px_30px_rgba(140,109,240,0.4)] transition-transform hover:scale-110 cursor-pointer z-30 border-[3px] border-[#0A0A0E]">
+            <Edit3 size={18} strokeWidth={2.5} />
             <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
           </label>
 
           {/* Online Indicator */}
-          <div className="absolute -bottom-2 left-6 md:left-8 w-8 h-8 bg-[#34C759] border-[4px] border-[#0A0A0E] rounded-full z-20 shadow-[0_0_20px_rgba(52,199,89,0.4)]" title="Online" />
+          <div className="absolute -bottom-1 left-4 md:left-4 w-6 h-6 bg-[#34C759] border-[3px] border-[#0A0A0E] rounded-full z-20 shadow-[0_0_20px_rgba(52,199,89,0.4)]" title="Online" />
         </div>
 
-        {/* Massive Typography */}
-        <div className="text-center w-full max-w-3xl space-y-4">
-          <h1 className="text-5xl md:text-7xl font-spacetron tracking-tight text-white/95 leading-none">
+        {/* Compact Typography */}
+        <div className="text-center w-full max-w-5xl mx-auto px-4 mt-2 flex flex-col items-center">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-spacetron tracking-normal text-white/95 leading-tight break-words px-2 w-full">
             {displayName || 'Orbit User'}
           </h1>
-          <p className="text-xl md:text-2xl text-[#8C6DF0] font-mono tracking-wide font-medium">
+          <p className="text-lg md:text-xl text-[#8C6DF0] font-mono tracking-wider font-bold mt-1">
             @{username}
           </p>
-          <div className="w-full max-w-2xl mx-auto pt-6 text-lg md:text-xl leading-relaxed text-white/50 font-medium">
-            {bio || 'Set your bio to complete your profile.'}
+          
+          {/* Unique Bio Display (No Card) */}
+          <div className="w-full mt-6 mb-4 text-center">
+            <div className="relative inline-block text-center px-10 py-4 max-w-5xl w-auto mx-auto">
+              {/* Opening Quote (Top Left) */}
+              <div className="absolute top-0 left-0 text-5xl md:text-6xl text-white/[0.06] font-serif leading-none select-none pointer-events-none">
+                "
+              </div>
+              
+              {/* Bio Content */}
+              <div className="relative z-10 text-center">
+                <p className="text-base md:text-lg leading-relaxed text-white/70 font-medium italic break-words whitespace-pre-wrap" style={{ wordBreak: 'break-word' }}>
+                  {bio || 'Set your bio to complete your profile.'}
+                </p>
+              </div>
+              
+              {/* Closing Quote (Bottom Right) - Only if bio exists */}
+              {bio && (
+                <div className="absolute bottom-0 right-0 text-5xl md:text-6xl text-white/[0.06] font-serif leading-none select-none pointer-events-none rotate-180 translate-y-2">
+                  "
+                </div>
+              )}
+            </div>
+            
+            {/* Elegant Divider */}
+            <div className="w-16 h-1 bg-gradient-to-r from-transparent via-[#8C6DF0]/50 to-transparent mx-auto mt-4 rounded-full" />
           </div>
         </div>
       </div>
 
       {/* Bento Grid Layout */}
-      <div className="w-full max-w-7xl mx-auto px-8 py-16">
+      <div className="w-full max-w-7xl mx-auto px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* Identity Information */}

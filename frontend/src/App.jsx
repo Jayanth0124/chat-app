@@ -190,8 +190,8 @@ export default function App() {
             <div className="ring ring-3"></div>
           </div>
 
-          <h1 className="text-3xl font-black tracking-tight text-white uppercase mt-2">
-            Orbit
+          <h1 className="text-4xl font-spacetron tracking-[0.15em] text-white uppercase mt-2 leading-none">
+            ORBIT
           </h1>
           <p className="text-neutral-400 text-xs tracking-wider uppercase mt-1">
             Premium Secured Messenger
