@@ -6,6 +6,7 @@ import { useAuthStore } from './useAuthStore';
 import { useNotificationStore } from './useNotificationStore';
 import { useLayoutStore } from './useLayoutStore';
 import { useFriendStore } from './useFriendStore';
+import { audioManager } from '../lib/audioManager';
 
 export const useChatStore = create((set, get) => ({
   users: [],
@@ -518,6 +519,9 @@ export const useChatStore = create((set, get) => ({
       if (socket) {
         socket.emit('new message', res.data);
       }
+      
+      // Play message sent sound
+      audioManager.playMessageSent();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error sending message');
       // Remove the failed temporary message

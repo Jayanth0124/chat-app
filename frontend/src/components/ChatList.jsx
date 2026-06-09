@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import chatlistBg from '../assets/images/chatlist.jpg';
-import { Search, Loader2, MessageSquarePlus, MoreHorizontal, Users, Trash2, Clock, Inbox, Bell, Pin, BellOff, Ban, ChevronDown, CheckCircle2, X } from 'lucide-react';
+import { Search, Loader2, MessageSquarePlus, MoreHorizontal, Users, Trash2, Clock, Inbox, Bell, Pin, BellOff, Ban, ChevronDown, CheckCircle2, X, Mic } from 'lucide-react';
 import { useChatStore } from '../store/useChatStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useFriendStore } from '../store/useFriendStore';
@@ -9,6 +9,39 @@ import { useNotificationStore } from '../store/useNotificationStore';
 import { useNavigate } from 'react-router-dom';
 import { useLongPress } from '../hooks/useLongPress';
 import { useConfirmStore } from '../store/useConfirmStore';
+
+const formatDuration = (seconds) => {
+  if (!seconds) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
+const AudioPreview = ({ message }) => {
+  const [duration, setDuration] = useState(null);
+  
+  useEffect(() => {
+    if (message.content) {
+      const match = message.content.match(/\((.*?)\)/);
+      if (match && match[1] && match[1] !== '0:00') {
+        setDuration(match[1]);
+      }
+    }
+  }, [message.content]);
+
+  return (
+    <span className="flex items-center gap-1.5 text-[#0A84FF] font-medium">
+      <Mic size={14} className="text-[#0A84FF]" /> Voice Note · {duration || '0:00'}
+      {(!duration || duration === '0:00') && message.mediaUrl && (
+        <audio 
+          src={message.mediaUrl} 
+          onLoadedMetadata={(e) => setDuration(formatDuration(e.target.duration))} 
+          className="hidden" 
+        />
+      )}
+    </span>
+  );
+};
 
 function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContextMenu, setActiveContextMenu, getSender, getSenderPic, unreadCounts }) {
   const navigate = useNavigate();
@@ -131,7 +164,11 @@ function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContext
                   <span className="italic text-[#0A84FF]">Vanish Mode</span>
                 </>
               ) : chat.latestMessage ? (
-                chat.latestMessage.messageType === 'image' ? '📷 Image' : chat.latestMessage.content
+                chat.latestMessage.messageType === 'image' ? '📷 Image' : 
+                chat.latestMessage.messageType === 'audio' ? <AudioPreview message={chat.latestMessage} /> :
+                chat.latestMessage.messageType === 'video' ? '🎥 Video' :
+                chat.latestMessage.messageType === 'document' ? '📄 Document' :
+                chat.latestMessage.content
               ) : (
                 'No messages yet...'
               )}

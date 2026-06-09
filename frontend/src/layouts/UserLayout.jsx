@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import UserSidebar from '../components/UserSidebar';
-import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Volume2, VolumeX, PhoneOff, PhoneIncoming, Check, Loader2, Bell, Trash2, ShieldAlert, UserPlus, UserCheck, Bug, HelpCircle, Inbox, CheckCircle2, Video, VideoOff, SwitchCamera, Bluetooth, Maximize } from 'lucide-react';
+import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Volume2, VolumeX, PhoneOff, PhoneIncoming, Check, Loader2, Bell, Trash2, ShieldAlert, UserPlus, UserCheck, Bug, HelpCircle, Inbox, CheckCircle2, Video, VideoOff, SwitchCamera, Bluetooth, Maximize, ChevronUp, Smartphone } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 import { useChatStore } from '../store/useChatStore';
@@ -11,6 +11,7 @@ import { axiosInstance } from '../lib/axios';
 import toast from 'react-hot-toast';
 import ManageFriends from '../components/ManageFriends';
 import { motion, AnimatePresence } from 'framer-motion';
+import { audioManager } from '../lib/audioManager';
 
 export default function UserLayout() {
   const location = useLocation();
@@ -34,6 +35,12 @@ export default function UserLayout() {
   const [isFrontCamera, setIsFrontCamera] = useState(true);
   const [showControls, setShowControls] = useState(true);
   
+  // Audio Routing State
+  const [audioDevices, setAudioDevices] = useState([]);
+  const [hasBluetooth, setHasBluetooth] = useState(false);
+  const [showRoutingMenu, setShowRoutingMenu] = useState(false);
+  const [currentOutputId, setCurrentOutputId] = useState('default');
+
   const [callDuration, setCallDuration] = useState(0);
   const callTimerRef = useState(null);
   const controlsTimeoutRef = useRef(null);
@@ -82,6 +89,57 @@ export default function UserLayout() {
   };
 
   useEffect(() => {
+    if (!activeCall) return;
+
+    const checkDevices = async () => {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true }); 
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const outputs = devices.filter(d => d.kind === 'audiooutput');
+        setAudioDevices(outputs);
+        
+        // Strict Bluetooth keyword filtering
+        const btKeywords = ['bluetooth', 'airpods', 'buds', 'bose', 'sony', 'jabra', 'galaxy'];
+        const foundBt = outputs.some(d => 
+          btKeywords.some(keyword => d.label.toLowerCase().includes(keyword))
+        );
+        
+        setHasBluetooth(foundBt);
+      } catch (err) {
+        console.error("Error accessing media devices for routing:", err);
+      }
+    };
+
+    checkDevices();
+    navigator.mediaDevices.addEventListener('devicechange', checkDevices);
+    
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', checkDevices);
+    };
+  }, [activeCall]);
+
+  const handleAudioRouteChange = async (deviceId) => {
+    setCurrentOutputId(deviceId);
+    setShowRoutingMenu(false);
+    
+    // Attempt to route audio if supported
+    if (remoteAudioRef.current && typeof remoteAudioRef.current.setSinkId === 'function') {
+      try {
+        await remoteAudioRef.current.setSinkId(deviceId === 'speaker' || deviceId === 'earpiece' ? '' : deviceId);
+      } catch (err) {
+        console.error("Audio routing failed", err);
+      }
+    }
+    
+    // Set speaker mode based on selection
+    if (deviceId === 'speaker') {
+      setIsSpeakerOn(true);
+    } else if (deviceId === 'earpiece') {
+      setIsSpeakerOn(false);
+    }
+  };
+
+  useEffect(() => {
     resetControlsTimeout();
     return () => clearTimeout(controlsTimeoutRef.current);
   }, [activeCall?.status, activeCall?.type]);
@@ -106,8 +164,9 @@ export default function UserLayout() {
   // Update volume based on speaker mode
   useEffect(() => {
     if (remoteAudioRef.current) {
-      remoteAudioRef.current.volume = isSpeakerOn ? 1.0 : 0.25;
+      remoteAudioRef.current.volume = isSpeakerOn ? 1.0 : 0.05;
     }
+    audioManager.setSpeakerMode(isSpeakerOn);
   }, [isSpeakerOn]);
 
   const cleanupWebRTC = () => {
@@ -132,11 +191,30 @@ export default function UserLayout() {
     if (!activeCall) {
       cleanupWebRTC();
       setIsSpeakerOn(false); // Reset speaker preference
+      audioManager.stopOutgoing();
     } else {
       setIsVideoEnabled(activeCall.type === 'video');
-      // If video call, speaker should typically be on, but user requested device default.
+      // If dialing and outgoing, start outgoing ring
+      if (activeCall.status === 'dialing' && activeCall.direction === 'outgoing') {
+        audioManager.playOutgoing(() => {
+          // 35s Timeout logic
+          handleEndCall();
+          toast.error('Call timeout. User unavailable.');
+        });
+      } else {
+        // Connected or no longer dialing
+        audioManager.stopOutgoing();
+      }
     }
   }, [activeCall]);
+
+  useEffect(() => {
+    if (incomingCall) {
+      audioManager.playIncoming();
+    } else {
+      audioManager.stopIncoming();
+    }
+  }, [incomingCall]);
 
   useEffect(() => {
     if (localStreamRef.current) {
@@ -626,13 +704,32 @@ export default function UserLayout() {
                           )}
                         </>
                       ) : (
-                        <div className="flex flex-col items-center gap-2">
-                          <button
-                            className={`w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all flex items-center justify-center shadow-lg`}
-                          >
-                            <Bluetooth size={24} />
-                          </button>
-                          <span className="text-[10px] font-bold tracking-wider uppercase text-white/50">Audio</span>
+                        <div className="flex flex-col items-center gap-2 relative">
+                          {!hasBluetooth ? (
+                            <button
+                              onClick={() => setIsSpeakerOn(!isSpeakerOn)}
+                              className={`w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-lg ${
+                                isSpeakerOn ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'
+                              }`}
+                            >
+                              <Volume2 size={24} className={isSpeakerOn ? 'opacity-100' : 'opacity-60'} />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setShowRoutingMenu(true)}
+                              className={`relative w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-lg bg-white text-black`}
+                            >
+                              {currentOutputId === 'speaker' || currentOutputId === 'default' ? <Volume2 size={24} /> : 
+                               currentOutputId === 'earpiece' ? <Smartphone size={24} /> : 
+                               <Bluetooth size={24} />}
+                              <div className="absolute -bottom-1 -right-1 bg-[#111111] rounded-full p-0.5 shadow-md">
+                                <ChevronUp size={12} className="text-white" />
+                              </div>
+                            </button>
+                          )}
+                          <span className="text-[10px] font-bold tracking-wider uppercase text-white/50">
+                            {!hasBluetooth ? 'Speaker' : 'Audio'}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -645,6 +742,67 @@ export default function UserLayout() {
                     </button>
                   </div>
                 </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Audio Routing Bottom Sheet */}
+            <AnimatePresence>
+              {showRoutingMenu && (
+                <>
+                  <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="absolute inset-0 z-40 bg-black/50 backdrop-blur-sm" 
+                    onClick={() => setShowRoutingMenu(false)}
+                  />
+                  <motion.div 
+                    initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+                    transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                    className="absolute bottom-0 left-0 right-0 z-50 bg-[#1C1C1E] rounded-t-[2rem] border-t border-white/10 shadow-[0_-20px_40px_rgba(0,0,0,0.5)] p-6 pb-safe"
+                  >
+                    <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6" />
+                    <h3 className="text-[15px] font-bold text-white/90 mb-4 px-2 tracking-wide uppercase">Audio Output</h3>
+                    
+                    <div className="flex flex-col gap-2">
+                      <button 
+                        onClick={() => handleAudioRouteChange('speaker')}
+                        className={`flex items-center gap-4 p-4 rounded-2xl transition-colors ${currentOutputId === 'speaker' ? 'bg-[#0A84FF]/10 text-[#0A84FF]' : 'hover:bg-white/5 text-white/90'}`}
+                      >
+                        <div className={`p-2 rounded-full ${currentOutputId === 'speaker' ? 'bg-[#0A84FF]/20' : 'bg-white/10'}`}>
+                          <Volume2 size={20} />
+                        </div>
+                        <span className="font-semibold text-[16px]">Speaker</span>
+                        {currentOutputId === 'speaker' && <div className="ml-auto w-2 h-2 rounded-full bg-[#0A84FF]" />}
+                      </button>
+
+                      {audioDevices.filter(d => 
+                        ['bluetooth', 'airpods', 'buds', 'bose', 'sony', 'jabra', 'galaxy'].some(keyword => d.label.toLowerCase().includes(keyword))
+                      ).map(device => (
+                        <button 
+                          key={device.deviceId}
+                          onClick={() => handleAudioRouteChange(device.deviceId)}
+                          className={`flex items-center gap-4 p-4 rounded-2xl transition-colors ${currentOutputId === device.deviceId ? 'bg-[#0A84FF]/10 text-[#0A84FF]' : 'hover:bg-white/5 text-white/90'}`}
+                        >
+                          <div className={`p-2 rounded-full ${currentOutputId === device.deviceId ? 'bg-[#0A84FF]/20' : 'bg-white/10'}`}>
+                            <Bluetooth size={20} />
+                          </div>
+                          <span className="font-semibold text-[16px] truncate">{device.label || 'Bluetooth Device'}</span>
+                          {currentOutputId === device.deviceId && <div className="ml-auto w-2 h-2 rounded-full bg-[#0A84FF]" />}
+                        </button>
+                      ))}
+
+                      <button 
+                        onClick={() => handleAudioRouteChange('earpiece')}
+                        className={`flex items-center gap-4 p-4 rounded-2xl transition-colors ${currentOutputId === 'earpiece' || currentOutputId === 'default' ? 'bg-[#0A84FF]/10 text-[#0A84FF]' : 'hover:bg-white/5 text-white/90'}`}
+                      >
+                        <div className={`p-2 rounded-full ${currentOutputId === 'earpiece' || currentOutputId === 'default' ? 'bg-[#0A84FF]/20' : 'bg-white/10'}`}>
+                          <Smartphone size={20} />
+                        </div>
+                        <span className="font-semibold text-[16px]">iPhone / Earpiece</span>
+                        {(currentOutputId === 'earpiece' || currentOutputId === 'default') && <div className="ml-auto w-2 h-2 rounded-full bg-[#0A84FF]" />}
+                      </button>
+                    </div>
+                  </motion.div>
+                </>
               )}
             </AnimatePresence>
           </motion.div>
