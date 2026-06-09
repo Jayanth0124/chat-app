@@ -1,9 +1,13 @@
+import incomingCallFile from '../assets/audio/incoming_call.mp3';
+import phoneRingingFile from '../assets/audio/phone_ringing.mp3';
+import messageSentFile from '../assets/audio/message_sent.mp3';
+
 class AudioManager {
   constructor() {
     this.sounds = {
-      incoming: new Audio('/src/assets/audio/incoming_call.wav'),
-      outgoing: new Audio('/src/assets/audio/phone_ringing.wav'),
-      messageSent: new Audio('/src/assets/audio/message_sent.wav'),
+      incoming: new Audio(incomingCallFile),
+      outgoing: new Audio(phoneRingingFile),
+      messageSent: new Audio(messageSentFile),
     };
 
     // Configure loop states
@@ -12,8 +16,16 @@ class AudioManager {
 
     // Preload & initialize logs
     Object.entries(this.sounds).forEach(([name, audio]) => {
+      audio.addEventListener('canplaythrough', () => {
+        console.log(`[Audio] Loaded successfully '${name}' (readyState: ${audio.readyState})`);
+      });
+      audio.addEventListener('error', (e) => {
+        console.error(`[Audio] Failed to load '${name}'`, e);
+      });
+      
+      // Attempt preload
       audio.load();
-      console.log(`[Audio] Initialized '${name}' (readyState: ${audio.readyState}, muted: ${audio.muted}, volume: ${audio.volume})`);
+      console.log(`[Audio] Initialized '${name}' with source from bundler.`);
     });
 
     this.outgoingTimeout = null;
@@ -26,6 +38,8 @@ class AudioManager {
   handlePlayError(name, err) {
     if (err.name === 'NotAllowedError') {
       console.error(`[Audio] Autoplay blocked for '${name}'. Browser requires user interaction before playing audio.`);
+    } else if (err.name === 'NotSupportedError') {
+      console.error(`[Audio] The element has no supported sources for '${name}'. Path might be invalid in production build.`);
     } else {
       console.error(`[Audio] Playback failed for '${name}':`, err);
     }
@@ -82,6 +96,8 @@ class AudioManager {
 
   playMessageSent() {
     const audio = this.sounds.messageSent;
+    // Don't restart if already playing recently to prevent stacking, but the user requested "instantly", 
+    // so we just reset currentTime to 0.
     audio.currentTime = 0;
     this.logEvent('messageSent', 'play() requested', audio);
     audio.play()
