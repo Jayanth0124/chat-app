@@ -143,7 +143,7 @@ export default function Profile() {
 
         {/* Massive Typography */}
         <div className="text-center w-full max-w-3xl space-y-4">
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white/95">
+          <h1 className="text-5xl md:text-7xl font-spacetron tracking-tight text-white/95 leading-none">
             {displayName || 'Orbit User'}
           </h1>
           <p className="text-xl md:text-2xl text-[#8C6DF0] font-mono tracking-wide font-medium">

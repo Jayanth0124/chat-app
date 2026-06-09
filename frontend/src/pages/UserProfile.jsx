@@ -280,7 +280,7 @@ export default function UserProfile() {
 
             {/* User Details (Name, Username, Status) */}
             <div className="text-center md:text-left w-full space-y-1.5">
-              <h1 className="text-2xl sm:text-3xl font-black text-on-surface tracking-tight leading-none">
+              <h1 className="text-2xl sm:text-3xl font-spacetron text-on-surface tracking-tight leading-none">
                 {profileUser.displayName}
               </h1>
               <p className="text-[15px] text-on-surface-variant/80 font-bold tracking-wide">@{profileUser.username}</p>

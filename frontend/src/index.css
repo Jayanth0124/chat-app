@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Spacetron';
+  src: url('/Spacetron.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 @theme {
   --color-primary: var(--primary);
   --color-primary-container: var(--primary-container);
@@ -18,6 +25,8 @@
 
   --radius-lg: 0.5rem;
   --radius-xl: 0.75rem;
+
+  --font-spacetron: 'Spacetron', sans-serif;
 
   --spacing-ds-sm: 8px;
   --spacing-margin-desktop: 40px;

@@ -421,16 +421,16 @@ export default function ChatList({ activeChat, setActiveChat }) {
         
           {/* Dashboard Header */}
           <div className="px-5 pt-8 pb-4 flex justify-between items-center select-none">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg overflow-hidden shadow-sm shadow-primary/20 select-none">
+            <div className="flex items-center gap-4 md:gap-0">
+              <div className="md:hidden">
                 <Avatar 
                   src={user?.profilePic} 
                   name={user?.displayName || user?.username} 
-                  sizeClass="w-full h-full" 
-                  roundedClass="rounded-none" 
+                  sizeClass="w-14 h-14" 
+                  roundedClass="rounded-2xl" 
                 />
               </div>
-              <h2 className="text-[22px] font-bold tracking-tight text-white tracking-widest uppercase">Orbit</h2>
+              <h2 className="text-[24px] md:text-[28px] text-white font-spacetron tracking-[0.15em] leading-none">ORBIT</h2>
             </div>
             <div className="flex gap-2 text-[#EBEBF5]/80">
               {/* Mobile Notifications */}
