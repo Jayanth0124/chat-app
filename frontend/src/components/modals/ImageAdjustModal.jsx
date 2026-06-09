@@ -210,31 +210,29 @@ export default function ImageAdjustModal({ isOpen, imageSrc, onClose, onConfirm 
           className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 image-adjust-modal-container"
         >
           {/* Global styles to safely hide navigation elements underneath without layout shifting */}
-          <style>
-            {`
-              nav, aside, header, .sidebar, .mobile-nav, .bottom-nav, [role="navigation"],
-              .floating-action-button, .notification-badge {
-                opacity: 0 !important;
-                pointer-events: none !important;
-                transition: opacity 0.2s ease;
-              }
-              body { overflow: hidden !important; }
-              
-              input[type=range]::-webkit-slider-thumb {
-                appearance: none;
-                width: 16px;
-                height: 16px;
-                background: white;
-                border-radius: 50%;
-                box-shadow: 0 0 10px rgba(255,255,255,0.5);
-                cursor: pointer;
-                transition: transform 0.1s;
-              }
-              input[type=range]::-webkit-slider-thumb:active {
-                transform: scale(1.2);
-              }
-            `}
-          </style>
+          <style dangerouslySetInnerHTML={{ __html: `
+            nav, aside, header, .sidebar, .mobile-nav, .bottom-nav, [role="navigation"],
+            .floating-action-button, .notification-badge {
+              opacity: 0 !important;
+              pointer-events: none !important;
+              transition: opacity 0.2s ease;
+            }
+            body { overflow: hidden !important; }
+            
+            input[type=range]::-webkit-slider-thumb {
+              appearance: none;
+              width: 16px;
+              height: 16px;
+              background: white;
+              border-radius: 50%;
+              box-shadow: 0 0 10px rgba(255,255,255,0.5);
+              cursor: pointer;
+              transition: transform 0.1s;
+            }
+            input[type=range]::-webkit-slider-thumb:active {
+              transform: scale(1.2);
+            }
+          ` }} />
 
           {/* Strong backdrop blur and dark overlay */}
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md pointer-events-none" />

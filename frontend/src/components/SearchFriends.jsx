@@ -3,6 +3,7 @@ import { X, Search, UserPlus, UserCheck, Loader2, Users } from 'lucide-react';
 import { useFriendStore } from '../store/useFriendStore';
 import { useNavigate } from 'react-router-dom';
 import { useLayoutStore } from '../store/useLayoutStore';
+import Avatar from './ui/Avatar';
 
 export default function SearchFriends() {
   const { setSearchFriendsOpen } = useLayoutStore();
@@ -124,13 +125,10 @@ export default function SearchFriends() {
                       }}
                       className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
                     >
-                      <img
-                        src={
-                          user.profilePic ||
-                          '/logo.png'
-                        }
-                        alt={user.username}
-                        className="w-10 h-10 rounded-full object-cover shadow-sm shrink-0"
+                      <Avatar
+                        src={user.profilePic}
+                        name={user.displayName || user.username}
+                        sizeClass="w-10 h-10"
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-bold text-on-surface truncate">{user.displayName}</p>

@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { MessageSquare, Phone, Settings, LogOut, Search, Users, Bell } from 'lucide-react';
+import Avatar from './ui/Avatar';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 import { useFriendStore } from '../store/useFriendStore';
@@ -110,13 +111,10 @@ export default function UserSidebar() {
             to="/profile"
             className="p-1 rounded-full overflow-hidden hover:ring-2 hover:ring-primary/60 transition-all border border-outline-variant/50 cursor-pointer"
           >
-            <img
-              src={
-                user?.profilePic ||
-                '/logo.png'
-              }
-              alt="profile"
-              className="w-9 h-9 rounded-full object-cover"
+            <Avatar 
+                src={user?.profilePic} 
+                name={user?.displayName || user?.username} 
+                sizeClass="w-9 h-9"
             />
           </Link>
           <div className="absolute left-[70px] scale-90 opacity-0 pointer-events-none group-hover:scale-100 group-hover:opacity-100 transition-all duration-300 bg-surface-container-low backdrop-blur-md border border-outline-variant text-on-surface text-[12px] font-semibold px-3 py-1.5 rounded-xl whitespace-nowrap shadow-xl z-[100]">

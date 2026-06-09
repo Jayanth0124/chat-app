@@ -15,6 +15,7 @@ import {
   Check
 } from 'lucide-react';
 import { useConfirmStore } from '../../store/useConfirmStore';
+import Avatar from '../ui/Avatar';
 
 export default function ChatModeration() {
   const [step, setStep] = useState('search'); // 'search' | 'profile' | 'conversations' | 'messages'
@@ -230,8 +231,12 @@ export default function ChatModeration() {
           {step === 'profile' && selectedUser && (
             <div className="max-w-2xl mx-auto py-8">
               <div className="flex flex-col items-center text-center mb-8">
-                <div className="w-24 h-24 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-3xl uppercase mb-4 shadow-sm border border-primary/20">
-                  <img src={selectedUser.profilePic || '/logo.png'} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                <div className="w-24 h-24 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-3xl uppercase mb-4 shadow-sm border border-primary/20 overflow-hidden">
+                  <Avatar
+                    src={selectedUser.profilePic}
+                    name={selectedUser.displayName || selectedUser.username}
+                    sizeClass="w-full h-full text-3xl"
+                  />
                 </div>
                 <h2 className="text-2xl font-bold text-on-surface">{selectedUser.displayName || selectedUser.username}</h2>
                 <p className="text-on-surface-variant text-sm mt-1">@{selectedUser.username} • {selectedUser.email}</p>

@@ -13,6 +13,7 @@ import {
   ShieldAlert 
 } from 'lucide-react';
 import { useConfirmStore } from '../../store/useConfirmStore';
+import Avatar from '../ui/Avatar';
 
 export default function ReportsCenter() {
   const [reports, setReports] = useState([]);
@@ -160,7 +161,11 @@ export default function ReportsCenter() {
                   <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30">
                     <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider block mb-1">Reporter</span>
                     <div className="flex items-center gap-2">
-                      <img src={report.reporter?.profilePic || '/logo.png'} alt="profile" className="w-6 h-6 rounded-full object-cover" />
+                      <Avatar
+                        src={report.reporter?.profilePic}
+                        name={report.reporter?.displayName || report.reporter?.username || 'Unknown User'}
+                        sizeClass="w-6 h-6"
+                      />
                       <span className="text-xs font-bold">{reporterName}</span>
                       <span className="text-xs text-on-surface-variant">(@{report.reporter?.username})</span>
                     </div>
@@ -169,7 +174,11 @@ export default function ReportsCenter() {
                   <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30">
                     <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider block mb-1">Offender</span>
                     <div className="flex items-center gap-2">
-                      <img src={report.reportedUser?.profilePic || '/logo.png'} alt="profile" className="w-6 h-6 rounded-full object-cover" />
+                      <Avatar
+                        src={report.reportedUser?.profilePic}
+                        name={report.reportedUser?.displayName || report.reportedUser?.username || 'Unknown User'}
+                        sizeClass="w-6 h-6"
+                      />
                       <span className="text-xs font-bold text-red-500">{offenderName}</span>
                       <span className="text-xs text-on-surface-variant">(@{report.reportedUser?.username})</span>
                     </div>

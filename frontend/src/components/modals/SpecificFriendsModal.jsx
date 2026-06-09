@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, Check, Users } from 'lucide-react';
 import { useFriendStore } from '../../store/useFriendStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import Avatar from '../ui/Avatar';
 
 export default function SpecificFriendsModal({ isOpen, onClose }) {
   const { friends, getFriends } = useFriendStore();
@@ -112,10 +113,10 @@ export default function SpecificFriendsModal({ isOpen, onClose }) {
                         : 'bg-transparent border-transparent hover:bg-white/5'
                     }`}
                   >
-                    <img 
-                      src={friend.profilePic || '/logo.png'}
-                      alt={friend.displayName}
-                      className="w-12 h-12 rounded-full object-cover bg-white/5"
+                    <Avatar
+                      src={friend.profilePic}
+                      name={friend.displayName || friend.username}
+                      sizeClass="w-12 h-12"
                     />
                     <div className="flex-1 text-left">
                       <h4 className="text-sm font-bold text-white/90">{friend.displayName}</h4>

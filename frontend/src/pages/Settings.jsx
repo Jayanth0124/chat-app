@@ -9,7 +9,8 @@ import {
 } from 'lucide-react';
 import ThemeSwitcher from '../components/shared/ThemeSwitcher';
 import Select from '../components/ui/Select';
-import jayanthPic from '../assets/images/jayanth.jpg';
+import { motion, AnimatePresence } from 'framer-motion';
+import Avatar from '../components/ui/Avatar';
 import { axiosInstance } from '../lib/axios';
 import toast from 'react-hot-toast';
 import { useFriendStore } from '../store/useFriendStore';
@@ -25,7 +26,7 @@ export default function Settings() {
   // --- Profile State ---
   const [displayName, setDisplayName] = useState(user?.displayName || 'Jayanth Chowdary');
   const [bio, setBio] = useState(user?.bio || '');
-  const [profilePic, setProfilePic] = useState(user?.profilePic || jayanthPic);
+  const [profilePic, setProfilePic] = useState(user?.profilePic || null);
   const [adjustingImage, setAdjustingImage] = useState(null);
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
   const [socialLinks, setSocialLinks] = useState({
@@ -217,16 +218,17 @@ export default function Settings() {
     e.target.value = null;
   };
 
-  const handleSaveChanges = async (e, newProfilePic = null) => {
+  const handleSaveChanges = async (e, newProfilePic = undefined) => {
     if (e) e.preventDefault();
     try {
-      const picToSave = newProfilePic || profilePic;
-      await updateProfile({
-        displayName,
-        bio,
-        profilePic: picToSave,
-        socialLinks
-      });
+      const payload = { displayName, bio, socialLinks };
+      
+      const picToSave = newProfilePic !== undefined ? newProfilePic : profilePic;
+      if (picToSave !== user?.profilePic) {
+        payload.profilePic = picToSave === '' ? null : picToSave;
+      }
+
+      await updateProfile(payload);
     } catch (err) {
       toast.error('Failed to update profile');
     }
@@ -421,7 +423,7 @@ export default function Settings() {
           <div className="relative shrink-0 flex flex-col items-center justify-center">
             <div className="relative group">
               <div className="w-32 h-32 md:w-36 md:h-36 rounded-full bg-surface-container-high border-[5px] border-background flex items-center justify-center overflow-hidden ring-1 ring-outline-variant/20 shadow-lg transition-transform duration-300 group-hover:scale-[1.02]">
-                  <img src={profilePic || '/logo.png'} alt="profile" className="w-full h-full object-cover" />
+                  <Avatar src={profilePic} name={displayName || user?.username} sizeClass="w-full h-full" textClass="text-4xl md:text-5xl" />
               </div>
               
               <label className="absolute bottom-1 right-1 w-10 h-10 bg-surface rounded-full border border-outline-variant/30 flex items-center justify-center cursor-pointer shadow-md text-on-surface-variant hover:text-primary hover:border-primary/50 hover:bg-surface-container transition-all active:scale-90">
@@ -521,7 +523,7 @@ export default function Settings() {
             {profilePic && (
               <button 
                 type="button" 
-                onClick={() => setProfilePic('')}
+                onClick={() => { setProfilePic(null); handleSaveChanges(null, null); }}
                 className="w-full px-4 py-2.5 border border-red-500/20 text-red-500 hover:bg-red-500/5 hover:text-red-600 transition-colors text-xs font-bold rounded-xl flex items-center justify-center gap-2"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>

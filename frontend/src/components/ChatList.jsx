@@ -9,6 +9,7 @@ import { useNotificationStore } from '../store/useNotificationStore';
 import { useNavigate } from 'react-router-dom';
 import { useLongPress } from '../hooks/useLongPress';
 import { useConfirmStore } from '../store/useConfirmStore';
+import Avatar from './ui/Avatar';
 
 const formatDuration = (seconds) => {
   if (!seconds) return '0:00';
@@ -128,11 +129,11 @@ function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContext
           }}
           className="relative shrink-0 flex items-center justify-center cursor-pointer transition-transform"
         >
-          <div className="w-[48px] h-[48px] rounded-full overflow-hidden shadow-lg border border-white/5 bg-black/50">
-            <img 
-              src={!chat.isGroupChat ? getSenderPic(user, chat.participants) || '/logo.png' : chat.groupName} 
-              alt="avatar" 
-              className="w-full h-full object-cover" 
+          <div className="w-[48px] h-[48px] rounded-full overflow-hidden shadow-lg border border-white/5 bg-black/50 flex shrink-0">
+            <Avatar 
+              src={!chat.isGroupChat ? getSenderPic(user, chat.participants) : null}
+              name={!chat.isGroupChat ? getSender(user, chat.participants) : chat.groupName}
+              sizeClass="w-full h-full text-lg"
             />
           </div>
           {isOnline && (
@@ -422,7 +423,12 @@ export default function ChatList({ activeChat, setActiveChat }) {
           <div className="px-5 pt-8 pb-4 flex justify-between items-center select-none">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg overflow-hidden shadow-sm shadow-primary/20 select-none">
-                <img src="/logo.png" alt="Orbit Logo" className="w-full h-full object-cover" />
+                <Avatar 
+                  src={user?.profilePic} 
+                  name={user?.displayName || user?.username} 
+                  sizeClass="w-full h-full" 
+                  roundedClass="rounded-none" 
+                />
               </div>
               <h2 className="text-[22px] font-bold tracking-tight text-white tracking-widest uppercase">Orbit</h2>
             </div>
@@ -516,7 +522,7 @@ export default function ChatList({ activeChat, setActiveChat }) {
                         >
                           <div className="flex items-center gap-3 text-[14px] text-white/80 font-medium">
                             {isObj ? (
-                              <img src={q.profilePic || '/logo.png'} alt={q.username} className="w-7 h-7 rounded-full object-cover opacity-80" />
+                              <Avatar src={q.profilePic} name={q.displayName || q.username} sizeClass="w-7 h-7 opacity-80" />
                             ) : (
                               <Clock size={16} className="text-white/40" />
                             )}
@@ -552,7 +558,7 @@ export default function ChatList({ activeChat, setActiveChat }) {
                     onClick={() => selectSearchResult(u)}
                     className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 cursor-pointer transition-colors border border-transparent"
                   >
-                    <img src={u.profilePic || '/logo.png'} alt={u.username} className="w-9 h-9 rounded-full object-cover" />
+                    <Avatar src={u.profilePic} name={u.displayName || u.username} sizeClass="w-9 h-9" />
                     <div className="flex-1 min-w-0">
                       <p className="text-[14px] font-medium text-white/90 truncate">{u.displayName}</p>
                       <p className="text-[12px] text-white/50">@{u.username}</p>
@@ -636,7 +642,7 @@ export default function ChatList({ activeChat, setActiveChat }) {
                     onClick={() => handleStartChat(u._id)}
                     className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 cursor-pointer transition-colors"
                   >
-                    <img src={u.profilePic || '/logo.png'} alt={u.username} className="w-10 h-10 rounded-full object-cover border border-white/10" />
+                    <Avatar src={u.profilePic} name={u.displayName || u.username} className="border border-white/10" sizeClass="w-10 h-10" />
                     <div className="flex-1 text-left">
                       <p className="text-[14px] font-medium text-white/90">{u.displayName}</p>
                       <p className="text-[12px] text-white/40">@{u.username}</p>

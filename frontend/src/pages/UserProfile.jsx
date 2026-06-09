@@ -7,6 +7,7 @@ import { useChatStore } from '../store/useChatStore';
 import { useAuthStore } from '../store/useAuthStore';
 import toast from 'react-hot-toast';
 import { useConfirmStore } from '../store/useConfirmStore';
+import Avatar from '../components/ui/Avatar';
 
 export default function UserProfile() {
   const { id } = useParams();
@@ -236,13 +237,14 @@ export default function UserProfile() {
               <div className="relative shrink-0 group">
                 <div className="absolute -inset-0.5 bg-gradient-to-tr from-primary to-primary-variant rounded-full blur opacity-20 group-hover:opacity-40 transition duration-300" />
                 <div 
-                  className="relative p-1.5 bg-surface-container-lowest rounded-full shadow-md border border-outline-variant/25 cursor-pointer hover:scale-105 transition-transform"
+                  className="w-28 h-28 relative p-1.5 bg-surface-container-lowest rounded-full shadow-md border border-outline-variant/25 cursor-pointer hover:scale-105 transition-transform"
                   onClick={() => setIsFullscreenDp(true)}
                 >
-                  <img 
-                    src={profileUser.profilePic || '/logo.png'} 
-                    alt={profileUser.displayName} 
-                    className="w-28 h-28 rounded-full object-cover bg-surface-container-high"
+                  <Avatar
+                    src={profileUser.profilePic} 
+                    name={profileUser.displayName || profileUser.username}
+                    sizeClass="w-full h-full"
+                    textClass="text-4xl md:text-5xl"
                   />
                 </div>
                 {/* Active status indicator badge */}
@@ -470,12 +472,18 @@ export default function UserProfile() {
           >
             <X size={24} />
           </button>
-          <img 
-            src={profileUser.profilePic || '/logo.png'} 
-            alt={profileUser.displayName}
-            className="max-w-full max-h-[90vh] object-contain select-none animate-in zoom-in-95 duration-300 shadow-2xl rounded-lg"
+          <div 
+            className="max-w-[90vw] max-h-[90vh] aspect-square select-none rounded-[3rem] shadow-2xl border border-white/10 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
-          />
+          >
+            <Avatar
+              src={profileUser.profilePic} 
+              name={profileUser.displayName || profileUser.username}
+              sizeClass="w-full h-full"
+              textClass="text-[150px] md:text-[200px]"
+              roundedClass="rounded-none"
+            />
+          </div>
         </div>
       )}
     </div>

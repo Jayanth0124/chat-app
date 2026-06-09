@@ -10,6 +10,7 @@ import { useLayoutStore } from '../store/useLayoutStore';
 import { useConfirmStore } from '../store/useConfirmStore';
 import { axiosInstance } from '../lib/axios';
 import { useNavigate } from 'react-router-dom';
+import Avatar from './ui/Avatar';
 
 export default function ChatWindow({ onBack }) {
   const { 
@@ -226,7 +227,6 @@ export default function ChatWindow({ onBack }) {
   };
 
   const chatName = !selectedChat.isGroupChat ? getSender(user, selectedChat.participants) : selectedChat.groupName;
-  const chatPic = !selectedChat.isGroupChat ? getSenderPic(user, selectedChat.participants) || '/logo.png' : selectedChat.groupName;
 
   const otherParticipant = selectedChat.participants?.find(p => p._id !== user._id);
   const isOnline = otherParticipant?.isOnline || false;
@@ -254,8 +254,12 @@ export default function ChatWindow({ onBack }) {
             <ArrowLeft size={20} />
           </button>
           <div className="relative shrink-0">
-            <div className="w-[38px] h-[38px] rounded-full overflow-hidden bg-black/50 border border-white/5">
-              <img src={chatPic} alt="avatar" className="w-full h-full object-cover" />
+            <div className="w-[38px] h-[38px] rounded-full overflow-hidden bg-black/50 border border-white/5 flex shrink-0">
+              <Avatar 
+                src={!selectedChat.isGroupChat ? getSenderPic(user, selectedChat.participants) : null}
+                name={chatName}
+                sizeClass="w-full h-full"
+              />
             </div>
             {isOnline && (
               <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#34C759] rounded-full border-[2px] border-[#111111] z-10" />

@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import Avatar from '../ui/Avatar';
 import { X, Calendar, ShieldAlert, UserMinus, MessageSquare, Clock, Globe } from 'lucide-react';
 import { useFriendStore } from '../../store/useFriendStore';
 import toast from 'react-hot-toast';
@@ -77,11 +78,9 @@ export default function ProfileModal({ isOpen, onClose, user }) {
               <div className="relative mb-3.5 shrink-0 group">
                 <div className="absolute -inset-0.5 bg-gradient-to-tr from-primary to-primary-variant rounded-full blur opacity-30 group-hover:opacity-50 transition duration-300" />
                 <div className="relative p-1 bg-surface rounded-full shadow-md border border-outline-variant/25">
-                  <img 
-                    src={user.profilePic || '/logo.png'} 
-                    alt={user.displayName} 
-                    className="w-20 h-20 rounded-full object-cover bg-surface-container-high"
-                  />
+                  <div className="w-20 h-20 rounded-full overflow-hidden">
+                    <Avatar src={user.profilePic} name={user.displayName || user.username} sizeClass="w-full h-full" textClass="text-3xl" />
+                  </div>
                 </div>
                 
                 {/* Active Indicator Badge */}

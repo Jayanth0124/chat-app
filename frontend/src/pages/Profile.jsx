@@ -7,6 +7,7 @@ import {
   Shield, Edit3, CheckCircle2, AlertCircle,
   Activity, User, Lock, History, ChevronDown, LogOut
 } from 'lucide-react';
+import Avatar from '../components/ui/Avatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import ImageAdjustModal from '../components/modals/ImageAdjustModal';
 import UsernameRequestModal from '../components/ui/UsernameRequestModal';
@@ -92,7 +93,7 @@ export default function Profile() {
     } catch (err) {}
   };
 
-  const currentDp = profilePic || '/logo.png';
+  const currentDp = profilePic;
   const usernameChangesLeft = (user?.maxUsernameChanges || 3) - (user?.usernameChanges || 0);
   const changesLeft = Math.max(0, usernameChangesLeft);
   
@@ -121,11 +122,13 @@ export default function Profile() {
             className="w-48 h-48 md:w-64 md:h-64 rounded-[3rem] overflow-hidden border border-white/10 bg-[#050505] shadow-2xl relative transition-transform duration-500 hover:scale-105 cursor-pointer"
             onClick={() => setIsFullscreenDp(true)}
           >
-            <img
-              src={currentDp}
-              alt="Avatar"
-              className="w-full h-full object-cover"
-            />
+              <Avatar
+                src={currentDp}
+                name={displayName || user?.username}
+                sizeClass="w-full h-full"
+                textClass="text-5xl md:text-7xl"
+                roundedClass="rounded-none"
+              />
           </div>
           
           {/* Edit DP Button */}
@@ -465,16 +468,22 @@ export default function Profile() {
             >
               <X size={24} />
             </button>
-            <motion.img
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              src={currentDp}
-              alt="Avatar Fullscreen"
-              className="max-w-[90vw] max-h-[90vh] object-contain select-none rounded-[3rem] shadow-2xl border border-white/10"
+              className="max-w-[90vw] max-h-[90vh] aspect-square select-none rounded-[3rem] shadow-2xl border border-white/10 overflow-hidden"
               onClick={(e) => e.stopPropagation()}
-            />
+            >
+              <Avatar
+                src={currentDp}
+                name={displayName || user?.username}
+                sizeClass="w-full h-full"
+                textClass="text-[150px] md:text-[200px]"
+                roundedClass="rounded-none"
+              />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

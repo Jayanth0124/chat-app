@@ -71,15 +71,21 @@ export const updateProfile = async (req, res) => {
     if (bio !== undefined) updatedFields.bio = bio;
     if (socialLinks) updatedFields.socialLinks = socialLinks;
 
-    if (profilePic) {
-      const uploadResponse = await cloudinary.uploader.upload(profilePic, {
-        folder: "orbit/profiles",
-        transformation: [
-          { width: 500, height: 500, crop: "fill", gravity: "face" },
-          { quality: "auto:best", fetch_format: "auto" }
-        ]
-      });
-      updatedFields.profilePic = uploadResponse.secure_url;
+    if (profilePic !== undefined) {
+      if (profilePic === null || profilePic === '') {
+        updatedFields.profilePic = null;
+      } else if (profilePic.startsWith('data:image')) {
+        const uploadResponse = await cloudinary.uploader.upload(profilePic, {
+          folder: "orbit/profiles",
+          transformation: [
+            { width: 500, height: 500, crop: "fill", gravity: "face" },
+            { quality: "auto:best", fetch_format: "auto" }
+          ]
+        });
+        updatedFields.profilePic = uploadResponse.secure_url;
+      } else {
+        updatedFields.profilePic = profilePic;
+      }
     }
 
     const updatedUser = await User.findByIdAndUpdate(
