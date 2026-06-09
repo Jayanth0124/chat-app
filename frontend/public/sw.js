@@ -1,3 +1,88 @@
+const CACHE_NAME = 'orbit-cache-v1.1';
+
+// Install Event: Auto-download and skip waiting
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
+
+// Activate Event: Claim clients and clean old caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    clients.claim().then(() => {
+      return caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('[SW] Clearing old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      });
+    })
+  );
+});
+
+// Fetch Event: Intelligent Caching Strategy
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // 1. NEVER cache Real-Time data, API calls, or WebSockets
+  if (
+    url.pathname.startsWith('/api') || 
+    url.pathname.startsWith('/socket.io') ||
+    url.hostname !== self.location.hostname ||
+    event.request.method !== 'GET'
+  ) {
+    return; // Bypass Service Worker entirely
+  }
+
+  // 2. HTML -> Network First (Ensures new deployments are detected)
+  if (event.request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const resClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // 3. JS Bundles & CSS -> Stale While Revalidate (Fast load + background update)
+  if (
+    event.request.destination === 'script' ||
+    event.request.destination === 'style' ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css')
+  ) {
+    event.respondWith(
+      caches.match(event.request).then(cachedResponse => {
+        const fetchPromise = fetch(event.request).then(networkResponse => {
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse.clone()));
+          return networkResponse;
+        }).catch(() => { /* Silent network failure */ });
+        return cachedResponse || fetchPromise;
+      })
+    );
+    return;
+  }
+
+  // 4. Static Assets (Images, Audio, Icons) -> Cache First, Network Fallback
+  event.respondWith(
+    caches.match(event.request).then(cachedResponse => {
+      if (cachedResponse) return cachedResponse;
+      return fetch(event.request).then(networkResponse => {
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse.clone()));
+        return networkResponse;
+      }).catch(() => { /* Silent failure */ });
+    })
+  );
+});
+
+// Push Notifications
 self.addEventListener('push', async function(event) {
   if (event.data) {
     try {

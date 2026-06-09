@@ -77,10 +77,10 @@ class AudioManager {
     
     if (this.outgoingTimeout) clearTimeout(this.outgoingTimeout);
     this.outgoingTimeout = setTimeout(() => {
-      console.log(`[Audio] Outgoing call timeout reached (35s). Auto-stopping.`);
+      console.log(`[Audio] Outgoing call timeout reached (36s). Auto-stopping.`);
       this.stopOutgoing();
       if (onTimeout) onTimeout();
-    }, 35000);
+    }, 36000);
   }
 
   stopOutgoing() {
