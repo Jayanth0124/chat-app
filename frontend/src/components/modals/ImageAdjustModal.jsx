@@ -1,445 +1,374 @@
-import { useState, useRef, useEffect } from 'react';
-import { X, RotateCw, ZoomIn, ZoomOut, Sliders, Check, RotateCcw, Crop, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, useMotionValue, useMotionValueEvent, useTransform, AnimatePresence } from 'framer-motion';
+import { ZoomIn, ZoomOut, Loader2, X } from 'lucide-react';
 
-export default function ImageAdjustModal({ isOpen, imageSrc, onClose, onConfirm, aspectMode = 'original' }) {
-  const [cropMode, setCropMode] = useState(aspectMode); // 'circle' | 'square' | 'original'
-  const [zoom, setZoom] = useState(1);
-  const [rotation, setRotation] = useState(0);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [activeTab, setActiveTab] = useState('transform'); // 'transform' | 'filters'
+export default function ImageAdjustModal({ isOpen, imageSrc, onClose, onConfirm }) {
+  const [isSaving, setIsSaving] = useState(false);
+  const [minScale, setMinScale] = useState(1);
+  const [currentScaleState, setCurrentScaleState] = useState(1);
+  const [isReady, setIsReady] = useState(false);
+  
+  const imgSizeRef = useRef({ w: 0, h: 0 });
+  const wheelContainerRef = useRef(null);
+  
+  // Calculate crop size once on mount (Reduced by 25% for premium look)
+  const isDesktop = window.innerWidth >= 768;
+  const CROP_SIZE = isDesktop ? 240 : 180;
 
-  // Adjustment Filters
-  const [brightness, setBrightness] = useState(100);
-  const [contrast, setContrast] = useState(100);
-  const [saturation, setSaturation] = useState(100);
-  const [grayscale, setGrayscale] = useState(0);
-  const [sepia, setSepia] = useState(0);
+  const scale = useMotionValue(1);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
 
-  const imgRef = useRef(null);
-  const containerRef = useRef(null);
+  // Live Preview Math
+  const PREVIEW_SIZE = 48;
+  const previewRatio = PREVIEW_SIZE / CROP_SIZE;
+  const previewX = useTransform(x, v => v * previewRatio);
+  const previewY = useTransform(y, v => v * previewRatio);
+  const previewScale = useTransform(scale, v => v * previewRatio);
+
+  const [constraints, setConstraints] = useState({ top: 0, left: 0, right: 0, bottom: 0 });
+
+  useMotionValueEvent(scale, "change", (latestScale) => {
+    setCurrentScaleState(latestScale);
+    const { w, h } = imgSizeRef.current;
+    setConstraints({
+      left: CROP_SIZE - w * latestScale,
+      right: 0,
+      top: CROP_SIZE - h * latestScale,
+      bottom: 0
+    });
+  });
 
   useEffect(() => {
-    if (isOpen) {
-      // Reset adjustments on open
-      setCropMode(aspectMode);
-      setZoom(1);
-      setRotation(0);
-      setPan({ x: 0, y: 0 });
-      setBrightness(100);
-      setContrast(100);
-      setSaturation(100);
-      setGrayscale(0);
-      setSepia(0);
+    if (isOpen && imageSrc) {
+      setIsReady(false);
+      const img = new Image();
+      img.src = imageSrc;
+      img.onload = () => {
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        imgSizeRef.current = { w, h };
+        
+        // Auto-calculate minimum zoom to fully cover the frame
+        const minS = Math.max(CROP_SIZE / w, CROP_SIZE / h);
+        setMinScale(minS);
+        scale.set(minS);
+        
+        // Center the image initially
+        x.set((CROP_SIZE - w * minS) / 2);
+        y.set((CROP_SIZE - h * minS) / 2);
+        
+        setIsReady(true);
+      };
     }
-  }, [isOpen, imageSrc, aspectMode]);
+  }, [isOpen, imageSrc, CROP_SIZE, scale, x, y]);
 
-  if (!isOpen) return null;
+  // Handle Wheel and Pinch Zooming
+  useEffect(() => {
+    const node = wheelContainerRef.current;
+    if (!node || !isOpen || !isReady) return;
 
-  // Drag Handlers for Panning (only if not 'original' mode)
-  const handleMouseDown = (e) => {
-    if (cropMode === 'original') return;
-    e.preventDefault();
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-  };
+    let initialDistance = null;
+    let initialScale = null;
 
-  const handleMouseMove = (e) => {
-    if (!isDragging || cropMode === 'original') return;
-    setPan({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  // Touch handlers for Mobile Devices (only if not 'original' mode)
-  const handleTouchStart = (e) => {
-    if (cropMode === 'original') return;
-    if (e.touches.length === 1) {
-      setIsDragging(true);
-      setDragStart({
-        x: e.touches[0].clientX - pan.x,
-        y: e.touches[0].clientY - pan.y
-      });
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    if (!isDragging || e.touches.length !== 1 || cropMode === 'original') return;
-    setPan({
-      x: e.touches[0].clientX - dragStart.x,
-      y: e.touches[0].clientY - dragStart.y
-    });
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-  };
-
-  const handleReset = () => {
-    setZoom(1);
-    setRotation(0);
-    setPan({ x: 0, y: 0 });
-    setBrightness(100);
-    setContrast(100);
-    setSaturation(100);
-    setGrayscale(0);
-    setSepia(0);
-  };
-
-  const handleApply = () => {
-    if (!imgRef.current) return;
-
-    const img = new Image();
-    img.src = imageSrc;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-
-      // Common filter settings
-      const filterString = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) grayscale(${grayscale}%) sepia(${sepia}%)`;
-
-      if (cropMode === 'original') {
-        // --- 1. No Cropping Mode ---
-        // Determine canvas dimensions based on rotation
-        const isRotated90 = rotation === 90 || rotation === 270;
-        const width = isRotated90 ? img.naturalHeight : img.naturalWidth;
-        const height = isRotated90 ? img.naturalWidth : img.naturalHeight;
-
-        canvas.width = width;
-        canvas.height = height;
-
-        // Apply filters
-        ctx.filter = filterString;
-
-        // Draw rotated image in full resolution
-        ctx.translate(width / 2, height / 2);
-        ctx.rotate((rotation * Math.PI) / 180);
-        ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2, img.naturalWidth, img.naturalHeight);
-      } else {
-        // --- 2. Cropping Mode (Circle or Square) ---
-        // Calculate the scale factor between natural image dimensions and DOM rendered dimensions
-        const renderWidth = imgRef.current.offsetWidth;
-        const renderHeight = imgRef.current.offsetHeight;
-        const scaleFactor = img.naturalWidth / renderWidth;
-
-        // The crop frame size in UI is 240px
-        const uiCropSize = 240;
-        canvas.width = uiCropSize * scaleFactor;
-        canvas.height = uiCropSize * scaleFactor;
-
-        // Fill background with black
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Apply filters
-        ctx.filter = filterString;
-
-        // Center origin
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate((rotation * Math.PI) / 180);
-        ctx.scale(zoom, zoom);
-        // Translate the pan scaled by high-res scale factor
-        ctx.translate(pan.x * scaleFactor, pan.y * scaleFactor);
-
-        // Draw image in scaled dimensions
-        const drawWidth = renderWidth * scaleFactor;
-        const drawHeight = renderHeight * scaleFactor;
-        ctx.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
-      }
-
-      // Output as high-quality JPEG
-      const resultDataUrl = canvas.toDataURL('image/jpeg', 0.95);
-      onConfirm(resultDataUrl);
+    const getDistance = (touches) => {
+      return Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY
+      );
     };
+
+    const updateScaleAndPos = (newScale) => {
+      const oldScale = scale.get();
+      const ratio = newScale / oldScale;
+      const cx = CROP_SIZE / 2;
+      const cy = CROP_SIZE / 2;
+      
+      let newX = cx - (cx - x.get()) * ratio;
+      let newY = cy - (cy - y.get()) * ratio;
+      
+      const { w, h } = imgSizeRef.current;
+      const minX = CROP_SIZE - w * newScale;
+      const minY = CROP_SIZE - h * newScale;
+      
+      newX = Math.max(minX, Math.min(newX, 0));
+      newY = Math.max(minY, Math.min(newY, 0));
+
+      scale.set(newScale);
+      x.set(newX);
+      y.set(newY);
+    };
+
+    const onWheel = (e) => {
+      e.preventDefault();
+      const zoomSensitivity = 0.002;
+      const delta = -e.deltaY * zoomSensitivity;
+      let newScale = scale.get() * (1 + delta);
+      newScale = Math.max(minScale, Math.min(newScale, minScale * 4));
+      updateScaleAndPos(newScale);
+    };
+
+    const onTouchStart = (e) => {
+      if (e.touches.length === 2) {
+        initialDistance = getDistance(e.touches);
+        initialScale = scale.get();
+      }
+    };
+
+    const onTouchMove = (e) => {
+      if (e.touches.length === 2 && initialDistance) {
+        e.preventDefault();
+        const currentDistance = getDistance(e.touches);
+        const ratio = currentDistance / initialDistance;
+        let newScale = initialScale * ratio;
+        newScale = Math.max(minScale, Math.min(newScale, minScale * 4));
+        updateScaleAndPos(newScale);
+      }
+    };
+
+    const onTouchEnd = () => {
+      initialDistance = null;
+      initialScale = null;
+    };
+
+    node.addEventListener('wheel', onWheel, { passive: false });
+    node.addEventListener('touchstart', onTouchStart, { passive: false });
+    node.addEventListener('touchmove', onTouchMove, { passive: false });
+    node.addEventListener('touchend', onTouchEnd);
+
+    return () => {
+      node.removeEventListener('wheel', onWheel);
+      node.removeEventListener('touchstart', onTouchStart);
+      node.removeEventListener('touchmove', onTouchMove);
+      node.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [isOpen, isReady, minScale, CROP_SIZE, scale, x, y]);
+
+  const handleSliderChange = (e) => {
+    const newScale = parseFloat(e.target.value);
+    const oldScale = scale.get();
+    const ratio = newScale / oldScale;
+    const cx = CROP_SIZE / 2;
+    const cy = CROP_SIZE / 2;
+    
+    let newX = cx - (cx - x.get()) * ratio;
+    let newY = cy - (cy - y.get()) * ratio;
+    
+    const { w, h } = imgSizeRef.current;
+    const minX = CROP_SIZE - w * newScale;
+    const minY = CROP_SIZE - h * newScale;
+    
+    newX = Math.max(minX, Math.min(newX, 0));
+    newY = Math.max(minY, Math.min(newY, 0));
+
+    scale.set(newScale);
+    x.set(newX);
+    y.set(newY);
   };
 
-  // Generate CSS preview transform style
-  const isOriginal = cropMode === 'original';
-  const filterStyle = {
-    filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) grayscale(${grayscale}%) sepia(${sepia}%)`,
-    transform: isOriginal 
-      ? `rotate(${rotation}deg)` 
-      : `translate(${pan.x}px, ${pan.y}px) scale(${zoom}) rotate(${rotation}deg)`,
-    transition: isDragging ? 'none' : 'transform 0.15s ease-out'
+  const handleSave = () => {
+    setIsSaving(true);
+    
+    setTimeout(() => {
+      const canvas = document.createElement('canvas');
+      const OUTPUT_SIZE = 600; 
+      canvas.width = OUTPUT_SIZE;
+      canvas.height = OUTPUT_SIZE;
+      const ctx = canvas.getContext('2d');
+      
+      const ratio = OUTPUT_SIZE / CROP_SIZE;
+      
+      const img = new Image();
+      img.src = imageSrc;
+      img.onload = () => {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
+        
+        const currentX = x.get();
+        const currentY = y.get();
+        const currentScale = scale.get();
+        
+        ctx.translate(currentX * ratio, currentY * ratio);
+        ctx.scale(currentScale * ratio, currentScale * ratio);
+        ctx.drawImage(img, 0, 0);
+        
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+        onConfirm(dataUrl);
+        setIsSaving(false);
+      };
+    }, 50);
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-        
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-outline-variant/60 flex items-center justify-between bg-surface-container-low select-none">
-          <div>
-            <h3 className="text-lg font-bold text-on-surface">Adjust Image</h3>
-            <p className="text-xs text-on-surface-variant/80 mt-0.5">Scale, rotate, and filter your image before saving</p>
-          </div>
-          <button 
-            onClick={onClose} 
-            className="p-2 hover:bg-surface-container-high rounded-full transition-colors text-on-surface-variant hover:text-on-surface cursor-pointer"
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 image-adjust-modal-container"
+        >
+          {/* Global styles to safely hide navigation elements underneath without layout shifting */}
+          <style>
+            {`
+              nav, aside, header, .sidebar, .mobile-nav, .bottom-nav, [role="navigation"],
+              .floating-action-button, .notification-badge {
+                opacity: 0 !important;
+                pointer-events: none !important;
+                transition: opacity 0.2s ease;
+              }
+              body { overflow: hidden !important; }
+              
+              input[type=range]::-webkit-slider-thumb {
+                appearance: none;
+                width: 16px;
+                height: 16px;
+                background: white;
+                border-radius: 50%;
+                box-shadow: 0 0 10px rgba(255,255,255,0.5);
+                cursor: pointer;
+                transition: transform 0.1s;
+              }
+              input[type=range]::-webkit-slider-thumb:active {
+                transform: scale(1.2);
+              }
+            `}
+          </style>
+
+          {/* Strong backdrop blur and dark overlay */}
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md pointer-events-none" />
+
+          {/* Centered Premium Modal */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative w-full max-w-[600px] bg-[#12121A] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+            style={{ maxHeight: '85vh' }}
           >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Editor Area */}
-        <div className="p-6 flex-1 flex flex-col items-center justify-center bg-black/40 min-h-[320px] relative">
-          
-          {/* Main Viewport Container */}
-          <div 
-            ref={containerRef}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            className="w-[280px] h-[280px] bg-black/80 rounded-2xl relative overflow-hidden border border-outline-variant/30 flex items-center justify-center shadow-inner"
-            style={{ cursor: isOriginal ? 'default' : 'move' }}
-          >
-            {/* Base Image */}
-            <img
-              ref={imgRef}
-              src={imageSrc}
-              alt="Adjustment preview"
-              style={filterStyle}
-              className="max-w-[240px] max-h-[240px] object-contain pointer-events-none select-none transition-all"
-            />
-
-            {/* Overlapping Crop Frame overlay (hidden in original mode) */}
-            {!isOriginal && (
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                <div 
-                  className={`w-[240px] h-[240px] border border-white/60 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] transition-all ${
-                    cropMode === 'circle' ? 'rounded-full' : 'rounded-xl'
-                  }`}
-                />
-              </div>
-            )}
-          </div>
-          
-          <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest mt-3 select-none">
-            {isOriginal 
-              ? 'Original size • Panning and Zooming disabled' 
-              : 'Drag to pan image • Use slider or pinch to zoom'
-            }
-          </span>
-        </div>
-
-        {/* Crop Mode Selection Tabs (Only show if aspectMode is not fixed to circle) */}
-        {aspectMode !== 'circle' && (
-          <div className="px-6 py-2 bg-surface-container-low border-t border-outline-variant/30 flex gap-2 justify-center select-none">
-            <span className="text-[11px] font-bold text-on-surface-variant/70 self-center uppercase tracking-wider mr-2">Crop Style:</span>
-            <button
-              onClick={() => { setCropMode('original'); setZoom(1); setPan({ x: 0, y: 0 }); }}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                cropMode === 'original' 
-                  ? 'bg-primary text-white shadow-sm' 
-                  : 'bg-surface border border-outline-variant/60 text-on-surface-variant hover:text-on-surface'
-              }`}
-            >
-              <ImageIcon size={12} /> Original (No Crop)
-            </button>
-            <button
-              onClick={() => setCropMode('square')}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                cropMode === 'square' 
-                  ? 'bg-primary text-white shadow-sm' 
-                  : 'bg-surface border border-outline-variant/60 text-on-surface-variant hover:text-on-surface'
-              }`}
-            >
-              <Crop size={12} /> Square Crop
-            </button>
-            <button
-              onClick={() => setCropMode('circle')}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                cropMode === 'circle' 
-                  ? 'bg-primary text-white shadow-sm' 
-                  : 'bg-surface border border-outline-variant/60 text-on-surface-variant hover:text-on-surface'
-              }`}
-            >
-              <Crop size={12} /> Circle Crop
-            </button>
-          </div>
-        )}
-
-        {/* Tab Selection */}
-        <div className="flex border-t border-outline-variant/60 bg-surface-container-low select-none">
-          <button 
-            onClick={() => setActiveTab('transform')}
-            className={`flex-1 py-3 text-xs font-bold transition-all border-b-2 flex items-center justify-center gap-2 cursor-pointer ${
-              activeTab === 'transform' 
-                ? 'border-primary text-primary bg-primary/5' 
-                : 'border-transparent text-on-surface-variant hover:bg-surface-container-high'
-            }`}
-          >
-            <RotateCw size={14} /> Position & Rotation
-          </button>
-          <button 
-            onClick={() => setActiveTab('filters')}
-            className={`flex-1 py-3 text-xs font-bold transition-all border-b-2 flex items-center justify-center gap-2 cursor-pointer ${
-              activeTab === 'filters' 
-                ? 'border-primary text-primary bg-primary/5' 
-                : 'border-transparent text-on-surface-variant hover:bg-surface-container-high'
-            }`}
-          >
-            <Sliders size={14} /> Adjust Filters
-          </button>
-        </div>
-
-        {/* Control Controls Panel */}
-        <div className="p-6 bg-surface-container-lowest border-t border-outline-variant/40 max-h-[200px] overflow-y-auto">
-          {activeTab === 'transform' ? (
-            <div className="space-y-4">
-              {/* Zoom Control (Disabled in original mode) */}
-              <div className={`space-y-1.5 ${isOriginal ? 'opacity-40 pointer-events-none' : ''}`}>
-                <div className="flex justify-between items-center text-xs font-bold text-on-surface-variant">
-                  <span className="flex items-center gap-1.5"><ZoomIn size={13} /> Zoom</span>
-                  <span>{Math.round(zoom * 100)}%</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => setZoom(Math.max(1, zoom - 0.1))} 
-                    className="p-1 hover:bg-surface-container-high rounded text-on-surface-variant hover:text-on-surface cursor-pointer"
-                  >
-                    <ZoomOut size={16} />
-                  </button>
-                  <input
-                    type="range"
-                    min="1"
-                    max="3"
-                    step="0.05"
-                    value={zoom}
-                    onChange={(e) => setZoom(parseFloat(e.target.value))}
-                    className="flex-1 h-1.5 bg-outline-variant/60 rounded-lg appearance-none cursor-pointer accent-primary"
-                  />
-                  <button 
-                    onClick={() => setZoom(Math.min(3, zoom + 0.1))} 
-                    className="p-1 hover:bg-surface-container-high rounded text-on-surface-variant hover:text-on-surface cursor-pointer"
-                  >
-                    <ZoomIn size={16} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Rotation Control */}
-              <div className="flex justify-between items-center pt-2">
-                <span className="text-xs font-bold text-on-surface-variant">Rotate Angle</span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setRotation((prev) => (prev - 90 + 360) % 360)}
-                    className="px-3 py-1.5 bg-surface border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <RotateCcw size={12} /> -90°
-                  </button>
-                  <button
-                    onClick={() => setRotation((prev) => (prev + 90) % 360)}
-                    className="px-3 py-1.5 bg-surface border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <RotateCw size={12} /> +90°
-                  </button>
-                </div>
-              </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-[#1A1A24]">
+              <h2 className="text-white font-bold text-lg">Update Profile Photo</h2>
+              <button onClick={onClose} className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white/70 hover:text-white">
+                <X size={20} />
+              </button>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Brightness */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs font-semibold text-on-surface-variant">
-                  <span>Brightness</span>
-                  <span>{brightness}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="50"
-                  max="150"
-                  value={brightness}
-                  onChange={(e) => setBrightness(parseInt(e.target.value))}
-                  className="w-full h-1.5 bg-outline-variant/60 rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-              </div>
 
-              {/* Contrast */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs font-semibold text-on-surface-variant">
-                  <span>Contrast</span>
-                  <span>{contrast}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="50"
-                  max="150"
-                  value={contrast}
-                  onChange={(e) => setContrast(parseInt(e.target.value))}
-                  className="w-full h-1.5 bg-outline-variant/60 rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-              </div>
+            {/* Editor Area */}
+            <div className="relative w-full flex-1 flex flex-col items-center bg-[#0A0A0E] overflow-hidden min-h-[300px]">
+               {isReady ? (
+                 <>
+                   {/* Container for crop bounds (Wheel & Drag) */}
+                   <div 
+                     ref={wheelContainerRef}
+                     className="relative flex-1 w-full flex items-center justify-center touch-none py-8 md:py-12"
+                   >
+                     <div className="relative" style={{ width: CROP_SIZE, height: CROP_SIZE }}>
+                       {/* Draggable Image */}
+                       <motion.img
+                         src={imageSrc}
+                         drag
+                         dragConstraints={constraints}
+                         dragElastic={0}
+                         dragMomentum={true}
+                         style={{
+                           x,
+                           y,
+                           width: imgSizeRef.current.w,
+                           height: imgSizeRef.current.h,
+                           scale,
+                           transformOrigin: "0 0"
+                         }}
+                         className="absolute top-0 left-0 max-w-none pointer-events-auto cursor-grab active:cursor-grabbing will-change-transform"
+                         draggable={false}
+                       />
+                       
+                       {/* Mask Overlay (Stronger opacity outside circle) */}
+                       <div className="absolute inset-0 pointer-events-none overflow-visible">
+                         <div 
+                           className="rounded-full w-full h-full"
+                           style={{
+                             boxShadow: '0 0 0 9999px rgba(10, 10, 14, 0.92)',
+                             border: '2px solid rgba(255,255,255,0.1)'
+                           }}
+                         />
+                       </div>
+                     </div>
+                   </div>
 
-              {/* Saturation */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs font-semibold text-on-surface-variant">
-                  <span>Saturation</span>
-                  <span>{saturation}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="200"
-                  value={saturation}
-                  onChange={(e) => setSaturation(parseInt(e.target.value))}
-                  className="w-full h-1.5 bg-outline-variant/60 rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-              </div>
+                   {/* Slider & Actions Footer */}
+                   <div className="w-full px-6 py-5 bg-[#1A1A24]/80 backdrop-blur-xl border-t border-white/5 flex flex-col gap-5">
+                     
+                     {/* Zoom Slider */}
+                     <div className="flex items-center justify-center gap-4 w-full max-w-[320px] mx-auto">
+                        <ZoomOut size={18} className="text-white/40" />
+                        <input 
+                          type="range"
+                          min={minScale}
+                          max={minScale * 4}
+                          step="0.001"
+                          value={currentScaleState}
+                          onChange={handleSliderChange}
+                          className="flex-1 accent-[#8C6DF0] h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer"
+                        />
+                        <ZoomIn size={18} className="text-white/40" />
+                     </div>
 
-              {/* Grayscale */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs font-semibold text-on-surface-variant">
-                  <span>Grayscale</span>
-                  <span>{grayscale}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={grayscale}
-                  onChange={(e) => setGrayscale(parseInt(e.target.value))}
-                  className="w-full h-1.5 bg-outline-variant/60 rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-              </div>
+                     {/* Actions */}
+                     <div className="flex items-center justify-between mt-2">
+                       <button 
+                         onClick={onClose}
+                         className="px-5 py-2.5 rounded-xl font-bold text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                       >
+                         Cancel
+                       </button>
+
+                       <div className="flex items-center gap-4">
+                         {/* Live Preview Avatar */}
+                         <div className="hidden sm:flex items-center gap-3 pr-4 border-r border-white/10">
+                           <span className="text-[10px] uppercase font-bold text-white/30 tracking-widest">Preview</span>
+                           <div 
+                             className="rounded-full overflow-hidden relative bg-[#000] border border-white/10 shrink-0 shadow-lg"
+                             style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE }}
+                           >
+                             <motion.img 
+                               src={imageSrc}
+                               style={{
+                                 x: previewX,
+                                 y: previewY,
+                                 width: imgSizeRef.current.w,
+                                 height: imgSizeRef.current.h,
+                                 scale: previewScale,
+                                 transformOrigin: "0 0"
+                               }}
+                               className="absolute top-0 left-0 max-w-none"
+                             />
+                           </div>
+                         </div>
+
+                         {/* Save Button */}
+                         <button 
+                           onClick={handleSave}
+                           disabled={isSaving}
+                           className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#8C6DF0] to-[#7b5bea] hover:brightness-110 text-white font-bold text-sm shadow-[0_4px_20px_rgba(140,109,240,0.4)] transition-all flex items-center gap-2 disabled:opacity-50"
+                         >
+                           {isSaving ? <Loader2 size={16} className="animate-spin" /> : 'Save Photo'}
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                 </>
+               ) : (
+                 <div className="flex-1 flex items-center justify-center min-h-[300px]">
+                   <Loader2 size={32} className="animate-spin text-[#8C6DF0]" />
+                 </div>
+               )}
             </div>
-          )}
-        </div>
-
-        {/* Footer Actions */}
-        <div className="px-6 py-4 bg-surface-container-low border-t border-outline-variant/60 flex justify-between gap-3 select-none">
-          <button
-            onClick={handleReset}
-            className="px-4 py-2 border border-outline-variant/60 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface text-xs font-bold rounded-xl transition-all cursor-pointer"
-          >
-            Reset
-          </button>
-          <div className="flex gap-2">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-surface hover:bg-surface-container-low border border-outline-variant/60 text-on-surface-variant hover:text-on-surface text-xs font-bold rounded-xl transition-all cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleApply}
-              className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-md hover:opacity-95 transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <Check size={14} /> Apply Adjustments
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

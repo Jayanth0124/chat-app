@@ -14,6 +14,7 @@ import { axiosInstance } from '../lib/axios';
 import toast from 'react-hot-toast';
 import { useFriendStore } from '../store/useFriendStore';
 import UsernameRequestModal from '../components/ui/UsernameRequestModal';
+import ImageAdjustModal from '../components/modals/ImageAdjustModal';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -25,6 +26,8 @@ export default function Settings() {
   const [displayName, setDisplayName] = useState(user?.displayName || 'Jayanth Chowdary');
   const [bio, setBio] = useState(user?.bio || '');
   const [profilePic, setProfilePic] = useState(user?.profilePic || jayanthPic);
+  const [adjustingImage, setAdjustingImage] = useState(null);
+  const [isAdjustOpen, setIsAdjustOpen] = useState(false);
   const [socialLinks, setSocialLinks] = useState({
     website: user?.socialLinks?.website || '',
     instagram: user?.socialLinks?.instagram || '',
@@ -206,19 +209,22 @@ export default function Settings() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setProfilePic(reader.result);
+        setAdjustingImage(reader.result);
+        setIsAdjustOpen(true);
       };
       reader.readAsDataURL(file);
     }
+    e.target.value = null;
   };
 
-  const handleSaveChanges = async (e) => {
-    e.preventDefault();
+  const handleSaveChanges = async (e, newProfilePic = null) => {
+    if (e) e.preventDefault();
     try {
+      const picToSave = newProfilePic || profilePic;
       await updateProfile({
         displayName,
         bio,
-        profilePic,
+        profilePic: picToSave,
         socialLinks
       });
     } catch (err) {
@@ -1620,6 +1626,17 @@ export default function Settings() {
       <UsernameRequestModal 
         isOpen={isUsernameRequestModalOpen} 
         onClose={() => setIsUsernameRequestModalOpen(false)} 
+      />
+
+      <ImageAdjustModal
+        isOpen={isAdjustOpen}
+        imageSrc={adjustingImage}
+        onClose={() => setIsAdjustOpen(false)}
+        onConfirm={(adjustedDataUrl) => {
+          setProfilePic(adjustedDataUrl);
+          setIsAdjustOpen(false);
+          handleSaveChanges(null, adjustedDataUrl);
+        }}
       />
     </div>
   );
