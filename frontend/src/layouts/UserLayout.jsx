@@ -93,7 +93,10 @@ export default function UserLayout() {
 
     const checkDevices = async () => {
       try {
-        await navigator.mediaDevices.getUserMedia({ audio: true }); 
+        // Request permission to see labels, but IMMEDIATELY stop the track to prevent the red mic indicator from staying on!
+        const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        tempStream.getTracks().forEach(track => track.stop());
+
         const devices = await navigator.mediaDevices.enumerateDevices();
         const outputs = devices.filter(d => d.kind === 'audiooutput');
         setAudioDevices(outputs);
@@ -174,30 +177,39 @@ export default function UserLayout() {
 
   const cleanupWebRTC = () => {
     console.log('[WebRTC] Running full cleanup...');
+    let tracksStopped = 0;
     
-    // 1. Close RTCPeerConnection
-    if (pcRef.current) {
-      try { 
-        pcRef.current.close(); 
-        console.log('[WebRTC] RTCPeerConnection closed.');
-      } catch (e) {
-        console.error('[WebRTC] Error closing RTCPeerConnection:', e);
-      }
-      pcRef.current = null;
-    }
-
-    // 2. Stop all local microphone/camera tracks immediately to kill browser recording indicator
+    // 1. Stop all local microphone/camera tracks from the primary stream reference
     if (localStreamRef.current) {
       try {
         localStreamRef.current.getTracks().forEach(track => {
           track.stop();
-          console.log(`[WebRTC] Stopped local track: ${track.kind}`);
+          tracksStopped++;
+          console.log(`[WebRTC] Stopped local track: ${track.kind} (${track.label})`);
         });
       } catch (e) {
         console.error('[WebRTC] Error stopping local tracks:', e);
       }
       localStreamRef.current = null;
       setLocalStream(null);
+    }
+
+    // 2. Stop any zombie tracks still attached to RTCPeerConnection senders
+    if (pcRef.current) {
+      try {
+        pcRef.current.getSenders().forEach(sender => {
+          if (sender.track && sender.track.readyState !== 'ended') {
+            sender.track.stop();
+            tracksStopped++;
+            console.log(`[WebRTC] Stopped zombie sender track: ${sender.track.kind} (${sender.track.label})`);
+          }
+        });
+        pcRef.current.close(); 
+        console.log('[WebRTC] RTCPeerConnection closed.');
+      } catch (e) {
+        console.error('[WebRTC] Error closing RTCPeerConnection:', e);
+      }
+      pcRef.current = null;
     }
 
     // 3. Stop remote tracks and clear remote audio element
@@ -207,6 +219,7 @@ export default function UserLayout() {
           const remoteTracks = remoteAudioRef.current.srcObject.getTracks();
           remoteTracks.forEach(track => {
             track.stop();
+            tracksStopped++;
             console.log(`[WebRTC] Stopped remote track: ${track.kind}`);
           });
         }
@@ -215,14 +228,18 @@ export default function UserLayout() {
       }
       remoteAudioRef.current.srcObject = null;
       remoteAudioRef.current.pause();
+      remoteAudioRef.current.removeAttribute('src'); // Fully detach source
+      remoteAudioRef.current.load(); // Force browser to release audio hardware
     }
     setRemoteStream(null);
 
     // 4. Force stop any playing call audio to prevent ghost ringing
-    audioManager.stopIncoming();
-    audioManager.stopOutgoing();
+    if (typeof audioManager !== 'undefined') {
+      audioManager.stopIncoming();
+      audioManager.stopOutgoing();
+    }
     
-    console.log('[WebRTC] Cleanup complete. Media resources released.');
+    console.log(`[WebRTC] Cleanup complete. Total tracks stopped: ${tracksStopped}. All media resources released.`);
   };
 
   useEffect(() => {

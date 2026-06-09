@@ -18,7 +18,10 @@ export default function CallModal({ isOpen, onClose, type = 'audio', user }) {
 
     const checkDevices = async () => {
       try {
-        await navigator.mediaDevices.getUserMedia({ audio: true }); // Request permission to see labels
+        // Request permission to see labels, but IMMEDIATELY stop the track to prevent the red mic indicator from staying on!
+        const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true }); 
+        tempStream.getTracks().forEach(track => track.stop());
+
         const devices = await navigator.mediaDevices.enumerateDevices();
         const outputs = devices.filter(d => d.kind === 'audiooutput');
         setAudioDevices(outputs);

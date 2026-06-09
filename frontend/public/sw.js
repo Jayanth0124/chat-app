@@ -61,7 +61,8 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.match(event.request).then(cachedResponse => {
         const fetchPromise = fetch(event.request).then(networkResponse => {
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse.clone()));
+          const resClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
           return networkResponse;
         }).catch(() => { /* Silent network failure */ });
         return cachedResponse || fetchPromise;
@@ -75,7 +76,8 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then(cachedResponse => {
       if (cachedResponse) return cachedResponse;
       return fetch(event.request).then(networkResponse => {
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse.clone()));
+        const resClone = networkResponse.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
         return networkResponse;
       }).catch(() => { /* Silent failure */ });
     })
