@@ -257,7 +257,7 @@ export default function Calls() {
           <button onClick={() => setIsMobileSearchOpen(true)} className="p-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container-low text-on-surface-variant">
             <Search size={20} />
           </button>
-          <button onClick={() => navigate('/')} className="p-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container-low text-on-surface-variant">
+          <button onClick={() => navigate(-1)} className="p-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container-low text-on-surface-variant">
             <MessageSquare size={20} />
           </button>
           <button onClick={() => setActiveTab('new_call')} className={`p-2.5 rounded-xl ${activeTab === 'new_call' ? 'bg-primary/20 text-primary' : 'bg-surface-container-lowest text-on-surface-variant'}`}>

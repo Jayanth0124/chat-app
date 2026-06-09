@@ -660,6 +660,15 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
     }
   };
 
+  const [audioDuration, setAudioDuration] = useState(null);
+
+  const formatDuration = (seconds) => {
+    if (!seconds) return '0:00';
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
   useEffect(() => {
     if (message?.status === 'seen' && message?.expiresAt) {
       const calculateRemaining = () => {
@@ -777,7 +786,13 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
           {isVoice ? (
             <div className="flex items-center gap-3 pr-2 min-w-[200px] py-1">
               {message?.mediaUrl && (
-                <audio ref={audioRef} src={message.mediaUrl} onEnded={() => setIsPlaying(false)} className="hidden" />
+                <audio 
+                  ref={audioRef} 
+                  src={message.mediaUrl} 
+                  onEnded={() => setIsPlaying(false)} 
+                  onLoadedMetadata={(e) => setAudioDuration(e.target.duration)}
+                  className="hidden" 
+                />
               )}
               <button 
                 onClick={togglePlay}
@@ -801,7 +816,7 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
                 </div>
                 <div className="flex justify-between items-center text-[9px] text-white/50 font-bold uppercase tracking-widest">
                   <span>Voice Message</span>
-                  <span>{text.split('(')[1]?.replace(')]', '') || '0:05'}</span>
+                  <span>{audioDuration ? formatDuration(audioDuration) : (text.split('(')[1]?.replace(')]', '') || '0:00')}</span>
                 </div>
               </div>
             </div>

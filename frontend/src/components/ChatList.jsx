@@ -383,11 +383,16 @@ export default function ChatList({ activeChat, setActiveChat }) {
         
           {/* Dashboard Header */}
           <div className="px-5 pt-8 pb-4 flex justify-between items-center select-none">
-            <h2 className="text-[22px] font-medium tracking-tight text-white/90">Messages</h2>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg overflow-hidden shadow-sm shadow-primary/20 select-none">
+                <img src="/logo.png" alt="Orbit Logo" className="w-full h-full object-cover" />
+              </div>
+              <h2 className="text-[22px] font-bold tracking-tight text-white tracking-widest uppercase">Orbit</h2>
+            </div>
             <div className="flex gap-2 text-[#EBEBF5]/80">
               {/* Mobile Notifications */}
               <button 
-                onClick={() => setNotificationsOpen(true)} 
+                onClick={() => navigate('/activity')} 
                 className="relative p-2 hover:bg-white/10 rounded-full transition-all cursor-pointer md:hidden" 
             >
               <Bell size={20} strokeWidth={2} />

@@ -45,7 +45,7 @@ export default function AddFriends() {
     <div className="flex-1 h-full flex flex-col w-full bg-surface overflow-hidden border-l border-outline-variant/60 select-none">
       {/* Header */}
       <div className="h-[60px] bg-surface flex items-center px-6 shrink-0 z-10 border-b border-outline-variant/60">
-        <button onClick={() => navigate('/')} className="p-1 mr-3 text-on-surface-variant md:hidden cursor-pointer">
+        <button onClick={() => navigate(-1)} className="p-1 mr-3 text-on-surface-variant md:hidden cursor-pointer">
           <ArrowLeft size={24} strokeWidth={2} />
         </button>
         <h2 className="text-xl font-black tracking-tight text-on-surface">Manage Contacts</h2>

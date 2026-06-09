@@ -27,7 +27,7 @@ export default function Discover() {
       {/* Header */}
       <div className="h-[60px] bg-background flex items-center justify-between px-6 shrink-0 z-10 border-b border-outline-variant/60">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/')} className="p-1 mr-1 text-on-surface-variant md:hidden cursor-pointer">
+          <button onClick={() => navigate(-1)} className="p-1 mr-1 text-on-surface-variant md:hidden cursor-pointer">
             <ArrowLeft size={24} strokeWidth={2} />
           </button>
           <h2 className="text-xl font-black tracking-tight text-on-surface flex items-center gap-2">

@@ -5,7 +5,7 @@ import { useChatStore } from '../store/useChatStore';
 import { 
   Camera, ArrowLeft, ZoomIn, X, 
   Shield, Edit3, CheckCircle2, AlertCircle,
-  Activity, User, Lock, History, ChevronDown
+  Activity, User, Lock, History, ChevronDown, LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ImageAdjustModal from '../components/modals/ImageAdjustModal';
@@ -15,7 +15,7 @@ import { axiosInstance } from '../lib/axios';
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { user, updateProfile, changeUsername, isUpdatingProfile, updatePrivacySettings, checkAuth } = useAuthStore();
+  const { user, updateProfile, changeUsername, isUpdatingProfile, updatePrivacySettings, checkAuth, logout } = useAuthStore();
   const { socket } = useChatStore();
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
@@ -431,6 +431,20 @@ export default function Profile() {
             </div>
           </div>
 
+        </div>
+
+        {/* Mobile Logout Button */}
+        <div className="md:hidden mt-8">
+          <button 
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
+            className="w-full flex items-center justify-center gap-3 py-4 bg-[#FF3B30]/10 text-[#FF3B30] rounded-2xl font-bold border border-[#FF3B30]/20 active:bg-[#FF3B30]/20 transition-colors"
+          >
+            <LogOut size={20} />
+            Sign Out
+          </button>
         </div>
       </div>
 
