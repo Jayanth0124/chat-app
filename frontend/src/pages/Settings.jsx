@@ -858,25 +858,25 @@ export default function Settings() {
     );
 
     return (
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 lg:gap-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
         
         {/* Read Receipts Card */}
         <div 
           onClick={() => handlePrivacyChange('readReceipts', !readReceipts)}
-          className={`bg-surface p-8 rounded-3xl border-2 cursor-pointer transition-all hover:-translate-y-1 group relative overflow-hidden xl:col-span-4 min-h-[220px] flex flex-col justify-between ${readReceipts ? 'border-emerald-500/30 shadow-[0_8px_30px_rgb(16,185,129,0.05)]' : 'border-outline-variant/20'}`}
+          className={`bg-surface p-8 rounded-3xl border-2 cursor-pointer transition-all hover:-translate-y-1 group relative overflow-hidden md:col-span-1 lg:col-span-6 flex flex-col justify-between min-h-[220px] ${readReceipts ? 'border-emerald-500/30 shadow-[0_8px_30px_rgb(16,185,129,0.05)]' : 'border-outline-variant/20'}`}
         >
           <div className={`absolute inset-0 bg-gradient-to-br from-transparent to-transparent transition-colors ${readReceipts ? 'to-emerald-500/5' : ''}`}></div>
-          <div className="relative z-10 flex flex-col justify-between h-full text-left">
-            <div className="flex justify-between items-start mb-6">
+          <div className="relative z-10 flex flex-col h-full text-left">
+            <div className="flex justify-between items-start mb-auto">
               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${readReceipts ? 'bg-emerald-500/10 text-emerald-500' : 'bg-surface-container text-on-surface-variant'}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer pointer-events-none">
+              <label className="relative inline-flex items-center cursor-pointer pointer-events-none mt-2">
                 <input type="checkbox" className="sr-only peer" checked={readReceipts} readOnly />
                 <div className="w-12 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
               </label>
             </div>
-            <div>
+            <div className="mt-8">
               <h3 className="text-xl font-black text-on-surface mb-2">Read Receipts</h3>
               <p className="text-sm font-medium text-on-surface-variant leading-relaxed">
                 Broadcast when you've read messages. When disabled, you also lose the ability to see if others have read your messages, enforcing mutual privacy.
@@ -888,20 +888,20 @@ export default function Settings() {
         {/* Online Status Card */}
         <div 
           onClick={() => handlePrivacyChange('onlineStatus', !onlineStatus)}
-          className={`bg-surface p-8 rounded-3xl border-2 cursor-pointer transition-all hover:-translate-y-1 group relative overflow-hidden xl:col-span-4 min-h-[220px] flex flex-col justify-between ${onlineStatus ? 'border-primary/30 shadow-[0_8px_30px_rgb(99,102,241,0.05)]' : 'border-outline-variant/20'}`}
+          className={`bg-surface p-8 rounded-3xl border-2 cursor-pointer transition-all hover:-translate-y-1 group relative overflow-hidden md:col-span-1 lg:col-span-6 flex flex-col justify-between min-h-[220px] ${onlineStatus ? 'border-primary/30 shadow-[0_8px_30px_rgb(99,102,241,0.05)]' : 'border-outline-variant/20'}`}
         >
           <div className={`absolute inset-0 bg-gradient-to-br from-transparent to-transparent transition-colors ${onlineStatus ? 'to-primary/5' : ''}`}></div>
-          <div className="relative z-10 flex flex-col justify-between h-full text-left">
-            <div className="flex justify-between items-start mb-6">
+          <div className="relative z-10 flex flex-col h-full text-left">
+            <div className="flex justify-between items-start mb-auto">
               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${onlineStatus ? 'bg-primary/10 text-primary' : 'bg-surface-container text-on-surface-variant'}`}>
                 <div className={`w-6 h-6 rounded-full border-4 border-surface ${onlineStatus ? 'bg-emerald-500' : 'bg-on-surface-variant'}`}></div>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer pointer-events-none">
+              <label className="relative inline-flex items-center cursor-pointer pointer-events-none mt-2">
                 <input type="checkbox" className="sr-only peer" checked={onlineStatus} readOnly />
                 <div className="w-12 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-inner"></div>
               </label>
             </div>
-            <div>
+            <div className="mt-8">
               <h3 className="text-xl font-black text-on-surface mb-2">Activity Status</h3>
               <p className="text-sm font-medium text-on-surface-variant leading-relaxed">
                 Allow your network to see when you're actively using Orbit. Hiding your status provides a true stealth communication experience.
@@ -911,7 +911,7 @@ export default function Settings() {
         </div>
 
         {/* Change Password Component - Premium Row Style */}
-        <div className="bg-surface border-2 border-outline-variant/10 rounded-2xl overflow-hidden xl:col-span-12 transition-all hover:border-outline-variant/30">
+        <div className="bg-surface border-2 border-outline-variant/10 rounded-2xl overflow-hidden md:col-span-2 lg:col-span-12 transition-all hover:border-outline-variant/30">
           <div 
             className="flex items-center justify-between p-6 cursor-pointer hover:bg-surface-container-lowest/50 transition-colors"
             onClick={() => setIsPasswordFormOpen(!isPasswordFormOpen)}
@@ -1046,7 +1046,7 @@ export default function Settings() {
         </div>
 
         {/* Blocked Contacts Management Card */}
-        <div className="bg-surface p-8 rounded-3xl border border-outline-variant/20 xl:col-span-12 flex flex-col text-left">
+        <div className="bg-surface p-8 rounded-3xl border border-outline-variant/20 md:col-span-2 lg:col-span-12 flex flex-col text-left">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
               <h3 className="text-xl font-black text-on-surface tracking-tight">Blocked Contacts</h3>
