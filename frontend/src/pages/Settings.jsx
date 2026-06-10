@@ -256,6 +256,32 @@ export default function Settings() {
     }
   };
 
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isPasswordFormOpen, setIsPasswordFormOpen] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+
+  const handleChangePasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (newPassword !== confirmNewPassword) {
+      return toast.error("New passwords do not match");
+    }
+    setIsChangingPassword(true);
+    try {
+      await axiosInstance.post('/auth/change-password', { oldPassword, newPassword });
+      toast.success('Password updated successfully!');
+      setIsPasswordFormOpen(false);
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update password');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   const handleSubmitTicket = async (e) => {
     e.preventDefault();
     if (!supportSubject.trim() || !supportDescription.trim()) return;
@@ -404,6 +430,21 @@ export default function Settings() {
       default: return <ExternalLink size={16} />;
     }
   };
+
+  // --- Password Validation Logic ---
+  const hasMinLength = newPassword.length >= 8;
+  const hasUpperCase = /[A-Z]/.test(newPassword);
+  const hasNumber = /[0-9]/.test(newPassword);
+  const hasSpecialChar = /[^A-Za-z0-9]/.test(newPassword);
+  const reqsMetCount = [hasMinLength, hasUpperCase, hasNumber, hasSpecialChar].filter(Boolean).length;
+  
+  let strengthColor = 'bg-surface-container-high';
+  if (newPassword.length > 0) {
+    if (reqsMetCount <= 1) strengthColor = 'bg-rose-500';
+    else if (reqsMetCount === 2) strengthColor = 'bg-orange-500';
+    else if (reqsMetCount === 3) strengthColor = 'bg-yellow-500';
+    else if (reqsMetCount === 4) strengthColor = 'bg-emerald-500';
+  }
 
   // Render Profile View
   const renderProfile = () => {
@@ -822,7 +863,7 @@ export default function Settings() {
         {/* Read Receipts Card */}
         <div 
           onClick={() => handlePrivacyChange('readReceipts', !readReceipts)}
-          className={`bg-surface p-8 rounded-3xl border-2 cursor-pointer transition-all hover:-translate-y-1 group relative overflow-hidden xl:col-span-6 min-h-[220px] flex flex-col justify-between ${readReceipts ? 'border-emerald-500/30 shadow-[0_8px_30px_rgb(16,185,129,0.05)]' : 'border-outline-variant/20'}`}
+          className={`bg-surface p-8 rounded-3xl border-2 cursor-pointer transition-all hover:-translate-y-1 group relative overflow-hidden xl:col-span-4 min-h-[220px] flex flex-col justify-between ${readReceipts ? 'border-emerald-500/30 shadow-[0_8px_30px_rgb(16,185,129,0.05)]' : 'border-outline-variant/20'}`}
         >
           <div className={`absolute inset-0 bg-gradient-to-br from-transparent to-transparent transition-colors ${readReceipts ? 'to-emerald-500/5' : ''}`}></div>
           <div className="relative z-10 flex flex-col justify-between h-full text-left">
@@ -847,7 +888,7 @@ export default function Settings() {
         {/* Online Status Card */}
         <div 
           onClick={() => handlePrivacyChange('onlineStatus', !onlineStatus)}
-          className={`bg-surface p-8 rounded-3xl border-2 cursor-pointer transition-all hover:-translate-y-1 group relative overflow-hidden xl:col-span-6 min-h-[220px] flex flex-col justify-between ${onlineStatus ? 'border-primary/30 shadow-[0_8px_30px_rgb(99,102,241,0.05)]' : 'border-outline-variant/20'}`}
+          className={`bg-surface p-8 rounded-3xl border-2 cursor-pointer transition-all hover:-translate-y-1 group relative overflow-hidden xl:col-span-4 min-h-[220px] flex flex-col justify-between ${onlineStatus ? 'border-primary/30 shadow-[0_8px_30px_rgb(99,102,241,0.05)]' : 'border-outline-variant/20'}`}
         >
           <div className={`absolute inset-0 bg-gradient-to-br from-transparent to-transparent transition-colors ${onlineStatus ? 'to-primary/5' : ''}`}></div>
           <div className="relative z-10 flex flex-col justify-between h-full text-left">
@@ -867,6 +908,141 @@ export default function Settings() {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Change Password Component - Premium Row Style */}
+        <div className="bg-surface border-2 border-outline-variant/10 rounded-2xl overflow-hidden xl:col-span-12 transition-all hover:border-outline-variant/30">
+          <div 
+            className="flex items-center justify-between p-6 cursor-pointer hover:bg-surface-container-lowest/50 transition-colors"
+            onClick={() => setIsPasswordFormOpen(!isPasswordFormOpen)}
+          >
+            <div className="flex items-center gap-5">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${isPasswordFormOpen ? 'bg-rose-500/10 text-rose-500' : 'bg-surface-container text-on-surface-variant'}`}>
+                <Shield size={22} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-on-surface">Change Password</h3>
+                <p className="text-sm font-medium text-on-surface-variant mt-0.5">
+                  Update your account password securely.
+                </p>
+              </div>
+            </div>
+            <div className={`w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant transition-transform duration-300 ${isPasswordFormOpen ? 'rotate-180 bg-rose-500/10 text-rose-500' : ''}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {isPasswordFormOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="overflow-hidden bg-surface-container-lowest/30"
+              >
+                <div className="px-6 pb-6 pt-2 border-t border-outline-variant/10">
+                  <form onSubmit={handleChangePasswordSubmit} className="max-w-2xl mx-auto mt-6">
+                    <div className="space-y-6">
+                      
+                      {/* Current Password */}
+                      <div className="space-y-2">
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">Current Password</label>
+                        <input 
+                          type="password" 
+                          required 
+                          value={oldPassword} 
+                          onChange={(e) => setOldPassword(e.target.value)} 
+                          placeholder="Enter your current password" 
+                          className="w-full px-4 py-3 bg-background border border-outline-variant/30 rounded-xl focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all text-sm font-medium text-on-surface"
+                        />
+                      </div>
+
+                      <div className="h-px w-full bg-outline-variant/10"></div>
+                      
+                      {/* New Password & Strength Meter */}
+                      <div className="space-y-2">
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">New Password</label>
+                        <input 
+                          type="password" 
+                          required 
+                          minLength={8}
+                          value={newPassword} 
+                          onChange={(e) => setNewPassword(e.target.value)} 
+                          placeholder="Create a strong password" 
+                          className="w-full px-4 py-3 bg-background border border-outline-variant/30 rounded-xl focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all text-sm font-medium text-on-surface"
+                        />
+                        
+                        {/* Validation UI */}
+                        {newPassword.length > 0 && (
+                          <div className="mt-4 p-4 bg-surface rounded-xl border border-outline-variant/20">
+                            <div className="flex gap-1.5 h-1.5 w-full mb-4">
+                              {[...Array(4)].map((_, i) => (
+                                <div key={i} className={`flex-1 rounded-full transition-colors duration-300 ${i < reqsMetCount ? strengthColor : 'bg-surface-container-high'}`}></div>
+                              ))}
+                            </div>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4">
+                              <div className={`flex items-center gap-2 text-xs font-semibold ${hasMinLength ? 'text-emerald-500' : 'text-on-surface-variant'}`}>
+                                <Check size={14} className={hasMinLength ? 'opacity-100' : 'opacity-40'}/> 8+ characters
+                              </div>
+                              <div className={`flex items-center gap-2 text-xs font-semibold ${hasUpperCase ? 'text-emerald-500' : 'text-on-surface-variant'}`}>
+                                <Check size={14} className={hasUpperCase ? 'opacity-100' : 'opacity-40'}/> 1 uppercase letter
+                              </div>
+                              <div className={`flex items-center gap-2 text-xs font-semibold ${hasNumber ? 'text-emerald-500' : 'text-on-surface-variant'}`}>
+                                <Check size={14} className={hasNumber ? 'opacity-100' : 'opacity-40'}/> 1 number
+                              </div>
+                              <div className={`flex items-center gap-2 text-xs font-semibold ${hasSpecialChar ? 'text-emerald-500' : 'text-on-surface-variant'}`}>
+                                <Check size={14} className={hasSpecialChar ? 'opacity-100' : 'opacity-40'}/> 1 special character
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Confirm Password */}
+                      <div className="space-y-2">
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">Confirm New Password</label>
+                        <input 
+                          type="password" 
+                          required 
+                          minLength={8}
+                          value={confirmNewPassword} 
+                          onChange={(e) => setConfirmNewPassword(e.target.value)} 
+                          placeholder="Confirm your new password" 
+                          className="w-full px-4 py-3 bg-background border border-outline-variant/30 rounded-xl focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all text-sm font-medium text-on-surface"
+                        />
+                      </div>
+
+                    </div>
+                    
+                    {/* Action Footer */}
+                    <div className="flex justify-end items-center gap-3 mt-8 pt-6 border-t border-outline-variant/10">
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setIsPasswordFormOpen(false);
+                          setOldPassword('');
+                          setNewPassword('');
+                          setConfirmNewPassword('');
+                        }}
+                        className="px-5 py-2.5 rounded-xl text-sm font-bold text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit" 
+                        disabled={isChangingPassword || reqsMetCount < 4 || newPassword !== confirmNewPassword || !oldPassword}
+                        className="px-6 py-2.5 bg-rose-500 hover:bg-rose-600 text-white text-sm font-bold rounded-xl transition-all disabled:opacity-50 disabled:hover:bg-rose-500 flex items-center gap-2 shadow-md shadow-rose-500/20"
+                      >
+                        {isChangingPassword ? <Loader2 size={16} className="animate-spin" /> : 'Update Password'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Blocked Contacts Management Card */}

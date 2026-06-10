@@ -11,6 +11,8 @@ import { useLayoutStore } from './store/useLayoutStore';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Welcome from './pages/Welcome';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import UserLayout from './layouts/UserLayout';
 import AdminLayout from './layouts/AdminLayout';
 import Chat from './pages/Chat';
@@ -333,6 +335,8 @@ export default function App() {
         {/* Public Authentication Routes */}
         <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to={userRole === 'admin' ? "/admin" : "/"} />} />
         <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to={userRole === 'admin' ? "/admin" : "/"} />} />
+        <Route path="/forgot-password" element={!isAuthenticated ? <ForgotPassword /> : <Navigate to="/" />} />
+        <Route path="/reset-password/:token" element={!isAuthenticated ? <ResetPassword /> : <Navigate to="/" />} />
 
         {/* Fallback for old /auth route during transition */}
         <Route path="/auth" element={<Navigate to="/login" replace />} />

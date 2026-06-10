@@ -111,7 +111,9 @@ const userSchema = new mongoose.Schema({
     github: { type: String, default: "" },
     youtube: { type: String, default: "" },
     discord: { type: String, default: "" }
-  }
+  },
+  resetPasswordToken: String,
+  resetPasswordExpires: Date
 }, { timestamps: true });
 
 export default mongoose.model('User', userSchema);

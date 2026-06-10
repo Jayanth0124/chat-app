@@ -8,6 +8,7 @@
     "start": "npm start --prefix backend"
   },
   "dependencies": {
-    "dns": "^0.2.2"
+    "dns": "^0.2.2",
+    "sib-api-v3-sdk": "^8.5.0"
   }
 }

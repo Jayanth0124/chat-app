@@ -128,5 +128,27 @@ export const useAuthStore = create((set) => ({
       throw error;
     }
   },
+
+  forgotPassword: async (email) => {
+    try {
+      const res = await axiosInstance.post('/auth/forgot-password', { email });
+      toast.success(res.data.message);
+      return res.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Something went wrong');
+      throw error;
+    }
+  },
+
+  resetPassword: async (token, password) => {
+    try {
+      const res = await axiosInstance.post(`/auth/reset-password/${token}`, { password });
+      toast.success(res.data.message);
+      return res.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Something went wrong');
+      throw error;
+    }
+  },
 }));
 

@@ -8,11 +8,11 @@ import { axiosInstance } from '../lib/axios';
 export default function Signup() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    displayName: '',
     username: '',
     email: '',
-    password: ''
+    password: '',
+    confirmPassword: ''
   });
   
   const [profilePic, setProfilePic] = useState(null);
@@ -55,6 +55,10 @@ export default function Signup() {
   const handleNextStep = (e) => {
     e.preventDefault();
     if (!formData.email || formData.password.length < 6) return;
+    if (formData.password !== formData.confirmPassword) {
+      // Could show toast here
+      return;
+    }
     setStep(2);
   };
 
@@ -66,9 +70,8 @@ export default function Signup() {
     e.preventDefault();
     if (isAvailable === false) return;
 
-    // Call store signup
     await signup({
-      displayName: `${formData.firstName} ${formData.lastName}`.trim(),
+      displayName: formData.displayName.trim(),
       username: formData.username,
       email: formData.email,
       password: formData.password
@@ -146,6 +149,27 @@ export default function Signup() {
                 <p className="text-[10px] text-on-surface-variant/80 mt-1">Must be at least 6 characters</p>
               </div>
 
+              {/* Confirm Password */}
+              <div>
+                <label className="block text-xs font-semibold text-on-surface-variant uppercase mb-1.5 tracking-wider" htmlFor="confirmPassword">Confirm Password</label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">lock_reset</span>
+                  <input 
+                    className="w-full pl-10 pr-4 py-2.5 bg-surface border border-outline-variant rounded-lg text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-outline/80" 
+                    id="confirmPassword" 
+                    type="password"
+                    required
+                    minLength={6}
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    placeholder="••••••••"
+                  />
+                </div>
+                {formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                  <p className="text-[10px] text-red-500 mt-1 font-semibold">Passwords do not match</p>
+                )}
+              </div>
+
               <button 
                 className="w-full bg-primary hover:bg-primary-container text-white py-2.5 rounded-lg font-semibold text-sm transition-colors mt-6 flex items-center justify-center gap-2" 
                 type="submit"
@@ -181,32 +205,18 @@ export default function Signup() {
                 <span className="text-xs text-on-surface-variant mt-2 font-medium">Upload Profile Photo</span>
               </div>
 
-              {/* Display Name Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant uppercase mb-1.5 tracking-wider" htmlFor="firstName">First Name</label>
-                  <input 
-                    className="w-full px-3 py-2 bg-surface border border-outline-variant rounded-lg text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" 
-                    id="firstName" 
-                    type="text"
-                    required
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    placeholder="Jane"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant uppercase mb-1.5 tracking-wider" htmlFor="lastName">Last Name</label>
-                  <input 
-                    className="w-full px-3 py-2 bg-surface border border-outline-variant rounded-lg text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" 
-                    id="lastName" 
-                    type="text"
-                    required
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    placeholder="Doe"
-                  />
-                </div>
+              {/* Display Name */}
+              <div>
+                <label className="block text-xs font-semibold text-on-surface-variant uppercase mb-1.5 tracking-wider" htmlFor="displayName">Display Name</label>
+                <input 
+                  className="w-full px-3 py-2 bg-surface border border-outline-variant rounded-lg text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" 
+                  id="displayName" 
+                  type="text"
+                  required
+                  value={formData.displayName}
+                  onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                  placeholder="Jane Doe"
+                />
               </div>
 
               {/* Username */}
