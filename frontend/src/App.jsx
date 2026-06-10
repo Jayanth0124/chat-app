@@ -9,7 +9,6 @@ import { useChatStore } from './store/useChatStore';
 import { useSettingsStore } from './store/useSettingsStore';
 import { useLayoutStore } from './store/useLayoutStore';
 import Login from './pages/Login';
-import Signup from './pages/Signup';
 import Welcome from './pages/Welcome';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -333,8 +332,8 @@ export default function App() {
         </Route>
 
         {/* Public Authentication Routes */}
-        <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to={userRole === 'admin' ? "/admin" : "/"} />} />
-        <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to={userRole === 'admin' ? "/admin" : "/"} />} />
+        <Route path="/login" element={!isAuthenticated ? <Login initialMode="login" /> : <Navigate to={userRole === 'admin' ? "/admin" : "/"} />} />
+        <Route path="/signup" element={!isAuthenticated ? <Login initialMode="signup" /> : <Navigate to={userRole === 'admin' ? "/admin" : "/"} />} />
         <Route path="/forgot-password" element={!isAuthenticated ? <ForgotPassword /> : <Navigate to="/" />} />
         <Route path="/reset-password/:token" element={!isAuthenticated ? <ResetPassword /> : <Navigate to="/" />} />
 

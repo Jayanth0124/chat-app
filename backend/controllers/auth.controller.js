@@ -9,7 +9,10 @@ import UsernameOwnership from '../models/UsernameOwnership.js';
 export const checkUsername = async (req, res) => {
   try {
     const { username } = req.body;
-    if (!username || username.length < 4) {
+    
+    // Strict username validation
+    const usernameRegex = /^[a-zA-Z0-9_]{8,24}$/;
+    if (!username || !usernameRegex.test(username)) {
       return res.status(400).json({ available: false });
     }
     const existingUser = await User.findOne({ username: username.toLowerCase() });
@@ -27,6 +30,12 @@ export const signup = async (req, res) => {
 
     if (!username || !displayName || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Strict username validation
+    const usernameRegex = /^[a-zA-Z0-9_]{8,24}$/;
+    if (!usernameRegex.test(username)) {
+      return res.status(400).json({ message: "Username must be 8-24 characters long and can only contain letters, numbers, and underscores." });
     }
 
     const hasLetter = /[a-zA-Z]/.test(password);
