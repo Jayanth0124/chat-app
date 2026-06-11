@@ -20,6 +20,7 @@ export const useChatStore = create((set, get) => ({
   unreadCounts: {},
   isSelectionMode: false,
   selectedMessages: [],
+  typingChats: {}, // Track typing state by chatId
 
   // ─── SELECTION ───────────────────────────────────────────────────────────
   toggleSelectionMode: () => set(state => {
@@ -91,7 +92,7 @@ export const useChatStore = create((set, get) => ({
 
     // ── Delivery receipt ──────────────────────────────────────────────────
     socket.on('messageDelivered', ({ messageId, chatId }) => {
-      const { messages, selectedChat } = get();
+      const { messages, selectedChat, chats } = get();
       if (selectedChat && String(selectedChat._id) === String(chatId)) {
         const updatedMessages = messages.map((m) =>
           m._id === messageId && m.status === 'sent'
@@ -100,6 +101,13 @@ export const useChatStore = create((set, get) => ({
         );
         set({ messages: updatedMessages });
       }
+      const updatedChats = chats.map((c) => {
+        if (String(c._id) === String(chatId) && c.latestMessage?._id === messageId && c.latestMessage.status === 'sent') {
+          return { ...c, latestMessage: { ...c.latestMessage, status: 'delivered' } };
+        }
+        return c;
+      });
+      set({ chats: updatedChats });
     });
 
     // ── Seen receipt ──────────────────────────────────────────────────────
@@ -124,6 +132,30 @@ export const useChatStore = create((set, get) => ({
         });
         set({ messages: updated });
       }
+
+      const { chats } = get();
+      const updatedChats = chats.map((c) => {
+        if (String(c._id) === String(chatId) && c.latestMessage) {
+          const found = updatedMessages?.find((u) => u._id === c.latestMessage._id);
+          if (found) {
+            return {
+              ...c,
+              latestMessage: {
+                ...c.latestMessage,
+                status: 'seen',
+                expiresAt: found.expiresAt,
+                content: found.content,
+                mediaUrl: found.mediaUrl,
+                isViewed: found.isViewed,
+                opened: found.opened,
+                openedAt: found.openedAt
+              }
+            };
+          }
+        }
+        return c;
+      });
+      set({ chats: updatedChats });
       // Clear unread for the person who just saw it (if it's our message being seen)
       const { unreadCounts } = get();
       if (unreadCounts[chatId]) {
@@ -256,6 +288,15 @@ export const useChatStore = create((set, get) => ({
       const { unreadCounts } = get();
       const newUnread = { ...unreadCounts, [chatId]: (unreadCounts[chatId] || 0) + 1 };
       set({ unreadCounts: newUnread });
+    });
+
+    // ── Typing indicators ─────────────────────────────────────────────────
+    socket.on('typing', (chatId) => {
+      set((state) => ({ typingChats: { ...state.typingChats, [chatId]: true } }));
+    });
+    
+    socket.on('stop typing', (chatId) => {
+      set((state) => ({ typingChats: { ...state.typingChats, [chatId]: false } }));
     });
 
     // ── Online status ─────────────────────────────────────────────────────
@@ -491,6 +532,12 @@ export const useChatStore = create((set, get) => ({
         if (c.unreadCount > 0) unreadCounts[c._id] = c.unreadCount;
       });
       set({ chats: res.data, unreadCounts });
+      
+      // Join all chat rooms globally so we receive typing events for any chat
+      const socket = get().socket;
+      if (socket) {
+        res.data.forEach(c => socket.emit('join chat', c._id));
+      }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error fetching chats');
     } finally {
@@ -589,11 +636,19 @@ export const useChatStore = create((set, get) => ({
   markViewOnceOpened: async (messageId) => {
     try {
       const res = await axiosInstance.post(`/chat/message/${messageId}/view`);
-      const { messages } = get();
+      const { messages, chats } = get();
       const updatedMessages = messages.map((m) =>
         m._id === messageId ? res.data : m
       );
-      set({ messages: updatedMessages });
+      
+      const updatedChats = chats.map((c) => {
+        if (c.latestMessage?._id === messageId) {
+          return { ...c, latestMessage: res.data };
+        }
+        return c;
+      });
+      
+      set({ messages: updatedMessages, chats: updatedChats });
 
       const socket = get().socket;
       if (socket) socket.emit('message viewed', res.data);

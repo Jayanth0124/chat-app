@@ -63,10 +63,10 @@ export const handleSockets = (io) => {
     });
 
     // ─── TYPING & RECORDING ──────────────────────────────────────────────
-    socket.on('typing', (room) => socket.in(room).emit('typing'));
-    socket.on('stop typing', (room) => socket.in(room).emit('stop typing'));
-    socket.on('voice_recording_start', (room) => socket.in(room).emit('voice_recording_start'));
-    socket.on('voice_recording_stop', (room) => socket.in(room).emit('voice_recording_stop'));
+    socket.on('typing', (room) => socket.in(room).emit('typing', room));
+    socket.on('stop typing', (room) => socket.in(room).emit('stop typing', room));
+    socket.on('voice_recording_start', (room) => socket.in(room).emit('voice_recording_start', room));
+    socket.on('voice_recording_stop', (room) => socket.in(room).emit('voice_recording_stop', room));
 
     // ─── MESSAGES ────────────────────────────────────────────
     socket.on('new message', async (newMessage) => {

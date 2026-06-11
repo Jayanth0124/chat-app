@@ -14,6 +14,7 @@ import Avatar from './ui/Avatar';
 function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContextMenu, setActiveContextMenu, getSender, getSenderPic, unreadCounts }) {
   const navigate = useNavigate();
   const { deleteChat, pinChat, muteChat, markChatAsUnread } = useChatStore();
+  const isTyping = useChatStore((state) => state.typingChats[chat._id]);
   const { blockUser } = useFriendStore();
 
   const otherParticipant = !chat.isGroupChat ? chat.participants?.find(p => p._id !== user?._id) : null;
@@ -136,6 +137,11 @@ function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContext
                   );
                 }
                 
+
+                if (isTyping) {
+                  return <span className="text-[#0A84FF] font-medium animate-pulse">Typing...</span>;
+                }
+
                 if (!chat.latestMessage) {
                   return 'No messages yet...';
                 }
@@ -145,12 +151,14 @@ function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContext
 
                 const renderTicks = () => {
                   if (!isSender) return null;
-                  const isRead = msg.readBy && msg.readBy.some(r => {
+                  const isRead = msg.status === 'seen' || (msg.readBy && msg.readBy.some(r => {
                      const readerId = typeof r.user === 'object' ? r.user._id : r.user;
                      return readerId !== user._id;
-                  });
+                  }));
                   if (isRead) {
                     return <CheckCheck size={14} className="text-[#0A84FF] shrink-0" />;
+                  } else if (msg.status === 'delivered') {
+                    return <CheckCheck size={14} className="text-white/40 shrink-0" />;
                   }
                   return <Check size={14} className="text-white/40 shrink-0" />;
                 };
@@ -167,7 +175,13 @@ function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContext
                 const previewContent = () => {
                   switch(msg.messageType) {
                     case 'snap':
-                      return <><Zap size={13} className="shrink-0" /> <span className="truncate">Snap</span></>;
+                      const isExpiredSnap = msg.expiresAt && new Date(msg.expiresAt).getTime() <= Date.now();
+                      let snapText = "Snap";
+                      if (isExpiredSnap) snapText = "Snap Expired";
+                      else if (msg.opened) snapText = "Snap Opened";
+                      else if (isSender) snapText = msg.status === 'delivered' ? "Snap Delivered" : "Snap Sent";
+                      else snapText = "New Snap";
+                      return <><Camera size={13} className="shrink-0" /> <span className="truncate">{snapText}</span></>;
                     case 'image':
                       return <><ImageIcon size={13} className="shrink-0" /> <span className="truncate">Photo</span></>;
                     case 'video':

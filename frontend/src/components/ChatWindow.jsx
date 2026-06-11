@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import chatWindowBg from '../assets/images/chat-window.jpg';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, MoreHorizontal, CheckCheck, Check, Phone, Video, Play, Pause, FileText, Search, Image as ImageIcon, Clock, MonitorPlay, Download, StopCircle, X, ChevronUp, ChevronDown, Eye, Camera, Trash2 } from 'lucide-react';
@@ -36,7 +36,8 @@ export default function ChatWindow({ onBack }) {
   const { setActiveCall } = useLayoutStore();
   const navigate = useNavigate();
 
-  const [isTyping, setIsTyping] = useState(false);
+  const typingChats = useChatStore((state) => state.typingChats);
+  const isTyping = typingChats[selectedChat?._id] || false;
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [viewingMessage, setViewingMessage] = useState(null);
   const [viewingSnap, setViewingSnap] = useState(null);
@@ -131,14 +132,15 @@ export default function ChatWindow({ onBack }) {
   useEffect(() => {
     if (!socket) return;
     
-    socket.on('typing', () => setIsTyping(true));
-    socket.on('stop typing', () => setIsTyping(false));
-    socket.on('voice_recording_start', () => setIsRecordingVoice(true));
-    socket.on('voice_recording_stop', () => setIsRecordingVoice(false));
+    // Voice recording events
+    socket.on('voice_recording_start', (room) => {
+      if (room === selectedChat._id) setIsRecordingVoice(true);
+    });
+    socket.on('voice_recording_stop', (room) => {
+      if (room === selectedChat._id) setIsRecordingVoice(false);
+    });
 
     return () => {
-      socket.off('typing');
-      socket.off('stop typing');
       socket.off('voice_recording_start');
       socket.off('voice_recording_stop');
     };
@@ -550,26 +552,43 @@ export default function ChatWindow({ onBack }) {
           const prevIsSame = messages[i - 1]?.sender?._id === m.sender?._id;
           const isHighlighted = searchResults[currentSearchIndex]?._id === m._id;
           
+          const messageDate = new Date(m.createdAt).toDateString();
+          const prevMessageDate = i > 0 ? new Date(messages[i - 1].createdAt).toDateString() : null;
+          const showDateSeparator = messageDate !== prevMessageDate;
+          
+          const isFirstInGroup = !prevIsSame || showDateSeparator;
+          const isLastInGroup = !nextIsSame;
+
           return (
-            <MessagePanel 
-              key={m._id} 
-              isOwn={isOwn} 
-              message={m}
-              text={m.content} 
-              time={new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 
-              status={m.status || 'sent'} 
-              isFirstInGroup={!prevIsSame}
-              isLastInGroup={!nextIsSame}
-              isHighlighted={isHighlighted}
-              onViewMessage={() => handleViewMessage(m)}
-              onViewSnap={() => handleViewMessage(m)}
-              setReplyToMessage={setReplyToMessage}
-              onReportMessage={setReportingMessage}
-              isSelectionMode={isSelectionMode}
-              isSelected={selectedMessages.includes(m._id)}
-              toggleSelection={() => useChatStore.getState().toggleMessageSelection(m._id)}
-              triggerCall={triggerCall}
-            />
+            <React.Fragment key={m._id}>
+              {showDateSeparator && (
+                <div className="flex justify-center my-6 w-full relative z-10">
+                  <span className="px-4 py-1.5 bg-black/40 backdrop-blur-md rounded-full text-[11px] font-bold uppercase tracking-widest text-white/50 border border-white/5 shadow-sm">
+                    {messageDate === new Date().toDateString() ? 'Today' : 
+                     messageDate === new Date(Date.now() - 86400000).toDateString() ? 'Yesterday' :
+                     new Date(m.createdAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+              )}
+              <MessagePanel 
+                isOwn={isOwn} 
+                message={m}
+                text={m.content} 
+                time={new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 
+                status={m.status || 'sent'} 
+                isFirstInGroup={isFirstInGroup}
+                isLastInGroup={isLastInGroup}
+                isHighlighted={isHighlighted}
+                onViewMessage={() => handleViewMessage(m)}
+                onViewSnap={() => handleViewMessage(m)}
+                setReplyToMessage={setReplyToMessage}
+                onReportMessage={setReportingMessage}
+                isSelectionMode={isSelectionMode}
+                isSelected={selectedMessages.includes(m._id)}
+                toggleSelection={() => useChatStore.getState().toggleMessageSelection(m._id)}
+                triggerCall={triggerCall}
+              />
+            </React.Fragment>
           );
         })}
         <div ref={messagesEndRef} className="h-6" />
@@ -841,9 +860,9 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
   if ((isExpired || timeRemaining === 0) && message?.messageType !== 'snap') return null;
 
   return (
-    <div id={`msg-${message._id}`} className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} w-full ${isFirstInGroup ? 'mt-2.5' : ''}`}>
+    <div id={`msg-${message._id}`} className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} w-full ${isFirstInGroup ? 'mt-3 sm:mt-4' : 'mt-0.5'}`}>
       {/* Optimized message width utilization */}
-      <div className={`relative w-fit max-w-[92%] sm:max-w-[85%] md:max-w-[75%] lg:max-w-[65%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+      <div className={`relative w-fit max-w-[95%] sm:max-w-[90%] md:max-w-[80%] lg:max-w-[75%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
         
         {/* Spatial System Menu */}
         {showMenu && (
@@ -1084,30 +1103,30 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
             </div>
           ) : isSnap ? (
             <div 
-              className={`flex flex-col min-w-[140px] rounded-lg overflow-hidden relative group p-3 ${!message.opened && !isOwn ? 'cursor-pointer hover:bg-white/5' : ''} transition-colors`} 
+              className={`flex items-center min-w-[160px] max-w-[200px] rounded-lg relative group p-1.5 ${!message.opened && !isOwn ? 'cursor-pointer hover:bg-white/5' : ''} transition-colors`} 
               onClick={() => { if (!message.opened && !isOwn && onViewSnap) onViewSnap(message); }}
             >
               {message.opened || message.content === 'Opened' ? (
-                <div className="flex flex-col items-center justify-center gap-2 text-white/50">
-                  <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center bg-black/40">
-                    <Eye size={20} />
+                <div className="flex items-center gap-3 text-white/50 w-full px-2 py-1">
+                  <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center bg-black/40 shrink-0">
+                    <Eye size={14} />
                   </div>
-                  <span className="text-[11px] font-bold tracking-widest uppercase">Opened</span>
+                  <span className="text-[12px] font-bold tracking-widest uppercase">Opened</span>
                 </div>
               ) : isExpired ? (
-                <div className="flex flex-col items-center justify-center gap-2 text-red-500/50">
-                  <div className="w-12 h-12 rounded-full border border-red-500/10 flex items-center justify-center bg-red-500/5">
-                    <Trash2 size={20} />
+                <div className="flex items-center gap-3 text-red-500/50 w-full px-2 py-1">
+                  <div className="w-8 h-8 rounded-full border border-red-500/10 flex items-center justify-center bg-red-500/5 shrink-0">
+                    <Trash2 size={14} />
                   </div>
-                  <span className="text-[11px] font-bold tracking-widest uppercase">Deleted</span>
+                  <span className="text-[12px] font-bold tracking-widest uppercase">Expired</span>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center gap-2 text-yellow-500 transition-transform">
-                  <div className={`w-14 h-14 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-[0_0_20px_rgba(234,179,8,0.4)] ${!isOwn ? 'animate-pulse' : ''}`}>
-                    <Camera size={24} className="text-white drop-shadow-md" />
+                <div className="flex items-center gap-3 text-yellow-500 transition-transform w-full px-1">
+                  <div className={`w-10 h-10 rounded-md bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-[0_0_10px_rgba(234,179,8,0.4)] shrink-0 ${!isOwn ? 'animate-pulse' : ''}`}>
+                    <Camera size={18} className="text-white drop-shadow-md" />
                   </div>
-                  <span className="text-[11px] font-black tracking-widest uppercase mt-1 text-center">
-                    {isOwn ? "Sent" : "Tap to View\nSnap"}
+                  <span className="text-[12px] font-bold tracking-widest uppercase text-left leading-tight">
+                    {isOwn ? "Delivered" : "Tap to\nView"}
                   </span>
                 </div>
               )}
