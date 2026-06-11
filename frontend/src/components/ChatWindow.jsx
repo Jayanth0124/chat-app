@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import chatWindowBg from '../assets/images/chat-window.jpg';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, MoreHorizontal, CheckCheck, Check, Phone, Video, Play, Pause, FileText, Search, Image as ImageIcon, Clock, MonitorPlay, Download, StopCircle, X, ChevronUp, ChevronDown, Eye } from 'lucide-react';
+import { ArrowLeft, MoreHorizontal, CheckCheck, Check, Phone, Video, Play, Pause, FileText, Search, Image as ImageIcon, Clock, MonitorPlay, Download, StopCircle, X, ChevronUp, ChevronDown, Eye, Camera, Trash2 } from 'lucide-react';
 import ChatInput from './ChatInput';
 import Select from './ui/Select';
 import { useChatStore } from '../store/useChatStore';
@@ -39,6 +39,7 @@ export default function ChatWindow({ onBack }) {
   const [isTyping, setIsTyping] = useState(false);
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [viewingMessage, setViewingMessage] = useState(null);
+  const [viewingSnap, setViewingSnap] = useState(null);
   
   // Dropdowns and menus
   const [showVanishDropdown, setShowVanishDropdown] = useState(false);
@@ -210,19 +211,25 @@ export default function ChatWindow({ onBack }) {
     );
   }
 
-  const handleSendMessage = (content, mediaUrl = null, messageType = 'text', replyToId = null) => {
+  const handleSendMessage = (content, mediaUrl = null, messageType = 'text', replyToId = null, mediaSource = null) => {
     sendMessage({
       content,
       chatId: selectedChat._id,
       mediaUrl,
       messageType,
       isViewOnce: selectedChat.vanishMode === 'VIEW ONCE',
-      replyTo: replyToId
+      replyTo: replyToId,
+      mediaSource
     });
   };
 
   const handleViewMessage = (msg) => {
-    setViewingMessage(msg);
+    if (msg.messageType === 'snap' && !msg.opened) {
+      setViewingSnap(msg);
+      markViewOnceOpened(msg._id);
+    } else {
+      setViewingMessage(msg);
+    }
   };
 
   const handleCloseViewMessage = async () => {
@@ -555,6 +562,7 @@ export default function ChatWindow({ onBack }) {
               isLastInGroup={!nextIsSame}
               isHighlighted={isHighlighted}
               onViewMessage={() => handleViewMessage(m)}
+              onViewSnap={() => handleViewMessage(m)}
               setReplyToMessage={setReplyToMessage}
               onReportMessage={setReportingMessage}
               isSelectionMode={isSelectionMode}
@@ -597,6 +605,77 @@ export default function ChatWindow({ onBack }) {
           setReplyToMessage={setReplyToMessage}
         />
       </div>
+
+      {/* Snap Full Screen Viewer */}
+      {viewingSnap && createPortal(
+        <div 
+          className="fixed inset-0 w-screen h-screen z-[9999] bg-[#000000] flex flex-col animate-in fade-in zoom-in-95 duration-300"
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          {/* Header */}
+          <div className="absolute top-0 left-0 right-0 p-4 pt-safe z-50 bg-gradient-to-b from-black/80 to-transparent flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <Avatar src={viewingSnap.sender?.profilePic} alt={viewingSnap.sender?.displayName} size="md" />
+              <div className="flex flex-col">
+                <span className="text-white font-bold text-[15px] drop-shadow-md leading-tight">{viewingSnap.sender?.displayName}</span>
+                <span className="text-white/70 font-medium text-[12px] drop-shadow-md">
+                  @{viewingSnap.sender?.email?.split('@')[0] || viewingSnap.sender?.displayName?.toLowerCase().replace(/\s+/g, '')}
+                </span>
+              </div>
+            </div>
+            
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-3">
+                <span className="text-white/90 text-[12px] font-bold tracking-wide drop-shadow-md">
+                  {new Date(viewingSnap.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <button 
+                  onClick={() => setViewingSnap(null)}
+                  className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 border border-white/10 flex items-center justify-center text-white backdrop-blur-md transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <span className="text-white/60 text-[10px] font-medium italic drop-shadow-md mt-1">
+                {viewingSnap.mediaSource === 'camera' ? 'Taken with Camera' : viewingSnap.mediaSource === 'gallery' ? 'From Gallery' : ''}
+              </span>
+            </div>
+          </div>
+
+          {/* Media Content */}
+          <div className="flex-1 w-full h-full flex items-center justify-center relative">
+            {viewingSnap.mediaUrl && viewingSnap.mediaUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+              <video 
+                src={viewingSnap.mediaUrl} 
+                autoPlay 
+                loop
+                className="w-full h-full object-contain"
+                controlsList="nodownload nofullscreen noremoteplayback"
+                disablePictureInPicture
+              />
+            ) : (
+              <img 
+                src={viewingSnap.mediaUrl} 
+                alt="Snap" 
+                className="w-full h-full object-contain select-none" 
+                draggable={false}
+              />
+            )}
+          </div>
+
+          {/* Caption (Instagram style) */}
+          {viewingSnap.content && viewingSnap.content !== 'Snap' && viewingSnap.content !== 'Opened' && (
+            <div className="absolute bottom-12 left-0 right-0 px-6 z-50 flex justify-center pointer-events-none">
+              <div className="bg-black/60 backdrop-blur-md px-4 py-2.5 rounded-2xl max-w-sm text-center shadow-xl border border-white/10">
+                <p className="text-white text-[14px] font-medium leading-snug drop-shadow-md">
+                  {viewingSnap.content}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>,
+        document.body
+      )}
 
       {/* Restricted View Modal */}
       {viewingMessage && (
@@ -663,7 +742,7 @@ const handleDownload = async (e, url, defaultFilename) => {
   }
 };
 
-function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup, isHighlighted, message, onViewMessage, setReplyToMessage, onReportMessage, isSelectionMode, isSelected, toggleSelection, triggerCall }) {
+function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup, isHighlighted, message, onViewMessage, onViewSnap, setReplyToMessage, onReportMessage, isSelectionMode, isSelected, toggleSelection, triggerCall }) {
   const { deleteMessage, toggleSelectionMode, unsendMessages, deleteMessagesForMe } = useChatStore();
   const [showMenu, setShowMenu] = useState(false);
   const longPressTimer = useRef(null);
@@ -712,8 +791,9 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
     
   const isVoice = message?.messageType === 'audio' || text?.startsWith('[Voice Message');
   const isDoc = message?.messageType === 'document' || text?.startsWith('[Shared Document');
-  const isImg = message?.messageType === 'image' || text?.startsWith('[Shared Image') || text?.startsWith('[Shared Snap Image');
+  const isImg = message?.messageType === 'image' || text?.startsWith('[Shared Image');
   const isVideo = message?.messageType === 'video';
+  const isSnap = message?.messageType === 'snap';
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(null);
@@ -758,7 +838,7 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
   }, [message?.status, message?.expiresAt]);
 
   const isExpired = message?.expiresAt && new Date(message.expiresAt).getTime() <= Date.now();
-  if (isExpired || timeRemaining === 0) return null;
+  if ((isExpired || timeRemaining === 0) && message?.messageType !== 'snap') return null;
 
   return (
     <div id={`msg-${message._id}`} className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} w-full ${isFirstInGroup ? 'mt-2.5' : ''}`}>
@@ -1001,6 +1081,36 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
                 </div>
               )}
               {text && !text.startsWith('[Shared') && <span className="text-[13px] mt-2 font-medium text-white/90 px-1">{text}</span>}
+            </div>
+          ) : isSnap ? (
+            <div 
+              className={`flex flex-col min-w-[140px] rounded-lg overflow-hidden relative group p-3 ${!message.opened && !isOwn ? 'cursor-pointer hover:bg-white/5' : ''} transition-colors`} 
+              onClick={() => { if (!message.opened && !isOwn && onViewSnap) onViewSnap(message); }}
+            >
+              {message.opened || message.content === 'Opened' ? (
+                <div className="flex flex-col items-center justify-center gap-2 text-white/50">
+                  <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center bg-black/40">
+                    <Eye size={20} />
+                  </div>
+                  <span className="text-[11px] font-bold tracking-widest uppercase">Opened</span>
+                </div>
+              ) : isExpired ? (
+                <div className="flex flex-col items-center justify-center gap-2 text-red-500/50">
+                  <div className="w-12 h-12 rounded-full border border-red-500/10 flex items-center justify-center bg-red-500/5">
+                    <Trash2 size={20} />
+                  </div>
+                  <span className="text-[11px] font-bold tracking-widest uppercase">Deleted</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2 text-yellow-500 transition-transform">
+                  <div className={`w-14 h-14 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-[0_0_20px_rgba(234,179,8,0.4)] ${!isOwn ? 'animate-pulse' : ''}`}>
+                    <Camera size={24} className="text-white drop-shadow-md" />
+                  </div>
+                  <span className="text-[11px] font-black tracking-widest uppercase mt-1 text-center">
+                    {isOwn ? "Sent" : "Tap to View\nSnap"}
+                  </span>
+                </div>
+              )}
             </div>
           ) : (
             <span className={`text-[14px] leading-relaxed whitespace-pre-wrap break-words inline-block ${isOwn ? 'text-white/95' : 'text-white/85'}`}>

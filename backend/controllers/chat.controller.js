@@ -129,7 +129,7 @@ export const fetchChats = async (req, res) => {
 };
 
 export const sendMessage = async (req, res) => {
-  const { content, chatId, mediaUrl, messageType, isViewOnce, replyTo } = req.body;
+  const { content, chatId, mediaUrl, messageType, isViewOnce, replyTo, mediaSource } = req.body;
 
   if (!chatId || (!content && !mediaUrl)) {
     return res.status(400).json({ message: "Invalid data passed into request" });
@@ -177,7 +177,7 @@ export const sendMessage = async (req, res) => {
     let secureMediaUrl = mediaUrl || null;
     let computedMessageType = messageType || "text";
 
-    if (["image", "video", "document", "audio"].includes(computedMessageType) && secureMediaUrl && secureMediaUrl.startsWith("data:")) {
+    if (["image", "video", "document", "audio", "snap"].includes(computedMessageType) && secureMediaUrl && secureMediaUrl.startsWith("data:")) {
       try {
         const uploadResponse = await cloudinary.uploader.upload(secureMediaUrl, {
           resource_type: "auto"
@@ -195,8 +195,9 @@ export const sendMessage = async (req, res) => {
       chat: chatId,
       messageType: computedMessageType,
       mediaUrl: secureMediaUrl,
+      mediaSource: computedMessageType === 'snap' ? mediaSource : null,
       isViewOnce: isViewOnce || false,
-      status,
+      status: status,
       expiresAt,
       replyTo: replyTo || null
     };
@@ -246,7 +247,7 @@ export const sendMessage = async (req, res) => {
       const otherUser = chat.participants.find(p => p._id.toString() !== loggedInUserId.toString());
       if (otherUser) {
         const otherUserId = otherUser._id;
-        const scoreIncrement = (computedMessageType === 'audio' || computedMessageType === 'video' || computedMessageType === 'image') ? 2 : 1;
+        const scoreIncrement = (computedMessageType === 'audio' || computedMessageType === 'video' || computedMessageType === 'image' || computedMessageType === 'snap') ? 2 : 1;
 
         const sortedUsers = [loggedInUserId.toString(), otherUserId.toString()].sort();
 
@@ -352,19 +353,29 @@ export const viewOnceMessage = async (req, res) => {
       return res.status(404).json({ message: "Message not found" });
     }
 
-    if (!message.isViewOnce) {
-      return res.status(400).json({ message: "Not a view-once message" });
+    if (!message.isViewOnce && message.messageType !== 'snap') {
+      return res.status(400).json({ message: "Not a view-once or snap message" });
     }
 
-    if (message.isViewed) {
+    if (message.isViewed || message.opened) {
       return res.status(400).json({ message: "Message already viewed" });
     }
 
-    // Replace the content with a placeholder and mark as viewed
-    message.isViewed = true;
-    message.content = "Message Opened";
-    message.mediaUrl = null;
-    message.expiresAt = new Date(); // Expire immediately so it is pruned on next load
+    // Replace the content with a placeholder and mark as viewed/opened
+    if (message.messageType === 'snap') {
+      if (message.mediaUrl) await deleteFromCloudinary(message.mediaUrl);
+      message.opened = true;
+      message.openedAt = new Date();
+      message.content = "Opened";
+      message.mediaUrl = null;
+      message.expiresAt = new Date(); // Expire immediately for cleanup
+    } else {
+      if (message.mediaUrl) await deleteFromCloudinary(message.mediaUrl);
+      message.isViewed = true;
+      message.content = "Message Opened";
+      message.mediaUrl = null;
+      message.expiresAt = new Date(); // Expire immediately so it is pruned on next load
+    }
     await message.save();
 
     // Populate the required fields to send back exactly like a normal message
@@ -381,6 +392,8 @@ export const viewOnceMessage = async (req, res) => {
           content: message.content,
           mediaUrl: message.mediaUrl,
           isViewed: message.isViewed,
+          opened: message.opened,
+          openedAt: message.openedAt,
           expiresAt: message.expiresAt
         }]
       });

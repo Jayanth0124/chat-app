@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Paperclip, Send, Smile, Mic, Camera, X, Check, FileText, MapPin, Image as ImageIcon, Trash2 } from 'lucide-react';
 import ImageAdjustModal from './modals/ImageAdjustModal';
+import SnapPreviewModal from './modals/SnapPreviewModal';
 import EmojiPicker from 'emoji-picker-react';
 
 export default function ChatInput({ onSendMessage, socket, selectedChat, replyToMessage, setReplyToMessage }) {
@@ -8,6 +9,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
   const [isTyping, setIsTyping] = useState(false);
   const [showEmojiMenu, setShowEmojiMenu] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [sendingSnap, setSendingSnap] = useState(false);
   
   // Voice Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -19,8 +21,12 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
   const typingTimeoutRef = useRef(null);
   const secondsIntervalRef = useRef(null);
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
   const [adjustingImage, setAdjustingImage] = useState(null);
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [snapSource, setSnapSource] = useState(null);
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
@@ -165,7 +171,17 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
       
       const reader = new FileReader();
       reader.onloadend = () => {
-        if (file.type.startsWith('image/')) {
+        if (sendingSnap) {
+          // Heuristic to guess if taken by camera or gallery since we use a single input
+          let source = 'gallery';
+          const isRecent = (Date.now() - file.lastModified) < 60000; // Less than 1 min old
+          if (file.name === 'image.jpg' || file.name.startsWith('IMG_') || file.name.startsWith('VID_') || isRecent) {
+            source = 'camera';
+          }
+          setSnapSource(source);
+          setAdjustingImage(reader.result);
+          setIsPreviewOpen(true);
+        } else if (file.type.startsWith('image/')) {
           setAdjustingImage(reader.result);
           setIsAdjustOpen(true);
         } else if (file.type.startsWith('video/')) {
@@ -232,33 +248,32 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
           </div>
         </>
       )}
-
       {/* Attachment Menu Popup */}
       {showAttachMenu && (
         <>
           <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowAttachMenu(false)} />
-          <div className="absolute bottom-full mb-4 left-4 md:left-16 z-50 bg-surface/90 backdrop-blur-2xl border border-outline-variant/50 p-4 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex flex-col gap-3 w-72 animate-in zoom-in-95 slide-in-from-bottom-4 duration-200">
+          <div className="absolute bottom-full mb-4 left-4 md:left-16 z-50 bg-surface/90 backdrop-blur-2xl border border-outline-variant/50 p-4 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex flex-col gap-3 w-max animate-in zoom-in-95 slide-in-from-bottom-4 duration-200">
             <div className="grid grid-cols-2 gap-3">
               <button 
                 type="button"
-                onClick={() => { fileInputRef.current?.setAttribute('accept', 'image/*,video/*'); fileInputRef.current?.click(); setShowAttachMenu(false); }}
-                className="flex flex-col items-center justify-center gap-2 p-4 bg-surface-container hover:bg-surface-container-high rounded-2xl transition-all cursor-pointer active:scale-95 group border border-outline-variant/30 shadow-sm"
+                onClick={() => { setSendingSnap(false); fileInputRef.current?.setAttribute('accept', 'image/*,video/*'); fileInputRef.current?.click(); setShowAttachMenu(false); }}
+                className="flex flex-col items-center justify-center gap-2 p-3 bg-surface-container hover:bg-surface-container-high rounded-2xl transition-all cursor-pointer active:scale-95 group border border-outline-variant/30 shadow-sm"
               >
                 <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] group-hover:scale-110 transition-transform">
-                  <ImageIcon size={22} strokeWidth={2} />
+                  <ImageIcon size={20} strokeWidth={2} />
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/80">Media</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface/80">Media</span>
               </button>
-              
+
               <button 
                 type="button"
-                onClick={() => { fileInputRef.current?.setAttribute('accept', 'application/*,text/*'); fileInputRef.current?.click(); setShowAttachMenu(false); }}
-                className="flex flex-col items-center justify-center gap-2 p-4 bg-surface-container hover:bg-surface-container-high rounded-2xl transition-all cursor-pointer active:scale-95 group border border-outline-variant/30 shadow-sm"
+                onClick={() => { setSendingSnap(false); fileInputRef.current?.setAttribute('accept', 'application/*,text/*'); fileInputRef.current?.click(); setShowAttachMenu(false); }}
+                className="flex flex-col items-center justify-center gap-2 p-3 bg-surface-container hover:bg-surface-container-high rounded-2xl transition-all cursor-pointer active:scale-95 group border border-outline-variant/30 shadow-sm"
               >
                 <div className="p-3 bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white rounded-full shadow-[0_4px_12px_rgba(168,85,247,0.3)] group-hover:scale-110 transition-transform">
-                  <FileText size={22} strokeWidth={2} />
+                  <FileText size={20} strokeWidth={2} />
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/80">File</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface/80">File</span>
               </button>
             </div>
           </div>
@@ -363,12 +378,42 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
                 }}
               />
 
-              {/* Hidden File Input for Real Image/Video/Doc Uploads */}
+              {/* Camera Icon Inside Input (WhatsApp Style) */}
+              <div className="flex items-center pb-1 shrink-0 px-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSendingSnap(true);
+                    // Single file input for snap (Gallery/Camera chooser)
+                    galleryInputRef.current?.click();
+                  }}
+                  className="w-10 h-10 flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                  title="Send View Once Snap"
+                >
+                  <Camera size={22} strokeWidth={2.2} />
+                </button>
+              </div>
+
               <input 
                 type="file" 
                 ref={fileInputRef} 
                 className="hidden" 
                 accept="image/*,video/*,application/*,text/*" 
+                onChange={handleFileChange} 
+              />
+              <input 
+                type="file" 
+                ref={cameraInputRef} 
+                className="hidden" 
+                accept="image/*,video/*"
+                capture="environment"
+                onChange={handleFileChange} 
+              />
+              <input 
+                type="file" 
+                ref={galleryInputRef} 
+                className="hidden" 
+                accept="image/*,video/*" 
                 onChange={handleFileChange} 
               />
             </div>
@@ -410,6 +455,22 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
           setIsAdjustOpen(false);
         }}
         aspectMode="original"
+      />
+
+      <SnapPreviewModal
+        isOpen={isPreviewOpen}
+        imageSrc={adjustingImage}
+        mediaSource={snapSource}
+        onClose={() => {
+          setIsPreviewOpen(false);
+          setSendingSnap(false);
+        }}
+        onConfirm={(captionText, mediaDataUrl, source) => {
+          onSendMessage(captionText || 'Snap', mediaDataUrl, 'snap', replyToMessage?._id, source);
+          setReplyToMessage?.(null);
+          setIsPreviewOpen(false);
+          setSendingSnap(false);
+        }}
       />
     </div>
   );

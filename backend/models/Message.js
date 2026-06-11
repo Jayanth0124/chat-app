@@ -17,11 +17,16 @@ const messageSchema = new mongoose.Schema({
   },
   messageType: {
     type: String,
-    enum: ['text', 'image', 'video', 'audio', 'document', 'system', 'call'],
+    enum: ['text', 'image', 'video', 'audio', 'document', 'system', 'call', 'snap'],
     default: 'text'
   },
   mediaUrl: {
     type: String,
+    default: null
+  },
+  mediaSource: {
+    type: String,
+    enum: ['camera', 'gallery'],
     default: null
   },
   status: {
@@ -41,6 +46,14 @@ const messageSchema = new mongoose.Schema({
   isViewed: {
     type: Boolean,
     default: false
+  },
+  opened: {
+    type: Boolean,
+    default: false
+  },
+  openedAt: {
+    type: Date,
+    default: null
   },
   // Auto-delete temporary messages logic
   expiresAt: {

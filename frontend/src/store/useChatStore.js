@@ -115,7 +115,9 @@ export const useChatStore = create((set, get) => ({
               expiresAt: found.expiresAt,
               content: found.content,
               mediaUrl: found.mediaUrl,
-              isViewed: found.isViewed
+              isViewed: found.isViewed,
+              opened: found.opened,
+              openedAt: found.openedAt
             };
           }
           return m;
@@ -528,7 +530,8 @@ export const useChatStore = create((set, get) => ({
       status: 'sending',
       createdAt: new Date().toISOString(),
       replyTo: messageData.replyToId ? get().messages.find(m => m._id === messageData.replyToId) : null,
-      isViewOnce: messageData.isViewOnce || false
+      isViewOnce: messageData.isViewOnce || false,
+      mediaSource: messageData.mediaSource || null
     };
 
     // 1. Immediately append to message list
