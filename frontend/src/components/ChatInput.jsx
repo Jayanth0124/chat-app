@@ -9,7 +9,6 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
   const [isTyping, setIsTyping] = useState(false);
   const [showEmojiMenu, setShowEmojiMenu] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
-  const [showCameraMenu, setShowCameraMenu] = useState(false);
   const [sendingSnap, setSendingSnap] = useState(false);
   
   // Voice Recording State
@@ -282,49 +281,6 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
         </>
       )}
 
-      {/* Camera Menu Popup */}
-      {showCameraMenu && (
-        <>
-          <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowCameraMenu(false)} />
-          <div className="absolute bottom-full mb-4 right-16 md:right-24 z-50 bg-surface/90 backdrop-blur-2xl border border-outline-variant/50 p-3 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex flex-col gap-2 w-max animate-in zoom-in-95 slide-in-from-bottom-4 duration-200">
-            <div className="grid grid-cols-3 gap-2">
-              <button 
-                type="button"
-                onClick={() => { setSendingSnap(true); cameraInputRef.current?.click(); setShowCameraMenu(false); }}
-                className="flex flex-col items-center justify-center gap-2 p-3 w-20 bg-surface-container hover:bg-surface-container-high rounded-2xl transition-all cursor-pointer active:scale-95 group border border-outline-variant/30 shadow-sm"
-              >
-                <div className="p-2.5 bg-gradient-to-br from-pink-500 to-rose-600 text-white rounded-full shadow-[0_4px_12px_rgba(244,63,94,0.3)] group-hover:scale-110 transition-transform">
-                  <Camera size={18} strokeWidth={2} />
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface/80">Photo</span>
-              </button>
-
-              <button 
-                type="button"
-                onClick={() => { setSendingSnap(true); videoInputRef.current?.click(); setShowCameraMenu(false); }}
-                className="flex flex-col items-center justify-center gap-2 p-3 w-20 bg-surface-container hover:bg-surface-container-high rounded-2xl transition-all cursor-pointer active:scale-95 group border border-outline-variant/30 shadow-sm"
-              >
-                <div className="p-2.5 bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white rounded-full shadow-[0_4px_12px_rgba(168,85,247,0.3)] group-hover:scale-110 transition-transform">
-                  <Camera size={18} strokeWidth={2} />
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface/80">Video</span>
-              </button>
-
-              <button 
-                type="button"
-                onClick={() => { setSendingSnap(true); galleryInputRef.current?.click(); setShowCameraMenu(false); }}
-                className="flex flex-col items-center justify-center gap-2 p-3 w-20 bg-surface-container hover:bg-surface-container-high rounded-2xl transition-all cursor-pointer active:scale-95 group border border-outline-variant/30 shadow-sm"
-              >
-                <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] group-hover:scale-110 transition-transform">
-                  <ImageIcon size={18} strokeWidth={2} />
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface/80">Gallery</span>
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
       <div className="flex w-full items-end justify-center gap-1.5 md:gap-3 max-w-[900px] z-20">
         {isRecording ? (
           /* Premium Voice Recording UI */
@@ -381,7 +337,6 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
                   onClick={() => {
                     setShowEmojiMenu(!showEmojiMenu);
                     setShowAttachMenu(false);
-                    setShowCameraMenu(false);
                   }}
                   className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 ${showEmojiMenu ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`}
                   title="Emoji"
@@ -393,7 +348,6 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
                   onClick={() => {
                     setShowAttachMenu(!showAttachMenu);
                     setShowEmojiMenu(false);
-                    setShowCameraMenu(false);
                   }}
                   className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 ${showAttachMenu ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`}
                   title="Attach"
@@ -430,11 +384,12 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
                 <button
                   type="button"
                   onClick={() => {
-                    setShowCameraMenu(!showCameraMenu);
+                    setSendingSnap(true);
+                    galleryInputRef.current?.click();
                     setShowAttachMenu(false);
                     setShowEmojiMenu(false);
                   }}
-                  className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 ${showCameraMenu ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`}
+                  className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface`}
                   title="Send View Once Snap"
                 >
                   <Camera size={22} strokeWidth={2.2} />
