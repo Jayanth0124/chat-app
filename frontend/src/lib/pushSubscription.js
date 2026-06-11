@@ -72,6 +72,9 @@ export async function subscribeUserToPush() {
 export async function unsubscribeUserFromPush() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
+  const token = localStorage.getItem('token');
+  if (!token) return;
+
   try {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
@@ -83,6 +86,7 @@ export async function unsubscribeUserFromPush() {
       await subscription.unsubscribe();
     }
   } catch (error) {
+    if (error.response?.status === 401) return;
     console.error('[PUSH] Failed to unsubscribe:', error);
   }
 }

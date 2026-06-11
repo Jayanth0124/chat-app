@@ -11,11 +11,19 @@ export const useAuthStore = create((set) => ({
   isUpdatingProfile: false,
 
   checkAuth: async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      set({ user: null, isAuthenticated: false, isCheckingAuth: false });
+      return;
+    }
+
     try {
       const res = await axiosInstance.get('/auth/me');
       set({ user: res.data, isAuthenticated: true });
     } catch (error) {
-      console.log('Error in checkAuth:', error);
+      if (error.response?.status !== 401) {
+        console.log('Error in checkAuth:', error);
+      }
       localStorage.removeItem('token');
       set({ user: null, isAuthenticated: false });
     } finally {

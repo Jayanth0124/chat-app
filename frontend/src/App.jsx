@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Loader2, ShieldAlert } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ToastProvider from './components/ui/ToastProvider';
@@ -41,6 +41,7 @@ import { subscribeUserToPush, unsubscribeUserFromPush } from './lib/pushSubscrip
 export default function App() {
   const { isAuthenticated, user, checkAuth, isCheckingAuth } = useAuthStore();
   const { connectSocket, disconnectSocket } = useChatStore();
+  const location = useLocation();
 
   const [showSplash, setShowSplash] = useState(true);
 
@@ -315,7 +316,7 @@ export default function App() {
       <Routes>
         {/* Welcome Page or Main Workspace */}
         <Route path="/" element={
-          !isAuthenticated ? <Welcome /> :
+          !isAuthenticated ? (location.pathname === '/' ? <Welcome /> : <Navigate to="/" replace />) :
             userRole === 'admin' ? <Navigate to="/admin" replace /> :
               <UserLayout />
         }>
