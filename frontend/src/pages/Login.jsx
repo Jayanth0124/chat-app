@@ -186,33 +186,48 @@ export default function Login({ initialMode = 'login' }) {
   };
 
   return (
-    <div className="bg-background text-on-surface h-screen flex w-full overflow-hidden">
-      {/* Left Side: Premium Flagship Layout (Hidden on mobile) */}
-      <div className="hidden md:flex w-1/2 bg-[#090b14] relative overflow-hidden shrink-0 flex-col items-center justify-center">
+    <div className="bg-[#090b14] h-[100svh] w-full overflow-hidden relative text-white">
+      
+      {/* Left Side / Background: Premium Flagship Layout */}
+      <div className="absolute inset-0 z-0 flex flex-col items-center md:items-start justify-center overflow-hidden">
         
         {/* Deep Dark Gradient & Lighting */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-[#090b14] to-[#05060a] pointer-events-none"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900/10 via-[#090b14] to-[#05060a] pointer-events-none"></div>
 
-        {/* Top: Pure Orbit Branding */}
-        <div className="absolute top-12 left-12 z-20 flex items-center gap-4">
-          <img src="/logo.png" className="w-12 h-12 rounded-xl object-cover shadow-lg" alt="Orbit Logo" />
-          <span className="text-3xl font-spacetron tracking-[0.2em] text-white uppercase mt-1 drop-shadow-md">Orbit</span>
+        {/* Top: Pure Orbit Branding (Desktop) */}
+        <div className="hidden md:flex absolute top-8 left-6 md:top-12 md:left-12 z-20 items-center gap-3 md:gap-4">
+          <img src="/logo.png" className="w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover shadow-lg" alt="Orbit Logo" />
+          <span className="text-2xl md:text-3xl font-spacetron tracking-[0.2em] text-white uppercase mt-1 drop-shadow-md">Orbit</span>
         </div>
         
-        {/* Center: Premium Hero Illustration */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible">
+        {/* Mobile-Only Hero Content (Top 40%) */}
+        <div className="md:hidden absolute top-0 left-0 right-0 h-[40svh] flex flex-col items-center justify-center px-6 text-center z-20 pt-4">
+          <div className="flex items-center gap-3 mb-6">
+            <img src="/logo.png" className="w-12 h-12 rounded-xl object-cover shadow-lg" alt="Orbit Logo" />
+            <span className="text-3xl font-spacetron tracking-[0.2em] text-white uppercase mt-1 drop-shadow-md">Orbit</span>
+          </div>
+          <h1 className="text-2xl font-extrabold text-white mb-3 tracking-tight leading-[1.1] drop-shadow-lg">
+            Connect with absolute clarity.
+          </h1>
+          <p className="text-sm text-white/70 font-medium leading-relaxed max-w-[280px]">
+            Experience premium messaging designed for focused conversations.
+          </p>
+        </div>
+
+        {/* Center: Premium Hero Illustration (Desktop Only) */}
+        <div className="hidden md:flex absolute inset-0 items-start pt-[10svh] md:pt-0 md:items-center justify-center md:justify-start overflow-visible pointer-events-none">
           <img 
             src={loginImage} 
             alt="Orbit Flagship Illustration" 
-            className="w-[135%] min-w-[800px] h-auto object-contain relative z-10 drop-shadow-[0_20px_40px_rgba(0,0,0,0.4)] -ml-8"
+            className="w-[160%] max-w-[800px] md:w-[120%] lg:w-[100%] md:min-w-[800px] h-auto object-contain relative z-10 drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)] md:-ml-12 lg:ml-0"
           />
         </div>
         
-        {/* Bottom Overlay Gradient for Text Readability */}
-        <div className="absolute bottom-0 left-0 right-0 h-72 bg-gradient-to-t from-[#090b14] to-transparent pointer-events-none z-10"></div>
+        {/* Bottom Overlay Gradient for Text Readability (Desktop Only) */}
+        <div className="hidden md:block absolute bottom-0 left-0 right-0 h-96 bg-gradient-to-t from-[#090b14] via-[#090b14]/80 to-transparent pointer-events-none z-10"></div>
 
-        {/* Bottom: Typography */}
-        <div className="absolute bottom-12 left-12 right-12 z-20">
+        {/* Typography (Desktop) */}
+        <div className="hidden md:block absolute bottom-12 left-12 z-20 w-[50%] lg:w-[55%]">
           <h1 className="text-4xl lg:text-5xl font-extrabold text-white mb-6 tracking-tight leading-[1.1] drop-shadow-lg max-w-lg">
             Connect with absolute clarity.
           </h1>
@@ -228,24 +243,24 @@ export default function Login({ initialMode = 'login' }) {
         </div>
       </div>
 
-      {/* Right Side: Authentication Panel */}
-      <div className="w-full md:w-1/2 flex flex-col p-6 sm:p-12 bg-surface-container-lowest overflow-y-auto relative">
-        <div className="w-full max-w-[420px] mx-auto flex flex-col my-auto relative">
-          
-          {/* Mobile Header */}
-          <div className="md:hidden flex items-center justify-center gap-3 mb-10">
-            <img src="/logo.png" className="w-10 h-10 rounded-xl object-cover shadow-sm" alt="Orbit Logo" />
-            <span className="text-2xl font-spacetron tracking-[0.15em] text-primary uppercase mt-1">Orbit</span>
-          </div>
+      {/* Right Side: Authentication Panel (Floating Curved Sheet) */}
+      <div className="absolute bottom-0 left-0 right-0 h-[60svh] md:top-0 md:bottom-0 md:h-full md:right-0 md:left-auto w-full md:w-[50%] lg:w-[45%] z-20 bg-[#0A0C14]/60 backdrop-blur-3xl border-t md:border-t-0 md:border-l border-white/10 rounded-t-[40px] md:rounded-tr-none md:rounded-l-[80px] shadow-[0_-20px_60px_rgba(0,0,0,0.6)] md:shadow-[-20px_0_60px_rgba(0,0,0,0.5)] flex flex-col shrink-0">
+        
+        {/* Scrollable Container */}
+        <div className="flex-1 overflow-y-auto px-6 py-8 md:p-12 w-full custom-scrollbar flex flex-col items-center justify-center">
+          <div className="w-full sm:w-[85%] md:w-[85%] lg:w-[80%] max-w-[420px] mx-auto flex flex-col my-auto relative">
+            
+            {/* Mobile Drag Indicator */}
+            <div className="md:hidden w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6 absolute -top-2 left-1/2 -translate-x-1/2"></div>
 
-          {/* Global Validation Error */}
+
           <AnimatePresence>
             {validationError && (
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="absolute -top-16 left-0 w-full p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-start gap-3 z-50"
+                className="mb-6 w-full p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-start gap-3 z-50"
               >
                 <ShieldCheck className="text-rose-500 shrink-0 mt-0.5" size={18} />
                 <p className="text-xs font-semibold text-rose-500 leading-snug">{validationError}</p>
@@ -264,21 +279,21 @@ export default function Login({ initialMode = 'login' }) {
                 className="w-full flex flex-col"
               >
                 <div className="w-full text-center md:text-left mb-8">
-                  <h2 className="text-3xl font-extrabold text-on-surface tracking-tight mb-2">Welcome back</h2>
-                  <p className="text-sm font-medium text-on-surface-variant">Sign in to your account to continue.</p>
+                  <h2 className="text-3xl font-extrabold text-white tracking-tight mb-2">Welcome back</h2>
+                  <p className="text-sm font-medium text-white/60">Sign in to your account to continue.</p>
                 </div>
                 
                 <form className="w-full space-y-5" onSubmit={handleLoginSubmit} noValidate>
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider" htmlFor="login-identifier">
+                    <label className="block text-xs font-bold text-white/50 uppercase tracking-wider" htmlFor="login-identifier">
                       Email or Username
                     </label>
                     <div className="relative group">
-                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/50 group-focus-within:text-primary transition-colors">
+                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-400 transition-colors">
                         <Mail size={18} />
                       </div>
                       <input 
-                        className="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant/40 rounded-xl text-sm font-medium text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40 hover:border-outline-variant/80" 
+                        className="w-full pl-11 pr-4 py-3 bg-black/20 border border-white/10 rounded-xl text-sm font-medium text-white focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all placeholder:text-white/30 hover:border-white/20 shadow-inner" 
                         id="login-identifier" 
                         type="text"
                         required
@@ -295,23 +310,23 @@ export default function Login({ initialMode = 'login' }) {
 
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center">
-                      <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider" htmlFor="login-password">
+                      <label className="block text-xs font-bold text-white/50 uppercase tracking-wider" htmlFor="login-password">
                         Password
                       </label>
                       <button 
                         type="button" 
                         onClick={() => handleModeSwitch('forgot_password')} 
-                        className="text-xs font-bold text-primary hover:text-primary/80 transition-colors focus:outline-none"
+                        className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors focus:outline-none"
                       >
                         Forgot Password?
                       </button>
                     </div>
                     <div className="relative group">
-                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/50 group-focus-within:text-primary transition-colors">
+                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-400 transition-colors">
                         <Lock size={18} />
                       </div>
                       <input 
-                        className="w-full pl-11 pr-12 py-3 bg-surface border border-outline-variant/40 rounded-xl text-sm font-medium text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40 hover:border-outline-variant/80" 
+                        className="w-full pl-11 pr-12 py-3 bg-black/20 border border-white/10 rounded-xl text-sm font-medium text-white focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all placeholder:text-white/30 hover:border-white/20 shadow-inner" 
                         id="login-password" 
                         type={showPassword ? "text" : "password"}
                         required
@@ -326,7 +341,7 @@ export default function Login({ initialMode = 'login' }) {
                       <button 
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-on-surface transition-colors focus:outline-none"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-white transition-colors focus:outline-none"
                         aria-label={showPassword ? "Hide password" : "Show password"}
                       >
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -335,10 +350,10 @@ export default function Login({ initialMode = 'login' }) {
                   </div>
 
                   <button 
-                    className={`w-full font-bold py-3.5 rounded-xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center gap-2 mt-4 ${
+                    className={`w-full font-bold py-3.5 rounded-xl transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 mt-4 ${
                       lockoutTimer > 0 
-                        ? 'bg-surface-variant text-on-surface-variant shadow-none cursor-not-allowed opacity-70 active:scale-100' 
-                        : 'bg-primary text-white hover:bg-primary/90 shadow-primary/20'
+                        ? 'bg-white/5 text-white/40 border border-white/10 shadow-none cursor-not-allowed opacity-70 active:scale-100' 
+                        : 'bg-blue-600 text-white hover:bg-blue-500 shadow-[0_0_30px_rgba(37,99,235,0.2)]'
                     }`} 
                     type="submit"
                     disabled={isLoggingIn || lockoutTimer > 0}
@@ -353,8 +368,8 @@ export default function Login({ initialMode = 'login' }) {
                   </button>
                 </form>
 
-                <div className="mt-8 text-center text-sm font-medium text-on-surface-variant">
-                  Don't have an account? <button onClick={() => handleModeSwitch('signup')} className="text-primary font-bold hover:underline transition-colors focus:outline-none">Create one now</button>
+                <div className="mt-8 text-center text-sm font-medium text-white/60">
+                  Don't have an account? <button onClick={() => handleModeSwitch('signup')} className="text-blue-400 font-bold hover:underline transition-colors focus:outline-none">Create one now</button>
                 </div>
               </motion.div>
             )}
@@ -369,21 +384,21 @@ export default function Login({ initialMode = 'login' }) {
                 className="w-full flex flex-col"
               >
                 <div className="w-full text-center md:text-left mb-8">
-                  <h2 className="text-3xl font-extrabold text-on-surface tracking-tight mb-2">Create an account</h2>
-                  <p className="text-sm font-medium text-on-surface-variant">Join Orbit for premium messaging.</p>
+                  <h2 className="text-3xl font-extrabold text-white tracking-tight mb-2">Create an account</h2>
+                  <p className="text-sm font-medium text-white/60">Join Orbit for premium messaging.</p>
                 </div>
                 
                 <form className="w-full space-y-4" onSubmit={handleSignupSubmit} noValidate>
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider" htmlFor="signup-display">
+                    <label className="block text-xs font-bold text-white/50 uppercase tracking-wider" htmlFor="signup-display">
                       Full Name
                     </label>
                     <div className="relative group">
-                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/50 group-focus-within:text-primary transition-colors">
+                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-400 transition-colors">
                         <UserIcon size={18} />
                       </div>
                       <input 
-                        className="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant/40 rounded-xl text-sm font-medium text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40 hover:border-outline-variant/80" 
+                        className="w-full pl-11 pr-4 py-3 bg-black/20 border border-white/10 rounded-xl text-sm font-medium text-white focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all placeholder:text-white/30 hover:border-white/20 shadow-inner" 
                         id="signup-display" 
                         type="text"
                         required
@@ -399,17 +414,17 @@ export default function Login({ initialMode = 'login' }) {
 
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center">
-                      <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider" htmlFor="signup-username">
+                      <label className="block text-xs font-bold text-white/50 uppercase tracking-wider" htmlFor="signup-username">
                         Username
                       </label>
                       {renderUsernameFeedback()}
                     </div>
                     <div className="relative group">
-                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/50 group-focus-within:text-primary transition-colors font-bold">
+                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-400 transition-colors font-bold">
                         @
                       </div>
                       <input 
-                        className={`w-full pl-11 pr-4 py-3 bg-surface border rounded-xl text-sm font-medium focus:ring-1 outline-none transition-all placeholder:text-on-surface-variant/40 hover:border-outline-variant/80 ${isUsernameAvailable === false ? 'border-rose-500 text-rose-500 focus:border-rose-500 focus:ring-rose-500' : 'border-outline-variant/40 text-on-surface focus:border-primary focus:ring-primary'}`}
+                        className={`w-full pl-11 pr-4 py-3 bg-black/20 border rounded-xl text-sm font-medium focus:ring-1 outline-none transition-all placeholder:text-white/30 hover:border-white/20 shadow-inner ${isUsernameAvailable === false ? 'border-rose-500 text-rose-500 focus:border-rose-500/50 focus:ring-rose-500/50' : 'border-white/10 text-white focus:border-blue-500/50 focus:ring-blue-500/50'}`}
                         id="signup-username" 
                         type="text"
                         required
@@ -421,21 +436,21 @@ export default function Login({ initialMode = 'login' }) {
                         placeholder="johndoe"
                       />
                     </div>
-                    <p className="text-[10px] font-medium text-on-surface-variant/60 ml-1">
+                    <p className="text-[10px] font-medium text-white/40 ml-1">
                       Only letters, numbers, underscores (8-24 chars).
                     </p>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider" htmlFor="signup-email">
+                    <label className="block text-xs font-bold text-white/50 uppercase tracking-wider" htmlFor="signup-email">
                       Email Address
                     </label>
                     <div className="relative group">
-                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/50 group-focus-within:text-primary transition-colors">
+                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-400 transition-colors">
                         <Mail size={18} />
                       </div>
                       <input 
-                        className="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant/40 rounded-xl text-sm font-medium text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40 hover:border-outline-variant/80" 
+                        className="w-full pl-11 pr-4 py-3 bg-black/20 border border-white/10 rounded-xl text-sm font-medium text-white focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all placeholder:text-white/30 hover:border-white/20 shadow-inner" 
                         id="signup-email" 
                         type="email"
                         required
@@ -451,15 +466,15 @@ export default function Login({ initialMode = 'login' }) {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider" htmlFor="signup-password">
+                      <label className="block text-xs font-bold text-white/50 uppercase tracking-wider" htmlFor="signup-password">
                         Password
                       </label>
                       <div className="relative group">
-                        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/50 group-focus-within:text-primary transition-colors">
+                        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-400 transition-colors">
                           <Lock size={18} />
                         </div>
                         <input 
-                          className="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant/40 rounded-xl text-sm font-medium text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40 hover:border-outline-variant/80" 
+                          className="w-full pl-11 pr-4 py-3 bg-black/20 border border-white/10 rounded-xl text-sm font-medium text-white focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all placeholder:text-white/30 hover:border-white/20 shadow-inner" 
                           id="signup-password" 
                           type="password"
                           required
@@ -474,15 +489,15 @@ export default function Login({ initialMode = 'login' }) {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider" htmlFor="signup-confirm">
+                      <label className="block text-xs font-bold text-white/50 uppercase tracking-wider" htmlFor="signup-confirm">
                         Confirm
                       </label>
                       <div className="relative group">
-                        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/50 group-focus-within:text-primary transition-colors">
+                        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-400 transition-colors">
                           <ShieldCheck size={18} />
                         </div>
                         <input 
-                          className="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant/40 rounded-xl text-sm font-medium text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40 hover:border-outline-variant/80" 
+                          className="w-full pl-11 pr-4 py-3 bg-black/20 border border-white/10 rounded-xl text-sm font-medium text-white focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all placeholder:text-white/30 hover:border-white/20 shadow-inner" 
                           id="signup-confirm" 
                           type="password"
                           required
@@ -498,7 +513,7 @@ export default function Login({ initialMode = 'login' }) {
                   </div>
 
                   <button 
-                    className="w-full bg-primary text-white font-bold py-3.5 rounded-xl hover:bg-primary/90 transition-all shadow-md shadow-primary/20 active:scale-[0.98] flex items-center justify-center gap-2 mt-4" 
+                    className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-500 transition-all shadow-[0_0_30px_rgba(37,99,235,0.2)] active:scale-[0.98] flex items-center justify-center gap-2 mt-4" 
                     type="submit"
                     disabled={isSigningUp || isCheckingUsername || isUsernameAvailable === false}
                   >
@@ -506,8 +521,8 @@ export default function Login({ initialMode = 'login' }) {
                   </button>
                 </form>
 
-                <div className="mt-8 text-center text-sm font-medium text-on-surface-variant">
-                  Already have an account? <button onClick={() => handleModeSwitch('login')} className="text-primary font-bold hover:underline transition-colors focus:outline-none">Sign in</button>
+                <div className="mt-8 text-center text-sm font-medium text-white/60">
+                  Already have an account? <button onClick={() => handleModeSwitch('login')} className="text-blue-400 font-bold hover:underline transition-colors focus:outline-none">Sign in</button>
                 </div>
               </motion.div>
             )}
@@ -524,29 +539,29 @@ export default function Login({ initialMode = 'login' }) {
                 <div className="mb-6">
                   <button 
                     onClick={() => handleModeSwitch('login')}
-                    className="w-10 h-10 flex items-center justify-center rounded-full bg-surface border border-outline-variant hover:bg-surface-container transition-colors focus:outline-none"
+                    className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors focus:outline-none"
                     aria-label="Back to login"
                   >
-                    <ArrowLeft size={18} className="text-on-surface" />
+                    <ArrowLeft size={18} className="text-white/80" />
                   </button>
                 </div>
                 
                 <div className="w-full text-left mb-8">
-                  <h2 className="text-3xl font-extrabold text-on-surface tracking-tight mb-2">Reset password</h2>
-                  <p className="text-sm font-medium text-on-surface-variant">Enter your email and we'll send you a recovery link.</p>
+                  <h2 className="text-3xl font-extrabold text-white tracking-tight mb-2">Reset password</h2>
+                  <p className="text-sm font-medium text-white/60">Enter your email and we'll send you a recovery link.</p>
                 </div>
                 
                 <form className="w-full space-y-5" onSubmit={handleForgotPasswordSubmit} noValidate>
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider" htmlFor="forgot-email">
+                    <label className="block text-xs font-bold text-white/50 uppercase tracking-wider" htmlFor="forgot-email">
                       Email Address
                     </label>
                     <div className="relative group">
-                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/50 group-focus-within:text-primary transition-colors">
+                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-400 transition-colors">
                         <Mail size={18} />
                       </div>
                       <input 
-                        className="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant/40 rounded-xl text-sm font-medium text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40 hover:border-outline-variant/80" 
+                        className="w-full pl-11 pr-4 py-3 bg-black/20 border border-white/10 rounded-xl text-sm font-medium text-white focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all placeholder:text-white/30 hover:border-white/20 shadow-inner" 
                         id="forgot-email" 
                         type="email"
                         required
@@ -561,7 +576,7 @@ export default function Login({ initialMode = 'login' }) {
                   </div>
 
                   <button 
-                    className="w-full bg-primary text-white font-bold py-3.5 rounded-xl hover:bg-primary/90 transition-all shadow-md shadow-primary/20 active:scale-[0.98] flex items-center justify-center gap-2 mt-4" 
+                    className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-500 transition-all shadow-[0_0_30px_rgba(37,99,235,0.2)] active:scale-[0.98] flex items-center justify-center gap-2 mt-4" 
                     type="submit"
                     disabled={isSendingReset}
                   >
@@ -580,18 +595,18 @@ export default function Login({ initialMode = 'login' }) {
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
                 className="w-full flex flex-col items-center text-center py-10"
               >
-                <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-6">
                   <CheckCircle size={32} className="text-emerald-500" />
                 </div>
                 
-                <h2 className="text-2xl font-extrabold text-on-surface tracking-tight mb-3">Check your inbox</h2>
-                <p className="text-sm font-medium text-on-surface-variant mb-8 px-4">
-                  We've sent a password recovery link to <span className="font-bold text-on-surface">{forgotPasswordEmail}</span>. Please check your spam folder if you don't see it.
+                <h2 className="text-2xl font-extrabold text-white tracking-tight mb-3">Check your inbox</h2>
+                <p className="text-sm font-medium text-white/60 mb-8 px-4">
+                  We've sent a password recovery link to <span className="font-bold text-white">{forgotPasswordEmail}</span>. Please check your spam folder if you don't see it.
                 </p>
 
                 <button 
                   onClick={() => handleModeSwitch('login')}
-                  className="w-full bg-surface text-on-surface border border-outline-variant font-bold py-3.5 rounded-xl hover:bg-surface-container transition-all active:scale-[0.98] focus:outline-none" 
+                  className="w-full bg-white/5 text-white border border-white/10 font-bold py-3.5 rounded-xl hover:bg-white/10 transition-all active:scale-[0.98] focus:outline-none" 
                 >
                   Return to Login
                 </button>
@@ -601,21 +616,22 @@ export default function Login({ initialMode = 'login' }) {
           </AnimatePresence>
 
           {/* Trust Signals */}
-          <div className="w-full mt-10 pt-8 border-t border-outline-variant/30 grid grid-cols-3 gap-2">
+          <div className="w-full mt-10 pt-8 border-t border-white/10 grid grid-cols-3 gap-2 pb-6 md:pb-0">
             <div className="flex flex-col items-center justify-center text-center gap-1.5 group">
-              <ShieldCheck size={16} className="text-on-surface-variant/50 group-hover:text-emerald-500 transition-colors" />
-              <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Secure</span>
+              <ShieldCheck size={16} className="text-white/30 group-hover:text-emerald-500 transition-colors" />
+              <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Secure</span>
             </div>
             <div className="flex flex-col items-center justify-center text-center gap-1.5 group">
-              <Lock size={16} className="text-on-surface-variant/50 group-hover:text-primary transition-colors" />
-              <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Encrypted</span>
+              <Lock size={16} className="text-white/30 group-hover:text-blue-400 transition-colors" />
+              <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Encrypted</span>
             </div>
             <div className="flex flex-col items-center justify-center text-center gap-1.5 group">
-              <Zap size={16} className="text-on-surface-variant/50 group-hover:text-amber-500 transition-colors" />
-              <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Real-Time</span>
+              <Zap size={16} className="text-white/30 group-hover:text-amber-500 transition-colors" />
+              <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Real-Time</span>
             </div>
           </div>
 
+        </div>
         </div>
       </div>
     </div>
