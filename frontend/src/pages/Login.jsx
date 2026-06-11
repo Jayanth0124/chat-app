@@ -244,11 +244,11 @@ export default function Login({ initialMode = 'login' }) {
       </div>
 
       {/* Right Side: Authentication Panel (Floating Curved Sheet) */}
-      <div className="absolute bottom-0 left-0 right-0 h-[60svh] md:top-0 md:bottom-0 md:h-full md:right-0 md:left-auto w-full md:w-[50%] lg:w-[45%] z-20 bg-[#0A0C14]/60 backdrop-blur-3xl border-t md:border-t-0 md:border-l border-white/10 rounded-t-[40px] md:rounded-tr-none md:rounded-l-[80px] shadow-[0_-20px_60px_rgba(0,0,0,0.6)] md:shadow-[-20px_0_60px_rgba(0,0,0,0.5)] flex flex-col shrink-0">
+      <div className="absolute bottom-0 left-0 right-0 h-[65svh] md:top-0 md:bottom-0 md:h-full md:right-0 md:left-auto w-full md:w-[50%] lg:w-[45%] z-20 bg-[#0A0C14]/60 backdrop-blur-3xl border-t md:border-t-0 md:border-l border-white/10 rounded-t-[40px] md:rounded-tr-none md:rounded-l-[80px] shadow-[0_-20px_60px_rgba(0,0,0,0.6)] md:shadow-[-20px_0_60px_rgba(0,0,0,0.5)] flex flex-col shrink-0">
         
         {/* Scrollable Container */}
-        <div className="flex-1 overflow-y-auto px-6 py-8 md:p-12 w-full custom-scrollbar flex flex-col items-center justify-center">
-          <div className="w-full sm:w-[85%] md:w-[85%] lg:w-[80%] max-w-[420px] mx-auto flex flex-col my-auto relative">
+        <div className="flex-1 overflow-y-auto px-6 py-6 md:p-12 w-full custom-scrollbar flex flex-col">
+          <div className="w-full sm:w-[85%] md:w-[85%] lg:w-[80%] max-w-[420px] mx-auto flex flex-col relative py-2 mt-4 mb-8 md:my-auto">
             
             {/* Mobile Drag Indicator */}
             <div className="md:hidden w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6 absolute -top-2 left-1/2 -translate-x-1/2"></div>
