@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import chatlistBg from '../assets/images/chatlist.jpg';
-import { Search, Loader2, MessageSquarePlus, MoreHorizontal, Users, Trash2, Clock, Inbox, Bell, Pin, BellOff, Ban, ChevronDown, CheckCircle2, X, Mic } from 'lucide-react';
+import { Search, Loader2, MessageSquarePlus, MoreHorizontal, Users, Trash2, Clock, Inbox, Bell, Pin, BellOff, Ban, ChevronDown, CheckCircle2, X, Mic, Image as ImageIcon, Video, FileText, PhoneMissed, Phone, Zap, Check, CheckCheck, Camera } from 'lucide-react';
 import { useChatStore } from '../store/useChatStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useFriendStore } from '../store/useFriendStore';
@@ -10,39 +10,6 @@ import { useNavigate } from 'react-router-dom';
 import { useLongPress } from '../hooks/useLongPress';
 import { useConfirmStore } from '../store/useConfirmStore';
 import Avatar from './ui/Avatar';
-
-const formatDuration = (seconds) => {
-  if (!seconds) return '0:00';
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-};
-
-const AudioPreview = ({ message }) => {
-  const [duration, setDuration] = useState(null);
-  
-  useEffect(() => {
-    if (message.content) {
-      const match = message.content.match(/\((.*?)\)/);
-      if (match && match[1] && match[1] !== '0:00') {
-        setDuration(match[1]);
-      }
-    }
-  }, [message.content]);
-
-  return (
-    <span className="flex items-center gap-1.5 text-[#0A84FF] font-medium">
-      <Mic size={14} className="text-[#0A84FF]" /> Voice Note · {duration || '0:00'}
-      {(!duration || duration === '0:00') && message.mediaUrl && (
-        <audio 
-          src={message.mediaUrl} 
-          onLoadedMetadata={(e) => setDuration(formatDuration(e.target.duration))} 
-          className="hidden" 
-        />
-      )}
-    </span>
-  );
-};
 
 function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContextMenu, setActiveContextMenu, getSender, getSenderPic, unreadCounts }) {
   const navigate = useNavigate();
@@ -154,36 +121,80 @@ function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContext
           </div>
           
           <div className="flex justify-between items-center">
-            <p className={`text-[13px] truncate pr-2 transition-colors flex items-center gap-1.5 ${
+            <div className={`text-[13px] truncate pr-2 transition-colors flex items-center gap-1.5 flex-1 min-w-0 ${
               hasUnread 
                 ? 'text-[#EBEBF5] font-medium' 
                 : isSelected ? 'text-white/60' : 'text-[#EBEBF5]/50'
             }`}>
-              {chat.vanishMode && chat.vanishMode !== 'OFF' ? (
-                <>
-                  <Clock size={12} className="text-[#0A84FF]" />
-                  <span className="italic text-[#0A84FF]">Vanish Mode</span>
-                </>
-              ) : chat.latestMessage ? (
-                chat.latestMessage.isUnsent ? (
-                  <span className="italic text-[#EBEBF5]/40 flex items-center gap-1.5">
-                    {chat.latestMessage.messageType === 'image' ? '📷 Photo unsent' :
-                     chat.latestMessage.messageType === 'snap' ? '📸 Snap unsent' :
-                     chat.latestMessage.messageType === 'audio' ? '🎤 Voice message unsent' :
-                     chat.latestMessage.messageType === 'video' ? '🎥 Video unsent' :
-                     chat.latestMessage.messageType === 'document' ? '📄 Document unsent' :
-                     '↩ Message unsent'}
+              {(() => {
+                if (chat.vanishMode && chat.vanishMode !== 'OFF') {
+                  return (
+                    <>
+                      <Clock size={12} className="text-[#0A84FF]" />
+                      <span className="italic text-[#0A84FF]">Vanish Mode</span>
+                    </>
+                  );
+                }
+                
+                if (!chat.latestMessage) {
+                  return 'No messages yet...';
+                }
+
+                const msg = chat.latestMessage;
+                const isSender = typeof msg.sender === 'object' ? msg.sender._id === user._id : msg.sender === user._id;
+
+                const renderTicks = () => {
+                  if (!isSender) return null;
+                  const isRead = msg.readBy && msg.readBy.some(r => {
+                     const readerId = typeof r.user === 'object' ? r.user._id : r.user;
+                     return readerId !== user._id;
+                  });
+                  if (isRead) {
+                    return <CheckCheck size={14} className="text-[#0A84FF] shrink-0" />;
+                  }
+                  return <Check size={14} className="text-white/40 shrink-0" />;
+                };
+
+                if (msg.isUnsent) {
+                  const senderName = isSender ? "You" : (typeof msg.sender === 'object' ? msg.sender.displayName : getSender(user, chat.participants));
+                  return (
+                    <span className="italic text-[#EBEBF5]/40 flex items-center gap-1.5 w-full truncate">
+                      {senderName} unsent a message
+                    </span>
+                  );
+                }
+
+                const previewContent = () => {
+                  switch(msg.messageType) {
+                    case 'snap':
+                      return <><Zap size={13} className="shrink-0" /> <span className="truncate">Snap</span></>;
+                    case 'image':
+                      return <><ImageIcon size={13} className="shrink-0" /> <span className="truncate">Photo</span></>;
+                    case 'video':
+                      return <><Video size={13} className="shrink-0" /> <span className="truncate">Video</span></>;
+                    case 'audio':
+                      return <><Mic size={13} className="shrink-0" /> <span className="truncate">Voice Message</span></>;
+                    case 'document':
+                      return <><FileText size={13} className="shrink-0" /> <span className="truncate">File</span></>;
+                    case 'call':
+                      const isMissed = msg.callData?.status === 'missed';
+                      const isVideoCall = msg.callData?.type === 'video';
+                      if (isMissed) return <><PhoneMissed size={13} className="shrink-0 text-red-500" /> <span className="truncate">Missed Call</span></>;
+                      if (isVideoCall) return <><Video size={13} className="shrink-0" /> <span className="truncate">Video Call</span></>;
+                      return <><Phone size={13} className="shrink-0" /> <span className="truncate">Voice Call</span></>;
+                    default:
+                      return <span className="truncate">{msg.content}</span>;
+                  }
+                };
+
+                return (
+                  <span className="flex items-center gap-1.5 w-full truncate">
+                    {renderTicks()}
+                    <span className="flex items-center gap-1.5 truncate">{previewContent()}</span>
                   </span>
-                ) : chat.latestMessage.messageType === 'image' ? '📷 Image' : 
-                chat.latestMessage.messageType === 'audio' ? <AudioPreview message={chat.latestMessage} /> :
-                chat.latestMessage.messageType === 'video' ? '🎥 Video' :
-                chat.latestMessage.messageType === 'document' ? '📄 Document' :
-                chat.latestMessage.messageType === 'snap' ? '📸 Snap' :
-                chat.latestMessage.content
-              ) : (
-                'No messages yet...'
-              )}
-            </p>
+                );
+              })()}
+            </div>
             
             <div className="flex items-center gap-1.5 shrink-0">
               {isPinned && <Pin size={12} className="text-[#EBEBF5]/40 rotate-45" />}
@@ -414,7 +425,10 @@ export default function ChatList({ activeChat, setActiveChat }) {
     const isBPinned = user?.pinnedChats?.includes(b._id);
     if (isAPinned && !isBPinned) return -1;
     if (!isAPinned && isBPinned) return 1;
-    return 0;
+    
+    const timeA = a.latestMessage ? new Date(a.latestMessage.createdAt).getTime() : new Date(a.updatedAt).getTime();
+    const timeB = b.latestMessage ? new Date(b.latestMessage.createdAt).getTime() : new Date(b.updatedAt).getTime();
+    return timeB - timeA;
   });
 
   return (
