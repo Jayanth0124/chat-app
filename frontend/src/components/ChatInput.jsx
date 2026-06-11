@@ -9,6 +9,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
   const [isTyping, setIsTyping] = useState(false);
   const [showEmojiMenu, setShowEmojiMenu] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showCameraMenu, setShowCameraMenu] = useState(false);
   const [sendingSnap, setSendingSnap] = useState(false);
   
   // Voice Recording State
@@ -199,7 +200,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
   };
 
   return (
-    <div className="relative w-full px-4 md:px-6 pb-4 md:pb-8 pt-2 bg-transparent flex flex-col items-center justify-center gap-2 z-20 shrink-0 pb-safe">
+    <div className="relative w-full px-1.5 md:px-6 pb-2 md:pb-8 pt-1 md:pt-2 bg-transparent flex flex-col items-center justify-center gap-2 z-20 shrink-0 pb-safe">
       
       {/* Ambient background glow behind composer */}
       <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none -z-10" />
@@ -280,7 +281,39 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
         </>
       )}
 
-      <div className="flex w-full items-end justify-center gap-2 md:gap-3 max-w-[900px] z-20">
+      {/* Camera Menu Popup */}
+      {showCameraMenu && (
+        <>
+          <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowCameraMenu(false)} />
+          <div className="absolute bottom-full mb-4 right-16 md:right-24 z-50 bg-surface/90 backdrop-blur-2xl border border-outline-variant/50 p-3 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex flex-col gap-2 w-max animate-in zoom-in-95 slide-in-from-bottom-4 duration-200">
+            <div className="grid grid-cols-2 gap-2">
+              <button 
+                type="button"
+                onClick={() => { setSendingSnap(true); cameraInputRef.current?.click(); setShowCameraMenu(false); }}
+                className="flex flex-col items-center justify-center gap-2 p-3 w-20 bg-surface-container hover:bg-surface-container-high rounded-2xl transition-all cursor-pointer active:scale-95 group border border-outline-variant/30 shadow-sm"
+              >
+                <div className="p-2.5 bg-gradient-to-br from-pink-500 to-rose-600 text-white rounded-full shadow-[0_4px_12px_rgba(244,63,94,0.3)] group-hover:scale-110 transition-transform">
+                  <Camera size={18} strokeWidth={2} />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface/80">Camera</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => { setSendingSnap(true); galleryInputRef.current?.click(); setShowCameraMenu(false); }}
+                className="flex flex-col items-center justify-center gap-2 p-3 w-20 bg-surface-container hover:bg-surface-container-high rounded-2xl transition-all cursor-pointer active:scale-95 group border border-outline-variant/30 shadow-sm"
+              >
+                <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] group-hover:scale-110 transition-transform">
+                  <ImageIcon size={18} strokeWidth={2} />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface/80">Gallery</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="flex w-full items-end justify-center gap-1.5 md:gap-3 max-w-[900px] z-20">
         {isRecording ? (
           /* Premium Voice Recording UI */
           <div className="flex-1 bg-surface/90 backdrop-blur-xl rounded-[28px] border border-red-500/30 shadow-[0_8px_30px_rgba(239,68,68,0.15)] flex items-center h-[56px] px-2 transition-all">
@@ -336,8 +369,9 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
                   onClick={() => {
                     setShowEmojiMenu(!showEmojiMenu);
                     setShowAttachMenu(false);
+                    setShowCameraMenu(false);
                   }}
-                  className={`w-10 h-10 flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 ${showEmojiMenu ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`}
+                  className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 ${showEmojiMenu ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`}
                   title="Emoji"
                 >
                   <Smile size={22} strokeWidth={2.2} />
@@ -347,8 +381,9 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
                   onClick={() => {
                     setShowAttachMenu(!showAttachMenu);
                     setShowEmojiMenu(false);
+                    setShowCameraMenu(false);
                   }}
-                  className={`w-10 h-10 flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 ${showAttachMenu ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`}
+                  className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 ${showAttachMenu ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`}
                   title="Attach"
                 >
                   <Paperclip size={20} strokeWidth={2.2} />
@@ -383,11 +418,11 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
                 <button
                   type="button"
                   onClick={() => {
-                    setSendingSnap(true);
-                    // Single file input for snap (Gallery/Camera chooser)
-                    galleryInputRef.current?.click();
+                    setShowCameraMenu(!showCameraMenu);
+                    setShowAttachMenu(false);
+                    setShowEmojiMenu(false);
                   }}
-                  className="w-10 h-10 flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                  className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 ${showCameraMenu ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`}
                   title="Send View Once Snap"
                 >
                   <Camera size={22} strokeWidth={2.2} />
@@ -426,7 +461,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
             {message.trim() ? (
               <button 
                 onClick={handleSubmit}
-                className="w-[52px] h-[52px] rounded-full bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shadow-[0_8px_20px_rgba(var(--color-primary),0.3)] transition-all active:scale-95 hover:scale-105 cursor-pointer relative group overflow-hidden"
+                className="w-[46px] h-[46px] md:w-[52px] md:h-[52px] rounded-full bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shadow-[0_8px_20px_rgba(var(--color-primary),0.3)] transition-all active:scale-95 hover:scale-105 cursor-pointer relative group overflow-hidden"
               >
                 <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <Send size={22} strokeWidth={2.5} className="relative z-10 pl-0.5" />
@@ -435,7 +470,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
               <button 
                 type="button" 
                 onClick={startRecording}
-                className="w-[52px] h-[52px] rounded-full bg-surface/80 backdrop-blur-xl border border-outline-variant/60 flex items-center justify-center text-on-surface hover:bg-surface hover:text-primary transition-all shadow-sm active:scale-95 cursor-pointer group"
+                className="w-[46px] h-[46px] md:w-[52px] md:h-[52px] rounded-full bg-surface/80 backdrop-blur-xl border border-outline-variant/60 flex items-center justify-center text-on-surface hover:bg-surface hover:text-primary transition-all shadow-sm active:scale-95 cursor-pointer group"
                 title="Voice Note"
               >
                 <Mic size={22} strokeWidth={2.2} className="group-hover:scale-110 transition-transform" />
