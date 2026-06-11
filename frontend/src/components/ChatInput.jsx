@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Paperclip, Send, Smile, Mic, Camera, X, Check, FileText, MapPin, Image as ImageIcon, Trash2 } from 'lucide-react';
-import ImageAdjustModal from './modals/ImageAdjustModal';
-import SnapPreviewModal from './modals/SnapPreviewModal';
+import MediaCropModal from './modals/MediaCropModal';
 import EmojiPicker from 'emoji-picker-react';
 
 export default function ChatInput({ onSendMessage, socket, selectedChat, replyToMessage, setReplyToMessage }) {
@@ -9,6 +8,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
   const [isTyping, setIsTyping] = useState(false);
   const [showEmojiMenu, setShowEmojiMenu] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showCameraMenu, setShowCameraMenu] = useState(false);
   const [sendingSnap, setSendingSnap] = useState(false);
   
   // Voice Recording State
@@ -24,10 +24,8 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
   const cameraInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const galleryInputRef = useRef(null);
-  const [adjustingImage, setAdjustingImage] = useState(null);
-  const [isAdjustOpen, setIsAdjustOpen] = useState(false);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [snapSource, setSnapSource] = useState(null);
+  const [cropImage, setCropImage] = useState(null);
+  const [isCropOpen, setIsCropOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
@@ -172,19 +170,9 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
       
       const reader = new FileReader();
       reader.onloadend = () => {
-        if (sendingSnap) {
-          // Heuristic to guess if taken by camera or gallery since we use a single input
-          let source = 'gallery';
-          const isRecent = (Date.now() - file.lastModified) < 60000; // Less than 1 min old
-          if (file.name === 'image.jpg' || file.name.startsWith('IMG_') || file.name.startsWith('VID_') || isRecent) {
-            source = 'camera';
-          }
-          setSnapSource(source);
-          setAdjustingImage(reader.result);
-          setIsPreviewOpen(true);
-        } else if (file.type.startsWith('image/')) {
-          setAdjustingImage(reader.result);
-          setIsAdjustOpen(true);
+        if (file.type.startsWith('image/')) {
+          setCropImage(reader.result);
+          setIsCropOpen(true);
         } else if (file.type.startsWith('video/')) {
           onSendMessage(file.name, reader.result, 'video', replyToMessage?._id);
           setReplyToMessage?.(null);
@@ -197,10 +185,11 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
     }
     e.target.value = null;
     setShowAttachMenu(false);
+    setShowCameraMenu(false);
   };
 
   return (
-    <div className="relative w-full px-4 md:px-6 pb-4 md:pb-8 pt-2 bg-transparent flex flex-col items-center justify-center gap-2 z-20 shrink-0 pb-safe">
+    <div className="relative w-full max-w-[100vw] px-4 md:px-6 pb-4 md:pb-8 pt-2 bg-transparent flex flex-col items-center justify-center gap-2 z-20 shrink-0 pb-safe">
       
       {/* Ambient background glow behind composer */}
       <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none -z-10" />
@@ -275,6 +264,49 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
                   <FileText size={20} strokeWidth={2} />
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface/80">File</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Camera Menu Popup */}
+      {showCameraMenu && (
+        <>
+          <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowCameraMenu(false)} />
+          <div className="absolute bottom-full mb-4 right-16 md:right-24 z-50 bg-surface/90 backdrop-blur-2xl border border-outline-variant/50 p-4 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex flex-col gap-3 w-max animate-in zoom-in-95 slide-in-from-bottom-4 duration-200">
+            <div className="grid grid-cols-3 gap-3">
+              <button 
+                type="button"
+                onClick={() => { setSendingSnap(true); cameraInputRef.current?.click(); setShowCameraMenu(false); }}
+                className="flex flex-col items-center justify-center gap-2 p-3 bg-surface-container hover:bg-surface-container-high rounded-2xl transition-all cursor-pointer active:scale-95 group border border-outline-variant/30 shadow-sm"
+              >
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] group-hover:scale-110 transition-transform">
+                  <Camera size={20} strokeWidth={2} />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface/80">Snap</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => { setSendingSnap(true); videoInputRef.current?.click(); setShowCameraMenu(false); }}
+                className="flex flex-col items-center justify-center gap-2 p-3 bg-surface-container hover:bg-surface-container-high rounded-2xl transition-all cursor-pointer active:scale-95 group border border-outline-variant/30 shadow-sm"
+              >
+                <div className="p-3 bg-gradient-to-br from-red-500 to-orange-500 text-white rounded-full shadow-[0_4px_12px_rgba(239,68,68,0.3)] group-hover:scale-110 transition-transform">
+                  <Camera size={20} strokeWidth={2} />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface/80">Video</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => { setSendingSnap(true); galleryInputRef.current?.click(); setShowCameraMenu(false); }}
+                className="flex flex-col items-center justify-center gap-2 p-3 bg-surface-container hover:bg-surface-container-high rounded-2xl transition-all cursor-pointer active:scale-95 group border border-outline-variant/30 shadow-sm"
+              >
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-full shadow-[0_4px_12px_rgba(168,85,247,0.3)] group-hover:scale-110 transition-transform">
+                  <ImageIcon size={20} strokeWidth={2} />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface/80">Gallery</span>
               </button>
             </div>
           </div>
@@ -384,13 +416,12 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
                 <button
                   type="button"
                   onClick={() => {
-                    setSendingSnap(true);
-                    galleryInputRef.current?.click();
+                    setShowCameraMenu(!showCameraMenu);
                     setShowAttachMenu(false);
                     setShowEmojiMenu(false);
                   }}
-                  className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface`}
-                  title="Send View Once Snap"
+                  className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 ${showCameraMenu ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`}
+                  title="Camera Options"
                 >
                   <Camera size={22} strokeWidth={2.2} />
                 </button>
@@ -455,33 +486,32 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
         )}
       </div>
       
-      <ImageAdjustModal
-        isOpen={isAdjustOpen}
-        imageSrc={adjustingImage}
-        onClose={() => setIsAdjustOpen(false)}
-        onConfirm={(adjustedDataUrl) => {
-          onSendMessage('', adjustedDataUrl, 'image', replyToMessage?._id);
-          setReplyToMessage?.(null);
-          setIsAdjustOpen(false);
-        }}
-        aspectMode="original"
-      />
 
-      <SnapPreviewModal
-        isOpen={isPreviewOpen}
-        imageSrc={adjustingImage}
-        mediaSource={snapSource}
-        onClose={() => {
-          setIsPreviewOpen(false);
-          setSendingSnap(false);
-        }}
-        onConfirm={(captionText, mediaDataUrl, source) => {
-          onSendMessage(captionText || 'Snap', mediaDataUrl, 'snap', replyToMessage?._id, source);
-          setReplyToMessage?.(null);
-          setIsPreviewOpen(false);
-          setSendingSnap(false);
-        }}
-      />
+      {isCropOpen && cropImage && (
+        <MediaCropModal
+          imageSrc={cropImage}
+          isSnap={sendingSnap}
+          onClose={() => {
+            setIsCropOpen(false);
+            setCropImage(null);
+            setSendingSnap(false);
+            if (fileInputRef.current) fileInputRef.current.value = null;
+            if (cameraInputRef.current) cameraInputRef.current.value = null;
+            if (galleryInputRef.current) galleryInputRef.current.value = null;
+          }}
+          onSend={async (croppedDataUrl, caption) => {
+            if (sendingSnap) {
+              await onSendMessage(caption || 'Snap', croppedDataUrl, 'snap', replyToMessage?._id);
+            } else {
+              await onSendMessage(caption || 'Photo', croppedDataUrl, 'image', replyToMessage?._id);
+            }
+            setIsCropOpen(false);
+            setCropImage(null);
+            setSendingSnap(false);
+            setReplyToMessage?.(null);
+          }}
+        />
+      )}
     </div>
   );
 }

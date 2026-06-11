@@ -27,14 +27,14 @@ export const accessChat = async (req, res) => {
       return res.status(403).json({ message: "Cannot message banned users." });
     }
 
-    const isBlocked = loggedInUser.blockedUsers.map(id => id.toString()).includes(userId.toString()) || 
-                      recipient.blockedUsers.map(id => id.toString()).includes(loggedInUserId.toString());
+    const isBlocked = loggedInUser.blockedUsers.map(id => id.toString()).includes(userId.toString()) ||
+      recipient.blockedUsers.map(id => id.toString()).includes(loggedInUserId.toString());
     if (isBlocked) {
       return res.status(403).json({ message: "Cannot message blocked users." });
     }
 
-    const areFriends = loggedInUser.friends.map(id => id.toString()).includes(userId.toString()) && 
-                       recipient.friends.map(id => id.toString()).includes(loggedInUserId.toString());
+    const areFriends = loggedInUser.friends.map(id => id.toString()).includes(userId.toString()) &&
+      recipient.friends.map(id => id.toString()).includes(loggedInUserId.toString());
     if (!areFriends) {
       return res.status(403).json({ message: "You can only message accepted friends." });
     }
@@ -108,7 +108,7 @@ export const fetchChats = async (req, res) => {
           sender: { $ne: loggedInUserId },
           status: { $ne: 'seen' }
         });
-        
+
         const chatObj = chat.toObject();
         chatObj.participants = chatObj.participants.map(p => {
           if (p.privacySettings?.onlineStatus === false) {
@@ -147,16 +147,16 @@ export const sendMessage = async (req, res) => {
     if (otherUser && !chat.isGroupChat) {
       const senderUser = await User.findById(loggedInUserId);
       const recipientUser = await User.findById(otherUser._id);
-      
+
       if (recipientUser.status === 'banned') {
         return res.status(403).json({ message: "Cannot message banned users." });
       }
-      if (senderUser.blockedUsers.map(id => id.toString()).includes(otherUser._id.toString()) || 
-          recipientUser.blockedUsers.map(id => id.toString()).includes(loggedInUserId.toString())) {
+      if (senderUser.blockedUsers.map(id => id.toString()).includes(otherUser._id.toString()) ||
+        recipientUser.blockedUsers.map(id => id.toString()).includes(loggedInUserId.toString())) {
         return res.status(403).json({ message: "Cannot message blocked users." });
       }
-      const areFriends = senderUser.friends.map(id => id.toString()).includes(otherUser._id.toString()) && 
-                         recipientUser.friends.map(id => id.toString()).includes(loggedInUserId.toString());
+      const areFriends = senderUser.friends.map(id => id.toString()).includes(otherUser._id.toString()) &&
+        recipientUser.friends.map(id => id.toString()).includes(loggedInUserId.toString());
       if (!areFriends) {
         return res.status(403).json({ message: "You can only message accepted friends." });
       }
@@ -223,10 +223,10 @@ export const sendMessage = async (req, res) => {
         const participantId = participant._id.toString();
         if (participantId !== loggedInUserId.toString()) {
           const isVanishMode = message.isViewOnce || (message.chat && message.chat.vanishMode && message.chat.vanishMode !== 'OFF');
-          const pushBody = isVanishMode 
-            ? 'New Vanish Mode Message' 
-            : message.messageType === 'image' 
-              ? '📷 Photo' 
+          const pushBody = isVanishMode
+            ? 'New Vanish Mode Message'
+            : message.messageType === 'image'
+              ? '📷 Photo'
               : message.content;
 
           await sendPushNotification(participantId, {
@@ -253,7 +253,7 @@ export const sendMessage = async (req, res) => {
 
         await Connection.findOneAndUpdate(
           { users: sortedUsers },
-          { 
+          {
             $inc: { totalScore: scoreIncrement, chatCount: 1 }
           },
           { upsert: true, new: true }
@@ -299,7 +299,7 @@ export const fetchMessages = async (req, res) => {
       await Message.deleteMany({ _id: { $in: vanishedMsgs.map(m => m._id) } });
     }
 
-    let messages = await Message.find({ 
+    let messages = await Message.find({
       chat: chatId,
       deletedFor: { $ne: req.user._id }
     })
@@ -345,10 +345,10 @@ export const viewOnceMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
     const loggedInUserId = req.user._id;
-    
+
     // Find message and ensure it is view-once
     const message = await Message.findById(messageId);
-    
+
     if (!message) {
       return res.status(404).json({ message: "Message not found" });
     }
@@ -449,7 +449,7 @@ export const markChatAsSeen = async (req, res) => {
 
     const loggedInUser = await User.findById(loggedInUserId);
     const myReadReceipts = loggedInUser?.privacySettings?.readReceipts !== false;
-    
+
     let otherReadReceipts = true;
     if (!chat.isGroupChat) {
       const otherUser = await User.findById(chat.participants.find(p => p.toString() !== loggedInUserId.toString()));
@@ -700,7 +700,7 @@ export const markChatAsUnread = async (req, res) => {
     if (latestMsgFromOther) {
       latestMsgFromOther.status = 'delivered'; // mark as not seen
       await latestMsgFromOther.save();
-      
+
       // Notify the client to show as unread
       if (req.io) {
         req.io.to(loggedInUserId.toString()).emit('chatMarkedUnread', { chatId });

@@ -312,7 +312,7 @@ export default function ChatWindow({ onBack }) {
         >
           <button 
             onClick={(e) => { e.stopPropagation(); onBack(); }}
-            className="md:hidden p-1.5 -ml-1 text-white/50 hover:text-white hover:bg-white/5 rounded-md transition-colors"
+            className="md:hidden p-1.5 ml-0 text-white/50 hover:text-white hover:bg-white/5 rounded-md transition-colors"
           >
             <ArrowLeft size={22} />
           </button>
@@ -530,7 +530,7 @@ export default function ChatWindow({ onBack }) {
 
       {/* Main Communications Display */}
       {/* Optimized padding and width utilization */}
-      <div className={`flex-1 overflow-y-auto px-6 sm:px-8 md:px-10 lg:px-12 py-6 flex flex-col gap-[3px] transition-colors relative z-10 custom-scrollbar ${activeVanishMode ? 'text-white/90' : ''}`}>
+      <div className={`flex-1 overflow-y-auto px-0 py-6 flex flex-col gap-[3px] transition-colors relative z-10 custom-scrollbar ${activeVanishMode ? 'text-white/90' : ''}`}>
         
         {activeVanishMode && (
           <div className="flex justify-center mb-6">
@@ -862,7 +862,7 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
   return (
     <div id={`msg-${message._id}`} className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} w-full ${isFirstInGroup ? 'mt-3 sm:mt-4' : 'mt-0.5'}`}>
       {/* Optimized message width utilization */}
-      <div className={`relative w-fit max-w-[95%] sm:max-w-[90%] md:max-w-[80%] lg:max-w-[75%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+      <div className={`relative w-fit max-w-[75%] flex flex-col ${isOwn ? 'items-end mr-4' : 'items-start ml-4'}`}>
         
         {/* Spatial System Menu */}
         {showMenu && (
