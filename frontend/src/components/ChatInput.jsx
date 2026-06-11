@@ -23,6 +23,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
   const secondsIntervalRef = useRef(null);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
+  const videoInputRef = useRef(null);
   const galleryInputRef = useRef(null);
   const [adjustingImage, setAdjustingImage] = useState(null);
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
@@ -200,7 +201,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
   };
 
   return (
-    <div className="relative w-full px-1.5 md:px-6 pb-2 md:pb-8 pt-1 md:pt-2 bg-transparent flex flex-col items-center justify-center gap-2 z-20 shrink-0 pb-safe">
+    <div className="relative w-full px-4 md:px-6 pb-4 md:pb-8 pt-2 bg-transparent flex flex-col items-center justify-center gap-2 z-20 shrink-0 pb-safe">
       
       {/* Ambient background glow behind composer */}
       <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none -z-10" />
@@ -286,7 +287,7 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
         <>
           <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowCameraMenu(false)} />
           <div className="absolute bottom-full mb-4 right-16 md:right-24 z-50 bg-surface/90 backdrop-blur-2xl border border-outline-variant/50 p-3 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex flex-col gap-2 w-max animate-in zoom-in-95 slide-in-from-bottom-4 duration-200">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button 
                 type="button"
                 onClick={() => { setSendingSnap(true); cameraInputRef.current?.click(); setShowCameraMenu(false); }}
@@ -295,7 +296,18 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
                 <div className="p-2.5 bg-gradient-to-br from-pink-500 to-rose-600 text-white rounded-full shadow-[0_4px_12px_rgba(244,63,94,0.3)] group-hover:scale-110 transition-transform">
                   <Camera size={18} strokeWidth={2} />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface/80">Camera</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface/80">Photo</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => { setSendingSnap(true); videoInputRef.current?.click(); setShowCameraMenu(false); }}
+                className="flex flex-col items-center justify-center gap-2 p-3 w-20 bg-surface-container hover:bg-surface-container-high rounded-2xl transition-all cursor-pointer active:scale-95 group border border-outline-variant/30 shadow-sm"
+              >
+                <div className="p-2.5 bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white rounded-full shadow-[0_4px_12px_rgba(168,85,247,0.3)] group-hover:scale-110 transition-transform">
+                  <Camera size={18} strokeWidth={2} />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface/80">Video</span>
               </button>
 
               <button 
@@ -440,7 +452,15 @@ export default function ChatInput({ onSendMessage, socket, selectedChat, replyTo
                 type="file" 
                 ref={cameraInputRef} 
                 className="hidden" 
-                accept="image/*,video/*"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileChange} 
+              />
+              <input 
+                type="file" 
+                ref={videoInputRef} 
+                className="hidden" 
+                accept="video/*"
                 capture="environment"
                 onChange={handleFileChange} 
               />

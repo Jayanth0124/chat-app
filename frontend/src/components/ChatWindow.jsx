@@ -528,7 +528,7 @@ export default function ChatWindow({ onBack }) {
 
       {/* Main Communications Display */}
       {/* Optimized padding and width utilization */}
-      <div className={`flex-1 overflow-y-auto px-2 sm:px-4 md:px-8 lg:px-12 py-6 flex flex-col gap-[3px] transition-colors relative z-10 custom-scrollbar ${activeVanishMode ? 'text-white/90' : ''}`}>
+      <div className={`flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 lg:px-12 py-6 flex flex-col gap-[3px] transition-colors relative z-10 custom-scrollbar ${activeVanishMode ? 'text-white/90' : ''}`}>
         
         {activeVanishMode && (
           <div className="flex justify-center mb-6">

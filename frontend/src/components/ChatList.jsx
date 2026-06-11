@@ -165,10 +165,20 @@ function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContext
                   <span className="italic text-[#0A84FF]">Vanish Mode</span>
                 </>
               ) : chat.latestMessage ? (
-                chat.latestMessage.messageType === 'image' ? '📷 Image' : 
+                chat.latestMessage.isUnsent ? (
+                  <span className="italic text-[#EBEBF5]/40 flex items-center gap-1.5">
+                    {chat.latestMessage.messageType === 'image' ? '📷 Photo unsent' :
+                     chat.latestMessage.messageType === 'snap' ? '📸 Snap unsent' :
+                     chat.latestMessage.messageType === 'audio' ? '🎤 Voice message unsent' :
+                     chat.latestMessage.messageType === 'video' ? '🎥 Video unsent' :
+                     chat.latestMessage.messageType === 'document' ? '📄 Document unsent' :
+                     '↩ Message unsent'}
+                  </span>
+                ) : chat.latestMessage.messageType === 'image' ? '📷 Image' : 
                 chat.latestMessage.messageType === 'audio' ? <AudioPreview message={chat.latestMessage} /> :
                 chat.latestMessage.messageType === 'video' ? '🎥 Video' :
                 chat.latestMessage.messageType === 'document' ? '📄 Document' :
+                chat.latestMessage.messageType === 'snap' ? '📸 Snap' :
                 chat.latestMessage.content
               ) : (
                 'No messages yet...'
