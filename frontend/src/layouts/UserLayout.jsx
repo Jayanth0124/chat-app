@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import UserSidebar from '../components/UserSidebar';
-import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Volume2, VolumeX, PhoneOff, PhoneIncoming, Check, Loader2, Bell, Trash2, ShieldAlert, UserPlus, UserCheck, Bug, HelpCircle, Inbox, CheckCircle2, Video, VideoOff, SwitchCamera, Bluetooth, Maximize, ChevronUp, Smartphone } from 'lucide-react';
+import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Volume2, VolumeX, PhoneOff, PhoneIncoming, Check, Loader2, Bell, Trash2, ShieldAlert, ShieldCheck, UserPlus, UserCheck, Bug, HelpCircle, Inbox, CheckCircle2, Video, VideoOff, SwitchCamera, Bluetooth, Maximize, ChevronUp, Smartphone } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 import { useChatStore } from '../store/useChatStore';
@@ -17,7 +17,7 @@ export default function UserLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const { 
+  const {
     isLogoutOpen, setLogoutOpen,
     activeCall, setActiveCall,
     incomingCall, setIncomingCall,
@@ -34,7 +34,7 @@ export default function UserLayout() {
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
   const [showControls, setShowControls] = useState(true);
-  
+
   // Audio Routing State
   const [audioDevices, setAudioDevices] = useState([]);
   const [hasBluetooth, setHasBluetooth] = useState(false);
@@ -52,7 +52,7 @@ export default function UserLayout() {
   const pcRef = useRef(null);
   const localStreamRef = useRef(null);
   const remoteAudioRef = useRef(null);
-  
+
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
 
@@ -100,13 +100,13 @@ export default function UserLayout() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const outputs = devices.filter(d => d.kind === 'audiooutput');
         setAudioDevices(outputs);
-        
+
         // Strict Bluetooth keyword filtering
         const btKeywords = ['bluetooth', 'airpods', 'buds', 'bose', 'sony', 'jabra', 'galaxy'];
-        const foundBt = outputs.some(d => 
+        const foundBt = outputs.some(d =>
           btKeywords.some(keyword => d.label.toLowerCase().includes(keyword))
         );
-        
+
         setHasBluetooth(foundBt);
       } catch (err) {
         console.error("Error accessing media devices for routing:", err);
@@ -115,7 +115,7 @@ export default function UserLayout() {
 
     checkDevices();
     navigator.mediaDevices.addEventListener('devicechange', checkDevices);
-    
+
     return () => {
       navigator.mediaDevices.removeEventListener('devicechange', checkDevices);
     };
@@ -124,7 +124,7 @@ export default function UserLayout() {
   const handleAudioRouteChange = async (deviceId) => {
     setCurrentOutputId(deviceId);
     setShowRoutingMenu(false);
-    
+
     // Attempt to route audio if supported
     if (remoteAudioRef.current && typeof remoteAudioRef.current.setSinkId === 'function') {
       try {
@@ -133,7 +133,7 @@ export default function UserLayout() {
         console.error("Audio routing failed", err);
       }
     }
-    
+
     // Set speaker mode based on selection
     if (deviceId === 'speaker') {
       setIsSpeakerOn(true);
@@ -177,7 +177,7 @@ export default function UserLayout() {
 
   const cleanupWebRTC = () => {
     let tracksStopped = 0;
-    
+
     // 1. Stop all local microphone/camera tracks from the primary stream reference
     if (localStreamRef.current) {
       try {
@@ -201,7 +201,7 @@ export default function UserLayout() {
             tracksStopped++;
           }
         });
-        pcRef.current.close(); 
+        pcRef.current.close();
       } catch (e) {
         console.error('[WebRTC] Error closing RTCPeerConnection:', e);
       }
@@ -283,20 +283,20 @@ export default function UserLayout() {
   const toggleCamera = async () => {
     const newMode = !isFrontCamera;
     setIsFrontCamera(newMode);
-    
+
     if (localStreamRef.current && isVideoEnabled) {
       try {
-        const newStream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: newMode ? 'user' : 'environment' } 
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: newMode ? 'user' : 'environment' }
         });
         const newVideoTrack = newStream.getVideoTracks()[0];
-        
+
         const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
         if (oldVideoTrack) {
           localStreamRef.current.removeTrack(oldVideoTrack);
           oldVideoTrack.stop();
         }
-        
+
         localStreamRef.current.addTrack(newVideoTrack);
         setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
 
@@ -325,7 +325,7 @@ export default function UserLayout() {
       const startWebRTC = async () => {
         try {
           cleanupWebRTC();
-          
+
           const stream = await getMediaStream(activeCall.type);
           localStreamRef.current = stream;
           setLocalStream(stream);
@@ -506,7 +506,7 @@ export default function UserLayout() {
     if (incomingCall.callId) {
       try {
         axiosInstance.patch(`/calls/${incomingCall.callId}`, { status: 'rejected', duration: 0 });
-      } catch (e) {}
+      } catch (e) { }
     }
     setIncomingCall(null);
   };
@@ -515,7 +515,7 @@ export default function UserLayout() {
     if (!activeCall) return;
     const otherId = activeCall.receiverId;
     const isDialing = activeCall.status === 'dialing';
-    
+
     if (socket && otherId) {
       if (isDialing) {
         socket.emit('call:cancel', { to: otherId, callId: activeCall.callId });
@@ -527,7 +527,7 @@ export default function UserLayout() {
         });
       }
     }
-    
+
     if (activeCall.callId) {
       try {
         const finalStatus = isDialing ? 'cancelled' : (activeCall.status === 'connected' ? 'completed' : 'missed');
@@ -535,7 +535,7 @@ export default function UserLayout() {
           status: finalStatus,
           duration: callDuration
         });
-      } catch (e) {}
+      } catch (e) { }
     }
     setActiveCall(null);
   };
@@ -550,9 +550,8 @@ export default function UserLayout() {
         <Outlet />
       </main>
 
-      <div className={`md:hidden flex justify-around items-center bg-surface border-t border-outline-variant/60 px-2 py-1 shrink-0 pb-safe ${
-        location.pathname === '/' && selectedChat ? 'hidden' : 'flex'
-      }`}>
+      <div className={`md:hidden flex justify-around items-center bg-surface border-t border-outline-variant/60 px-2 py-1 shrink-0 pb-safe ${location.pathname === '/' && selectedChat ? 'hidden' : 'flex'
+        }`}>
         <button onClick={() => navigate('/')} className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
           <MessageSquare size={20} />
           <span className="text-[10px] font-semibold">Chats</span>
@@ -576,26 +575,76 @@ export default function UserLayout() {
         </button>
       </div>
 
-      {isLogoutOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm bg-surface rounded-2xl border border-outline-variant/60 shadow-2xl overflow-hidden p-6 text-center animate-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-600 flex items-center justify-center mx-auto mb-4">
-              <LogOut size={24} />
-            </div>
-            <h3 className="text-lg font-bold mb-2">Sign Out</h3>
-            <p className="text-sm text-on-surface-variant mb-6">Are you sure you want to log out of your Orbit session?</p>
-            <div className="flex gap-3">
-              <button onClick={() => setLogoutOpen(false)} className="flex-1 py-2.5 rounded-xl border border-outline-variant hover:bg-surface-container-low transition-colors font-semibold text-sm cursor-pointer">Cancel</button>
-              <button onClick={() => { setLogoutOpen(false); logout(); }} className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition-colors shadow-md shadow-red-500/10 cursor-pointer">Sign Out</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {isLogoutOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="w-full max-w-[460px] bg-[#0A0C14]/80 backdrop-blur-3xl rounded-[32px] border border-blue-500/20 shadow-[0_20px_80px_-20px_rgba(59,130,246,0.15)] p-8 relative overflow-hidden"
+            >
+              {/* Soft inner border/glow */}
+              <div className="absolute inset-0 rounded-[32px] border border-white/5 pointer-events-none"></div>
+
+              {/* Header Icon */}
+              <div className="w-14 h-14 rounded-full bg-black/40 border border-white/10 flex items-center justify-center mb-6 relative shadow-inner mx-auto">
+                {/* Subtle red accent ring */}
+                <div className="absolute inset-0 rounded-full border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]"></div>
+                <LogOut size={22} className="text-red-400/90 ml-1" />
+              </div>
+
+              {/* Content */}
+              <div className="text-center">
+                <h3 className="text-2xl font-extrabold text-white tracking-tight mb-2">Sign Out</h3>
+                <p className="text-base font-medium text-white/80 mb-2">
+                  You are about to securely sign out from Orbit.
+                </p>
+                <p className="text-sm font-medium text-white/40 mb-8">
+                  All active connections on this device will be terminated.
+                </p>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setLogoutOpen(false)}
+                  className="flex-1 h-[52px] rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 text-white font-semibold text-sm transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-white/20 active:scale-[0.98]"
+                >
+                  Stay Signed In
+                </button>
+                <button
+                  onClick={() => { setLogoutOpen(false); logout(); }}
+                  className="flex-1 h-[52px] rounded-2xl bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 font-semibold text-sm transition-all shadow-[0_0_20px_rgba(239,68,68,0.05)] focus:outline-none focus:ring-2 focus:ring-red-500/30 active:scale-[0.98]"
+                >
+                  Sign Out
+                </button>
+              </div>
+
+              {/* Security Badge */}
+              <div className="mt-6 pt-5 border-t border-white/5 flex flex-col items-center justify-center gap-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-white/50 tracking-wider uppercase">
+                  <ShieldCheck size={14} className="text-blue-400" />
+                  <span>Secure Logout</span>
+                </div>
+                {/* <span className="text-[10px] font-medium text-white/30">Session tokens will be revoked immediately.</span> */}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* GLOBAL OVERLAY 4: CALL OVERLAY (VOICE & VIDEO) */}
       <AnimatePresence>
         {activeCall && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.05 }}
@@ -607,10 +656,10 @@ export default function UserLayout() {
             {/* Deep Space Background / Video Layer */}
             <div className="absolute inset-0 z-0">
               {activeCall.type === 'video' && activeCall.status === 'connected' && remoteStream ? (
-                <video 
-                  autoPlay 
-                  playsInline 
-                  ref={(node) => { if (node) node.srcObject = remoteStream; }} 
+                <video
+                  autoPlay
+                  playsInline
+                  ref={(node) => { if (node) node.srcObject = remoteStream; }}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -622,18 +671,18 @@ export default function UserLayout() {
 
             {/* Draggable Local Video Preview (Picture in Picture) */}
             {activeCall.type === 'video' && activeCall.status === 'connected' && localStream && isVideoEnabled && (
-              <motion.div 
+              <motion.div
                 drag
                 dragConstraints={{ top: 20, left: 20, right: window.innerWidth - 140, bottom: window.innerHeight - 200 }}
                 className="absolute z-40 w-28 h-40 md:w-40 md:h-56 bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/20 cursor-grab active:cursor-grabbing top-safe right-4 mt-4"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <video 
-                  autoPlay 
-                  playsInline 
-                  muted 
-                  ref={(node) => { if (node) node.srcObject = localStream; }} 
+                <video
+                  autoPlay
+                  playsInline
+                  muted
+                  ref={(node) => { if (node) node.srcObject = localStream; }}
                   className="w-full h-full object-cover"
                 />
               </motion.div>
@@ -642,7 +691,7 @@ export default function UserLayout() {
             {/* Call Header / Info Layer */}
             <AnimatePresence>
               {(showControls || activeCall.status !== 'connected') && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
@@ -693,7 +742,7 @@ export default function UserLayout() {
             {/* Bottom Controls */}
             <AnimatePresence>
               {(showControls || activeCall.status !== 'connected') && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 50 }}
@@ -705,29 +754,27 @@ export default function UserLayout() {
                       <div className="flex flex-col items-center gap-2">
                         <button
                           onClick={() => setIsMuted(!isMuted)}
-                          className={`w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-lg ${
-                            isMuted ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'
-                          }`}
+                          className={`w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-lg ${isMuted ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'
+                            }`}
                         >
                           {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
                         </button>
                         <span className="text-[10px] font-bold tracking-wider uppercase text-white/50">{isMuted ? 'Muted' : 'Mic'}</span>
                       </div>
-                      
+
                       {activeCall.type === 'video' ? (
                         <>
                           <div className="flex flex-col items-center gap-2">
                             <button
                               onClick={() => setIsVideoEnabled(!isVideoEnabled)}
-                              className={`w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-lg ${
-                                !isVideoEnabled ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'
-                              }`}
+                              className={`w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-lg ${!isVideoEnabled ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'
+                                }`}
                             >
                               {!isVideoEnabled ? <VideoOff size={24} /> : <Video size={24} />}
                             </button>
                             <span className="text-[10px] font-bold tracking-wider uppercase text-white/50">Camera</span>
                           </div>
-                          
+
                           {isVideoEnabled && (
                             <div className="flex flex-col items-center gap-2 hidden md:flex">
                               <button
@@ -756,9 +803,8 @@ export default function UserLayout() {
                           {!hasBluetooth ? (
                             <button
                               onClick={() => setIsSpeakerOn(!isSpeakerOn)}
-                              className={`w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-lg ${
-                                isSpeakerOn ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'
-                              }`}
+                              className={`w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-lg ${isSpeakerOn ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'
+                                }`}
                             >
                               <Volume2 size={24} className={isSpeakerOn ? 'opacity-100' : 'opacity-60'} />
                             </button>
@@ -767,9 +813,9 @@ export default function UserLayout() {
                               onClick={() => setShowRoutingMenu(true)}
                               className={`relative w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-lg bg-white text-black`}
                             >
-                              {currentOutputId === 'speaker' || currentOutputId === 'default' ? <Volume2 size={24} /> : 
-                               currentOutputId === 'earpiece' ? <Smartphone size={24} /> : 
-                               <Bluetooth size={24} />}
+                              {currentOutputId === 'speaker' || currentOutputId === 'default' ? <Volume2 size={24} /> :
+                                currentOutputId === 'earpiece' ? <Smartphone size={24} /> :
+                                  <Bluetooth size={24} />}
                               <div className="absolute -bottom-1 -right-1 bg-[#111111] rounded-full p-0.5 shadow-md">
                                 <ChevronUp size={12} className="text-white" />
                               </div>
@@ -797,21 +843,21 @@ export default function UserLayout() {
             <AnimatePresence>
               {showRoutingMenu && (
                 <>
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="absolute inset-0 z-40 bg-black/50 backdrop-blur-sm" 
+                    className="absolute inset-0 z-40 bg-black/50 backdrop-blur-sm"
                     onClick={() => setShowRoutingMenu(false)}
                   />
-                  <motion.div 
+                  <motion.div
                     initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
                     transition={{ type: "spring", damping: 25, stiffness: 300 }}
                     className="absolute bottom-0 left-0 right-0 z-50 bg-[#1C1C1E] rounded-t-[2rem] border-t border-white/10 shadow-[0_-20px_40px_rgba(0,0,0,0.5)] p-6 pb-safe"
                   >
                     <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6" />
                     <h3 className="text-[15px] font-bold text-white/90 mb-4 px-2 tracking-wide uppercase">Audio Output</h3>
-                    
+
                     <div className="flex flex-col gap-2">
-                      <button 
+                      <button
                         onClick={() => handleAudioRouteChange('speaker')}
                         className={`flex items-center gap-4 p-4 rounded-2xl transition-colors ${currentOutputId === 'speaker' ? 'bg-[#0A84FF]/10 text-[#0A84FF]' : 'hover:bg-white/5 text-white/90'}`}
                       >
@@ -822,10 +868,10 @@ export default function UserLayout() {
                         {currentOutputId === 'speaker' && <div className="ml-auto w-2 h-2 rounded-full bg-[#0A84FF]" />}
                       </button>
 
-                      {audioDevices.filter(d => 
+                      {audioDevices.filter(d =>
                         ['bluetooth', 'airpods', 'buds', 'bose', 'sony', 'jabra', 'galaxy'].some(keyword => d.label.toLowerCase().includes(keyword))
                       ).map(device => (
-                        <button 
+                        <button
                           key={device.deviceId}
                           onClick={() => handleAudioRouteChange(device.deviceId)}
                           className={`flex items-center gap-4 p-4 rounded-2xl transition-colors ${currentOutputId === device.deviceId ? 'bg-[#0A84FF]/10 text-[#0A84FF]' : 'hover:bg-white/5 text-white/90'}`}
@@ -838,7 +884,7 @@ export default function UserLayout() {
                         </button>
                       ))}
 
-                      <button 
+                      <button
                         onClick={() => handleAudioRouteChange('earpiece')}
                         className={`flex items-center gap-4 p-4 rounded-2xl transition-colors ${currentOutputId === 'earpiece' || currentOutputId === 'default' ? 'bg-[#0A84FF]/10 text-[#0A84FF]' : 'hover:bg-white/5 text-white/90'}`}
                       >
@@ -860,7 +906,7 @@ export default function UserLayout() {
       {/* GLOBAL OVERLAY 7: FULL SCREEN INCOMING CALL */}
       <AnimatePresence>
         {incomingCall && !activeCall && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -887,7 +933,7 @@ export default function UserLayout() {
                     {incomingCall.callerName?.[0]}
                   </div>
                 )}
-                
+
                 {/* Ripple effects */}
                 {incomingCall.type === 'voice' ? (
                   <>
@@ -914,7 +960,7 @@ export default function UserLayout() {
                 </button>
                 <span className="text-[11px] font-black tracking-widest text-white/50 uppercase">Decline</span>
               </div>
-              
+
               <div className="flex flex-col items-center gap-4">
                 <button
                   onClick={handleAcceptCall}
@@ -948,13 +994,13 @@ export default function UserLayout() {
                 </span>
               </div>
             </div>
-            
+
             <div className="text-sm text-on-surface-variant leading-relaxed max-h-[40vh] overflow-y-auto pr-2 mb-6 whitespace-pre-wrap break-words">
               {activeAnnouncement.body}
             </div>
 
             <div className="flex justify-end">
-              <button 
+              <button
                 onClick={() => setActiveAnnouncement(null)}
                 className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-sm transition-colors shadow-md shadow-primary/10 cursor-pointer"
               >
