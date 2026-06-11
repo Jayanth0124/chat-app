@@ -21,40 +21,39 @@ export default function Welcome() {
     <div className="bg-black text-white selection:bg-blue-600/30 selection:text-white min-h-screen w-full font-sans overflow-x-hidden flex flex-col">
 
       {/* SECTION 1 — HERO + LIVE PRODUCT */}
-      <section className="relative w-full flex flex-col lg:flex-row items-center pt-10 sm:pt-16 pb-12 px-6 lg:px-12 gap-12 lg:gap-16 max-w-[1800px] mx-auto lg:min-h-[100svh]">
+      <section className="relative w-full grid grid-cols-1 lg:grid-cols-[minmax(0,45%)_minmax(0,55%)] xl:grid-cols-2 items-center pt-10 sm:pt-16 pb-12 px-[clamp(1.5rem,4vw,3rem)] gap-[clamp(2rem,5vw,4rem)] max-w-[1800px] mx-auto lg:min-h-[100svh]">
 
-        {/* Left: Branding & Copy (50%) */}
-        <div className="w-full lg:w-1/2 flex flex-col justify-center z-20 items-center lg:items-start text-center lg:text-left pt-6 lg:pt-0">
-          <div className="flex items-center justify-center lg:justify-start gap-1 sm:gap-2 mb-8 sm:mb-12 lg:mb-16">
+        {/* Left: Branding & Copy */}
+        <div className="flex flex-col justify-center z-20 items-center lg:items-start text-center lg:text-left pt-6 lg:pt-0 w-full min-w-0">
+          <div className="flex items-center justify-center lg:justify-start gap-[clamp(0.25rem,1vw,0.5rem)] mb-[clamp(2rem,4vw,4rem)]">
             <div className="w-10 h-10 sm:w-14 sm:h-14 shrink-0 relative flex items-center justify-center">
-              <img src="/logo.png" alt="Orbit Logo" className="absolute w-24 h-24 sm:w-32 sm:h-32 object-contain" />
+              <img src="/logo.png" alt="Orbit Logo" className="absolute w-24 h-24 sm:w-32 sm:h-32 object-contain max-w-none" />
             </div>
-            <span className="font-['Spacetron',_sans-serif] text-2xl sm:text-3xl tracking-wider uppercase text-white relative z-10 mt-1">Orbit</span>
+            <span className="font-['Spacetron',_sans-serif] text-[clamp(1.5rem,3vw,2rem)] tracking-wider uppercase text-white relative z-10 mt-1">Orbit</span>
           </div>
 
-          <h1 className="font-['Spectron',_sans-serif] text-4xl sm:text-5xl md:text-6xl lg:text-[5.5rem] leading-[1.1] tracking-tight mb-6 sm:mb-8">
+          <h1 className="font-['Spectron',_sans-serif] text-[clamp(2.5rem,5vw,5.5rem)] leading-[1.05] tracking-tight mb-[clamp(1.5rem,3vw,2rem)] break-words">
             Private conversations.<br />
             <span className="text-white/40">Designed to disappear.</span>
           </h1>
 
-          <p className="text-sm sm:text-base md:text-xl text-white/60 max-w-[480px] leading-relaxed mb-8 lg:mb-12 font-light mx-auto lg:mx-0">
+          <p className="text-[clamp(0.875rem,1.2vw+0.5rem,1.25rem)] text-white/60 max-w-[480px] leading-relaxed mb-[clamp(2rem,4vw,3rem)] font-light mx-auto lg:mx-0">
             An encrypted communication protocol where every message, call, and footprint is systematically erased from existence.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 w-full sm:w-auto">
-            <Link to="/signup" className="w-full sm:w-auto px-8 py-4 bg-white text-black font-semibold rounded-2xl hover:bg-neutral-200 transition-colors text-sm text-center">
+          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 w-full">
+            <Link to="/signup" className="flex-1 sm:flex-none min-w-[140px] px-8 py-4 bg-white text-black font-semibold rounded-2xl hover:bg-neutral-200 transition-colors text-sm text-center">
               Get Started
             </Link>
-            <Link to="/login" className="w-full sm:w-auto px-8 py-4 bg-[#111] border border-white/10 text-white font-medium rounded-2xl hover:bg-[#1a1a1a] transition-colors text-sm text-center">
+            <Link to="/login" className="flex-1 sm:flex-none min-w-[140px] px-8 py-4 bg-[#111] border border-white/10 text-white font-medium rounded-2xl hover:bg-[#1a1a1a] transition-colors text-sm text-center">
               Login
             </Link>
           </div>
         </div>
 
-        {/* Right: Massive Live Product Showcase (50%) */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center mt-4 sm:mt-8 lg:mt-0 relative z-10">
+        {/* Right: Massive Live Product Showcase */}
+        <div className="flex items-center justify-center mt-4 sm:mt-8 lg:mt-0 relative z-10 w-full min-w-0">
           <div className="w-full max-w-[700px] min-h-[460px] sm:min-h-[550px] lg:min-h-[600px] h-auto lg:aspect-[4/3] max-h-[700px] bg-[#0A0A0A] border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] lg:rounded-[3rem] overflow-hidden shadow-2xl relative flex flex-col z-20">
-
             {/* Base layer: Chat UI Header */}
             <div className="h-16 sm:h-20 border-b border-white/10 flex items-center px-4 sm:px-6 lg:px-8 justify-between bg-[#050505] shrink-0 z-10 relative">
               <div className="flex items-center gap-3 sm:gap-4">
@@ -70,7 +69,7 @@ export default function Welcome() {
               </div>
             </div>
 
-            {/* Chat Body & In-Flow Elements for Mobile */}
+            {/* Chat Body & In-Flow Elements for Mobile & Laptop */}
             <div className="flex-1 p-5 sm:p-6 lg:p-8 flex flex-col gap-6 sm:gap-8 lg:gap-0 justify-end relative bg-black/50 overflow-y-auto lg:overflow-hidden lg:pb-40">
               
               {/* Blue Message (In Flow) */}
@@ -84,8 +83,8 @@ export default function Welcome() {
                 </div>
               </div>
 
-              {/* 2. Active Call Card (Static on Mobile, Absolute on Desktop) */}
-              <div className="relative lg:absolute lg:top-28 lg:right-10 bg-[#111]/90 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-[2rem] p-4 sm:p-5 shadow-2xl z-30 max-w-[220px] lg:max-w-none self-end lg:self-auto">
+              {/* 2. Active Call Card */}
+              <div className="relative lg:absolute lg:top-28 lg:right-4 xl:right-10 bg-[#111]/90 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-[2rem] p-4 sm:p-5 shadow-2xl z-30 max-w-[220px] lg:max-w-none self-end lg:self-auto">
                 <div className="flex justify-between items-center mb-4 sm:mb-5 gap-4 sm:gap-8">
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full animate-pulse" />
@@ -99,8 +98,8 @@ export default function Welcome() {
                 </div>
               </div>
 
-              {/* 1. Voice Note Player (Static on Mobile, Absolute on Desktop) */}
-              <div className="relative lg:absolute lg:bottom-10 lg:left-10 bg-[#141414] border border-white/10 p-2 sm:p-3 rounded-2xl sm:rounded-[2rem] shadow-2xl backdrop-blur-xl z-20 flex items-center gap-3 sm:gap-4 w-full lg:w-auto lg:max-w-[340px] mt-2 lg:mt-0 self-start lg:self-auto">
+              {/* 1. Voice Note Player */}
+              <div className="relative lg:absolute lg:bottom-10 lg:left-4 xl:left-10 bg-[#141414] border border-white/10 p-2 sm:p-3 rounded-2xl sm:rounded-[2rem] shadow-2xl backdrop-blur-xl z-20 flex items-center gap-3 sm:gap-4 w-full sm:w-auto lg:w-auto max-w-full lg:max-w-[340px] mt-2 lg:mt-0 self-start lg:self-auto">
                 <button className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0">
                   <Play size={16} className="ml-0.5 sm:ml-1" />
                 </button>
@@ -114,8 +113,8 @@ export default function Welcome() {
 
             </div>
 
-            {/* 3. Orbit Connection Badge (Hidden on Mobile) */}
-            <div className="hidden lg:flex absolute top-64 left-10 bg-[#0A0A0A]/90 backdrop-blur-xl border border-white/10 rounded-[1.5rem] p-4 items-center gap-4 shadow-2xl z-10">
+            {/* 3. Orbit Connection Badge */}
+            <div className="hidden lg:flex absolute top-64 left-4 xl:left-10 bg-[#0A0A0A]/90 backdrop-blur-xl border border-white/10 rounded-[1.5rem] p-4 items-center gap-4 shadow-2xl z-10">
               <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 shrink-0">
                 <Activity size={14} className="w-4 h-4" />
               </div>
@@ -131,10 +130,10 @@ export default function Welcome() {
 
       {/* SECTION 2 — ORBIT ECOSYSTEM */}
       <section className="w-full px-6 lg:px-12 pb-8 max-w-[1800px] mx-auto">
-        <div className="w-full bg-[#0A0A0A] border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] lg:rounded-[3rem] p-6 sm:p-8 lg:p-16 flex flex-col xl:flex-row gap-8 lg:gap-16 items-center">
+        <div className="w-full bg-[#0A0A0A] border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] lg:rounded-[3rem] p-6 sm:p-8 lg:p-16 flex flex-col lg:flex-row gap-8 lg:gap-16 items-center">
 
           {/* Left: Progression Hierarchy */}
-          <div className="w-full xl:w-[25%] flex flex-col gap-3 sm:gap-4 relative">
+          <div className="w-full lg:w-[35%] xl:w-[25%] flex flex-col gap-3 sm:gap-4 relative">
             <div className="absolute left-[23px] sm:left-[27px] lg:left-[35px] top-4 bottom-4 w-px bg-white/10" />
             {connectionStages.map((stage, i) => {
               const Icon = stage.icon;
