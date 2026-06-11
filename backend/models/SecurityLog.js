@@ -22,6 +22,9 @@ const securityLogSchema = new mongoose.Schema({
     type: Number,
     default: 1
   },
+  lockUntil: {
+    type: Date
+  },
   status: {
     type: String,
     enum: ['active', 'blocked'],

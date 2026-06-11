@@ -98,7 +98,7 @@ export const signup = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { identifier, password } = req.body; // identifier can be email or username
+    const { identifier, password } = req.body;
     const ip = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
     const deviceInfo = req.headers['user-agent'] || 'Web Browser';
 
@@ -106,6 +106,25 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
+    // 1. IP-BASED BRUTEFORCE CHECK (Protects Server Limits)
+    let ipLog = await SecurityLog.findOne({ ip, logType: 'failed_login' }).sort({ updatedAt: -1 });
+    
+    if (ipLog && ipLog.lockUntil) {
+      if (ipLog.lockUntil > Date.now()) {
+        const remainingTime = Math.ceil((ipLog.lockUntil - Date.now()) / 1000);
+        return res.status(403).json({ 
+          message: `Too many attempts from your IP. Try again in ${remainingTime}s.`,
+          remainingTime 
+        });
+      } else {
+        // Lock expired
+        ipLog.attempts = 0;
+        ipLog.lockUntil = undefined;
+        await ipLog.save();
+      }
+    }
+
+    // 2. ACCOUNT-BASED BRUTEFORCE CHECK
     const user = await User.findOne({
       $or: [
         { email: identifier.toLowerCase() },
@@ -113,50 +132,68 @@ export const login = async (req, res) => {
       ]
     });
 
-    if (!user) {
-      // Log failed attempt
-      await SecurityLog.create({
-        email: identifier.toLowerCase(),
-        ip,
-        deviceInfo,
-        logType: 'failed_login',
-        attempts: 1
-      });
-      return res.status(400).json({ message: "Invalid credentials" });
+    if (user && user.lockUntil) {
+      if (user.lockUntil > Date.now()) {
+        const remainingTime = Math.ceil((user.lockUntil - Date.now()) / 1000);
+        return res.status(403).json({ 
+          message: `Account locked. Try again in ${remainingTime}s.`,
+          remainingTime 
+        });
+      } else {
+        user.failedLoginAttempts = 0;
+        user.lockUntil = undefined;
+        await user.save();
+      }
     }
 
-    if (user.status === 'banned') {
+    if (user && user.status === 'banned') {
       return res.status(403).json({ message: "Your account has been banned." });
     }
 
-    const isPasswordCorrect = await bcrypt.compare(password, user.password);
-    if (!isPasswordCorrect) {
-      // Log failed attempt for existing user
-      const existingAttempt = await SecurityLog.findOne({
-        email: user.email,
-        ip,
-        logType: 'failed_login',
-        createdAt: { $gte: new Date(Date.now() - 15 * 60 * 1000) } // last 15 mins
-      });
-
-      if (existingAttempt) {
-        existingAttempt.attempts += 1;
-        await existingAttempt.save();
+    // Unified Failure Handler
+    const handleFailure = async () => {
+      // Update IP Log
+      if (!ipLog) {
+        ipLog = new SecurityLog({ email: identifier.toLowerCase(), ip, deviceInfo, logType: 'failed_login', attempts: 1 });
       } else {
-        await SecurityLog.create({
-          email: user.email,
-          ip,
-          deviceInfo,
-          logType: 'failed_login',
-          attempts: 1
+        ipLog.attempts = (ipLog.attempts || 0) + 1;
+        ipLog.email = identifier.toLowerCase();
+      }
+      
+      if (ipLog.attempts >= 5) {
+        ipLog.lockUntil = new Date(Date.now() + 15 * 1000);
+      }
+      await ipLog.save();
+
+      // Update User Log
+      if (user) {
+        user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
+        if (user.failedLoginAttempts >= 5) {
+          user.lockUntil = new Date(Date.now() + 15 * 1000);
+        }
+        await user.save();
+      }
+
+      if (ipLog.attempts >= 5 || (user && user.failedLoginAttempts >= 5)) {
+        return res.status(403).json({ 
+          message: "Too many failed attempts. Please wait.",
+          remainingTime: 15
         });
       }
 
       return res.status(400).json({ message: "Invalid credentials" });
+    };
+
+    if (!user) {
+      return handleFailure();
     }
 
-    // Success: Create suspicious device log under some circumstances (e.g. if requested, or for admin/moderator, or 10% chance)
-    // To make sure it always displays under suspicious device logs, let's create a log if it's an admin or contains 'suspicious' trigger
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) {
+      return handleFailure();
+    }
+
+    // Success: Create suspicious device log under some circumstances
     const rand = Math.random();
     if (user.role === 'admin' || rand > 0.5) {
       await SecurityLog.create({
@@ -169,9 +206,18 @@ export const login = async (req, res) => {
 
     const token = generateToken(user._id, res);
 
-    // Update status to online
+    // Update status and reset login attempts
     user.isOnline = true;
+    user.failedLoginAttempts = 0;
+    user.lockUntil = undefined;
     await user.save();
+    
+    // Reset IP log if exists
+    if (ipLog) {
+      ipLog.attempts = 0;
+      ipLog.lockUntil = undefined;
+      await ipLog.save();
+    }
 
     res.status(200).json({
       _id: user._id,

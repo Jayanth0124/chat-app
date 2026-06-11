@@ -112,6 +112,13 @@ const userSchema = new mongoose.Schema({
     youtube: { type: String, default: "" },
     discord: { type: String, default: "" }
   },
+  failedLoginAttempts: {
+    type: Number,
+    default: 0
+  },
+  lockUntil: {
+    type: Date
+  },
   resetPasswordToken: String,
   resetPasswordExpires: Date
 }, { timestamps: true });

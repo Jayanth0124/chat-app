@@ -33,6 +33,7 @@ export default function Login({ initialMode = 'login' }) {
 
   const [showPassword, setShowPassword] = useState(false);
   const [validationError, setValidationError] = useState('');
+  const [lockoutTimer, setLockoutTimer] = useState(0);
   
   const { login, signup, isLoggingIn, isSigningUp } = useAuthStore();
 
@@ -46,6 +47,17 @@ export default function Login({ initialMode = 'login' }) {
     if (location.pathname === '/signup') setAuthMode('signup');
     else if (location.pathname === '/login') setAuthMode('login');
   }, [location.pathname]);
+
+  // Lockout Timer Countdown
+  useEffect(() => {
+    let timer;
+    if (lockoutTimer > 0) {
+      timer = setInterval(() => {
+        setLockoutTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [lockoutTimer]);
 
   // Check Username Availability
   useEffect(() => {
@@ -79,7 +91,7 @@ export default function Login({ initialMode = 'login' }) {
     }
   };
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setValidationError('');
     
@@ -90,7 +102,13 @@ export default function Login({ initialMode = 'login' }) {
       return setValidationError('Please enter your password.');
     }
     
-    login(loginData);
+    try {
+      await login(loginData);
+    } catch (error) {
+      if (error.response?.data?.remainingTime) {
+        setLockoutTimer(Math.ceil(error.response.data.remainingTime));
+      }
+    }
   };
 
   const handleSignupSubmit = (e) => {
@@ -317,11 +335,21 @@ export default function Login({ initialMode = 'login' }) {
                   </div>
 
                   <button 
-                    className="w-full bg-primary text-white font-bold py-3.5 rounded-xl hover:bg-primary/90 transition-all shadow-md shadow-primary/20 active:scale-[0.98] flex items-center justify-center gap-2 mt-4" 
+                    className={`w-full font-bold py-3.5 rounded-xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center gap-2 mt-4 ${
+                      lockoutTimer > 0 
+                        ? 'bg-surface-variant text-on-surface-variant shadow-none cursor-not-allowed opacity-70 active:scale-100' 
+                        : 'bg-primary text-white hover:bg-primary/90 shadow-primary/20'
+                    }`} 
                     type="submit"
-                    disabled={isLoggingIn}
+                    disabled={isLoggingIn || lockoutTimer > 0}
                   >
-                    {isLoggingIn ? <Loader2 size={18} className="animate-spin" /> : 'Sign In to Orbit'}
+                    {lockoutTimer > 0 ? (
+                      `Try again in ${lockoutTimer}s`
+                    ) : isLoggingIn ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : (
+                      'Sign In to Orbit'
+                    )}
                   </button>
                 </form>
 
