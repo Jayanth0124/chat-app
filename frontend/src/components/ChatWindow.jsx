@@ -258,7 +258,7 @@ export default function ChatWindow({ onBack }) {
       
       {/* Precision Engineered Header - z-30 to stay above everything but modals/dropdowns */}
       {isSelectionMode ? (
-        <div className="h-[64px] bg-[#0A84FF]/10 flex items-center justify-between px-3 md:px-5 shrink-0 z-30 relative border-b border-[#0A84FF]/20 w-full shadow-xl">
+        <div className="h-[64px] bg-[#0A84FF]/10 flex items-center justify-between px-4 sm:px-5 md:px-6 shrink-0 z-30 relative border-b border-[#0A84FF]/20 w-full shadow-xl">
           <div className="flex items-center gap-3 text-[#0A84FF]">
             <button onClick={clearSelection} className="p-2 hover:bg-[#0A84FF]/10 rounded-full transition-colors cursor-pointer">
               <X size={20} />
@@ -303,18 +303,18 @@ export default function ChatWindow({ onBack }) {
           </div>
         </div>
       ) : (
-      <div className="h-[64px] bg-[#111111]/90 flex items-center justify-between px-3 md:px-5 shrink-0 z-30 relative border-b border-white/5 w-full shadow-xl">
+      <div className="h-[64px] bg-[#111111]/90 flex items-center justify-between px-4 sm:px-5 md:px-6 shrink-0 z-30 relative border-b border-white/5 w-full shadow-xl">
         <div 
           onClick={() => !selectedChat.isGroupChat && otherParticipant && navigate(`/user-profile/${otherParticipant._id}`)}
           className="flex items-center gap-3 cursor-pointer flex-1 min-w-0 pr-4"
         >
           <button 
             onClick={(e) => { e.stopPropagation(); onBack(); }}
-            className="md:hidden p-1.5 text-white/50 hover:text-white hover:bg-white/5 rounded-md transition-colors"
+            className="md:hidden p-1.5 -ml-1 text-white/50 hover:text-white hover:bg-white/5 rounded-md transition-colors"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={22} />
           </button>
-          <div className="relative shrink-0">
+          <div className="relative shrink-0 ml-0.5">
             <div className="w-[38px] h-[38px] rounded-full overflow-hidden bg-black/50 border border-white/5 flex shrink-0">
               <Avatar 
                 src={!selectedChat.isGroupChat ? getSenderPic(user, selectedChat.participants) : null}
@@ -342,7 +342,7 @@ export default function ChatWindow({ onBack }) {
           </div>
         </div>
         
-        <div className="flex items-center gap-1 md:gap-2 text-white/50 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 text-white/50 shrink-0">
           {/* Custom Vanish Mode Menu */}
           <div className="relative">
             <button
@@ -528,7 +528,7 @@ export default function ChatWindow({ onBack }) {
 
       {/* Main Communications Display */}
       {/* Optimized padding and width utilization */}
-      <div className={`flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 lg:px-12 py-6 flex flex-col gap-[3px] transition-colors relative z-10 custom-scrollbar ${activeVanishMode ? 'text-white/90' : ''}`}>
+      <div className={`flex-1 overflow-y-auto px-4 sm:px-5 md:px-8 lg:px-12 py-6 flex flex-col gap-[3px] transition-colors relative z-10 custom-scrollbar ${activeVanishMode ? 'text-white/90' : ''}`}>
         
         {activeVanishMode && (
           <div className="flex justify-center mb-6">
