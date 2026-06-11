@@ -17,7 +17,7 @@ const messageSchema = new mongoose.Schema({
   },
   messageType: {
     type: String,
-    enum: ['text', 'image', 'video', 'audio', 'document', 'system'],
+    enum: ['text', 'image', 'video', 'audio', 'document', 'system', 'call'],
     default: 'text'
   },
   mediaUrl: {
@@ -50,6 +50,20 @@ const messageSchema = new mongoose.Schema({
   replyTo: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Message',
+    default: null
+  },
+  // Unsend & Delete functionality
+  isUnsent: {
+    type: Boolean,
+    default: false
+  },
+  deletedFor: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  // Call Log tracking
+  callData: {
+    type: mongoose.Schema.Types.Mixed,
     default: null
   }
 }, { timestamps: true });

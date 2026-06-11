@@ -17,8 +17,27 @@ export const useChatStore = create((set, get) => ({
   isChatsLoading: false,
   isMessagesLoading: false,
   socket: null,
-  // unreadCounts: map of chatId -> number (computed locally from socket events)
   unreadCounts: {},
+  isSelectionMode: false,
+  selectedMessages: [],
+
+  // ─── SELECTION ───────────────────────────────────────────────────────────
+  toggleSelectionMode: () => set(state => {
+    if (state.isSelectionMode) {
+      return { isSelectionMode: false, selectedMessages: [] };
+    }
+    return { isSelectionMode: true, selectedMessages: [] };
+  }),
+  toggleMessageSelection: (messageId) => set(state => {
+    const isSelected = state.selectedMessages.includes(messageId);
+    if (isSelected) {
+      return { selectedMessages: state.selectedMessages.filter(id => id !== messageId) };
+    } else {
+      return { selectedMessages: [...state.selectedMessages, messageId] };
+    }
+  }),
+  clearSelection: () => set({ isSelectionMode: false, selectedMessages: [] }),
+
 
   // ─── SOCKET ──────────────────────────────────────────────────────────────
   connectSocket: (user) => {
@@ -189,6 +208,39 @@ export const useChatStore = create((set, get) => ({
               ...c.latestMessage,
               content: "Message deleted",
               messageType: "text"
+            }
+          };
+        }
+        return c;
+      });
+      set({ chats: updatedChats });
+    });
+
+    // ── Messages unsent ───────────────────────────────────────────────────
+    socket.on('messagesUnsent', ({ messageIds, chatId }) => {
+      const { messages, selectedChat, chats } = get();
+      
+      // Update currently viewing messages
+      if (selectedChat?._id === chatId) {
+        const updatedMessages = messages.map((m) => {
+          if (messageIds.includes(m._id)) {
+            return { ...m, isUnsent: true, content: "", mediaUrl: null };
+          }
+          return m;
+        });
+        set({ messages: updatedMessages });
+      }
+
+      // Update latest message in chats list
+      const updatedChats = chats.map((c) => {
+        if (c._id === chatId && messageIds.includes(c.latestMessage?._id)) {
+          return {
+            ...c,
+            latestMessage: {
+              ...c.latestMessage,
+              isUnsent: true,
+              content: "",
+              mediaUrl: null
             }
           };
         }
@@ -601,6 +653,57 @@ export const useChatStore = create((set, get) => ({
       toast.success('Message deleted');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error deleting message');
+    }
+  },
+
+  unsendMessages: async (messageIds) => {
+    try {
+      const res = await axiosInstance.post('/chat/messages/unsend', { messageIds });
+      const { messages, chats, selectedChat } = get();
+      
+      const updatedMessages = messages.map((m) => {
+        if (messageIds.includes(m._id)) {
+          return { ...m, isUnsent: true, content: "", mediaUrl: null };
+        }
+        return m;
+      });
+      set({ messages: updatedMessages });
+
+      if (selectedChat) {
+        const updatedChats = chats.map((c) => {
+          if (c._id === selectedChat._id && messageIds.includes(c.latestMessage?._id)) {
+            return {
+              ...c,
+              latestMessage: {
+                ...c.latestMessage,
+                isUnsent: true,
+                content: "",
+                mediaUrl: null
+              }
+            };
+          }
+          return c;
+        });
+        set({ chats: updatedChats });
+      }
+
+      set({ isSelectionMode: false, selectedMessages: [] });
+      toast.success('Messages unsent');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error unsending messages');
+    }
+  },
+
+  deleteMessagesForMe: async (messageIds) => {
+    try {
+      await axiosInstance.post('/chat/messages/delete', { messageIds });
+      const { messages } = get();
+      
+      const updatedMessages = messages.filter((m) => !messageIds.includes(m._id));
+      set({ messages: updatedMessages, isSelectionMode: false, selectedMessages: [] });
+      toast.success('Messages deleted for you');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error deleting messages');
     }
   },
 

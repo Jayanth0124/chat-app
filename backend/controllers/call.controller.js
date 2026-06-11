@@ -1,5 +1,7 @@
 import Call from '../models/Call.js';
 import User from '../models/User.js';
+import Chat from '../models/Chat.js';
+import Message from '../models/Message.js';
 import { sendPushNotification } from '../utils/webPush.js';
 import Connection from '../models/Connection.js';
 
@@ -107,24 +109,63 @@ export const updateCall = async (req, res) => {
       return res.status(404).json({ error: 'Call not found' });
     }
 
-    if (status === 'completed' && duration) {
+    if (['completed', 'missed', 'rejected', 'declined'].includes(status)) {
       const callerId = call.caller._id;
       const receiverId = call.receiver._id;
-      const scoreIncrement = Math.floor(duration / 10);
-      const isVideo = call.type === 'video';
 
-      const sortedUsers = [callerId.toString(), receiverId.toString()].sort();
+      if (status === 'completed' && duration) {
+        const scoreIncrement = Math.floor(duration / 10);
+        const isVideo = call.type === 'video';
 
-      await Connection.findOneAndUpdate(
-        { users: sortedUsers },
-        {
-          $inc: {
-            totalScore: scoreIncrement,
-            ...(isVideo ? { videoCallDuration: duration } : { voiceCallDuration: duration })
+        const sortedUsers = [callerId.toString(), receiverId.toString()].sort();
+
+        await Connection.findOneAndUpdate(
+          { users: sortedUsers },
+          {
+            $inc: {
+              totalScore: scoreIncrement,
+              ...(isVideo ? { videoCallDuration: duration } : { voiceCallDuration: duration })
+            }
+          },
+          { upsert: true, new: true }
+        );
+      }
+
+      // Create a Call Log Message in their Chat
+      let chat = await Chat.findOne({
+        isGroupChat: false,
+        $and: [
+          { participants: { $elemMatch: { $eq: callerId } } },
+          { participants: { $elemMatch: { $eq: receiverId } } },
+        ]
+      });
+
+      if (chat) {
+        let callLogMsg = await Message.create({
+          sender: callerId,
+          content: '',
+          chat: chat._id,
+          messageType: 'call',
+          callData: {
+            callType: call.type, // 'voice' or 'video'
+            status: status, // 'completed', 'missed', 'rejected'
+            duration: duration || 0
           }
-        },
-        { upsert: true, new: true }
-      );
+        });
+
+        callLogMsg = await callLogMsg.populate("sender", "displayName profilePic");
+        callLogMsg = await callLogMsg.populate("chat");
+        callLogMsg = await User.populate(callLogMsg, {
+          path: "chat.participants",
+          select: "displayName profilePic email",
+        });
+
+        await Chat.findByIdAndUpdate(chat._id, { latestMessage: callLogMsg });
+
+        if (req.io) {
+          req.io.to(chat._id.toString()).emit("messageReceived", callLogMsg);
+        }
+      }
     }
 
     res.status(200).json(call);

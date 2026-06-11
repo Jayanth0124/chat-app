@@ -13,7 +13,9 @@ import {
   deleteMessage,
   markChatAsUnread,
   pinChat,
-  muteChat
+  muteChat,
+  unsendMessage,
+  deleteMessagesForMe
 } from '../controllers/chat.controller.js';
 
 const router = express.Router();
@@ -31,5 +33,7 @@ router.delete('/message/:messageId', protectRoute, deleteMessage);
 router.post('/:chatId/unread', protectRoute, markChatAsUnread);
 router.post('/:chatId/pin', protectRoute, pinChat);
 router.post('/:chatId/mute', protectRoute, muteChat);
+router.post('/messages/unsend', protectRoute, unsendMessage);
+router.post('/messages/delete', protectRoute, deleteMessagesForMe);
 
 export default router;

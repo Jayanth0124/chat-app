@@ -24,7 +24,13 @@ export default function ChatWindow({ onBack }) {
     markChatAsSeen,
     deleteChat,
     markChatAsUnread,
-    reportMessage
+    reportMessage,
+    isSelectionMode,
+    selectedMessages,
+    toggleSelectionMode,
+    clearSelection,
+    unsendMessages,
+    deleteMessagesForMe
   } = useChatStore();
   const { user } = useAuthStore();
   const { setActiveCall } = useLayoutStore();
@@ -241,7 +247,55 @@ export default function ChatWindow({ onBack }) {
     >
       <div className={`orbit-dark-overlay absolute inset-0 z-0 pointer-events-none transition-colors duration-500 ${activeVanishMode ? 'bg-black/90' : 'bg-black/50'}`} />
       
+      <div className={`orbit-dark-overlay absolute inset-0 z-0 pointer-events-none transition-colors duration-500 ${activeVanishMode ? 'bg-black/90' : 'bg-black/50'}`} />
+      
       {/* Precision Engineered Header - z-30 to stay above everything but modals/dropdowns */}
+      {isSelectionMode ? (
+        <div className="h-[64px] bg-[#0A84FF]/10 flex items-center justify-between px-3 md:px-5 shrink-0 z-30 relative border-b border-[#0A84FF]/20 w-full shadow-xl">
+          <div className="flex items-center gap-3 text-[#0A84FF]">
+            <button onClick={clearSelection} className="p-2 hover:bg-[#0A84FF]/10 rounded-full transition-colors cursor-pointer">
+              <X size={20} />
+            </button>
+            <span className="font-medium text-[15px]">{selectedMessages.length} selected</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={selectedMessages.length === 0}
+              onClick={async () => {
+                const confirmed = await useConfirmStore.getState().confirm({
+                  title: "Unsend Messages",
+                  message: "Unsend these messages for everyone? This only affects messages you sent.",
+                  confirmText: "Unsend",
+                  danger: true
+                });
+                if (confirmed) {
+                  unsendMessages(selectedMessages);
+                }
+              }}
+              className="px-3 py-1.5 bg-[#0A84FF]/10 text-[#0A84FF] hover:bg-[#0A84FF]/20 rounded-md text-[13px] font-medium transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              Unsend
+            </button>
+            <button
+              disabled={selectedMessages.length === 0}
+              onClick={async () => {
+                const confirmed = await useConfirmStore.getState().confirm({
+                  title: "Delete For Me",
+                  message: "Delete these messages for you? They will remain for the other person.",
+                  confirmText: "Delete",
+                  danger: true
+                });
+                if (confirmed) {
+                  deleteMessagesForMe(selectedMessages);
+                }
+              }}
+              className="px-3 py-1.5 bg-[#FF453A]/10 text-[#FF453A] hover:bg-[#FF453A]/20 rounded-md text-[13px] font-medium transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              Delete For Me
+            </button>
+          </div>
+        </div>
+      ) : (
       <div className="h-[64px] bg-[#111111]/90 flex items-center justify-between px-3 md:px-5 shrink-0 z-30 relative border-b border-white/5 w-full shadow-xl">
         <div 
           onClick={() => !selectedChat.isGroupChat && otherParticipant && navigate(`/user-profile/${otherParticipant._id}`)}
@@ -420,6 +474,7 @@ export default function ChatWindow({ onBack }) {
           </div>
         </div>
       </div>
+      )}
 
       {/* Search Header Bar */}
       {isSearchMode && (
@@ -502,6 +557,10 @@ export default function ChatWindow({ onBack }) {
               onViewMessage={() => handleViewMessage(m)}
               setReplyToMessage={setReplyToMessage}
               onReportMessage={setReportingMessage}
+              isSelectionMode={isSelectionMode}
+              isSelected={selectedMessages.includes(m._id)}
+              toggleSelection={() => useChatStore.getState().toggleMessageSelection(m._id)}
+              triggerCall={triggerCall}
             />
           );
         })}
@@ -604,8 +663,8 @@ const handleDownload = async (e, url, defaultFilename) => {
   }
 };
 
-function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup, isHighlighted, message, onViewMessage, setReplyToMessage, onReportMessage }) {
-  const { deleteMessage } = useChatStore();
+function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup, isHighlighted, message, onViewMessage, setReplyToMessage, onReportMessage, isSelectionMode, isSelected, toggleSelection, triggerCall }) {
+  const { deleteMessage, toggleSelectionMode, unsendMessages, deleteMessagesForMe } = useChatStore();
   const [showMenu, setShowMenu] = useState(false);
   const longPressTimer = useRef(null);
 
@@ -626,15 +685,20 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
 
   const handleContextMenu = (e) => {
     e.preventDefault();
+    if (isSelectionMode) return;
     calculateMenuPosition(e.clientX, e.clientY);
   };
 
   const handleTouchStart = (e) => {
+    if (isSelectionMode) return;
     const touch = e.touches[0];
     const x = touch.clientX;
     const y = touch.clientY;
     
-    longPressTimer.current = setTimeout(() => calculateMenuPosition(x, y), 500);
+    longPressTimer.current = setTimeout(() => {
+      toggleSelectionMode();
+      toggleSelection();
+    }, 500);
   };
 
   const handleTouchEnd = () => {
@@ -725,31 +789,61 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
                   Report Message
                 </button>
               )}
-              {isOwn && (
+              {isOwn && !message.isUnsent && (
                 <button
                   type="button"
                   onClick={async (e) => {
                     e.stopPropagation(); setShowMenu(false);
                     const confirmed = await useConfirmStore.getState().confirm({
-                      title: "Delete Message",
-                      message: "Delete this message?",
-                      confirmText: "Delete",
+                      title: "Unsend Message",
+                      message: "Unsend this message for everyone?",
+                      confirmText: "Unsend",
                       danger: true
                     });
-                    if (confirmed) deleteMessage(message._id);
+                    if (confirmed) unsendMessages([message._id]);
                   }}
                   className="px-3 py-2 rounded-lg hover:bg-[#FF453A]/10 text-[#FF453A] text-[13px] font-medium transition-colors text-left w-full cursor-pointer mt-1 border-t border-white/5 pt-2"
                 >
-                  Delete Message
+                  Unsend Message
                 </button>
               )}
+              <button
+                type="button"
+                onClick={async (e) => {
+                  e.stopPropagation(); setShowMenu(false);
+                  const confirmed = await useConfirmStore.getState().confirm({
+                    title: "Delete For Me",
+                    message: "Delete this message for you?",
+                    confirmText: "Delete",
+                    danger: true
+                  });
+                  if (confirmed) deleteMessagesForMe([message._id]);
+                }}
+                className={`px-3 py-2 rounded-lg hover:bg-[#FF453A]/10 text-[#FF453A] text-[13px] font-medium transition-colors text-left w-full cursor-pointer ${isOwn && message.isUnsent ? 'mt-1 border-t border-white/5 pt-2' : ''}`}
+              >
+                Delete For Me
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowMenu(false);
+                  toggleSelectionMode();
+                  toggleSelection();
+                }}
+                className="px-3 py-2 rounded-lg hover:bg-[#2C2C2E] text-white/90 text-[13px] font-medium transition-colors text-left w-full cursor-pointer mt-1 border-t border-white/5 pt-2"
+              >
+                Select Message
+              </button>
             </div>
           </>
         )}
 
         {/* The Panel */}
         <div 
+          onClick={isSelectionMode ? toggleSelection : undefined}
           className={`orbit-bubble-target relative w-full flex flex-col transition-transform active:scale-[0.99] ${panelClasses} ${
+            isSelected ? 'ring-2 ring-[#0A84FF] bg-[#0A84FF]/20' : 
             isOwn 
               ? 'bg-black/50 border shadow-[inset_0_1px_0_rgba(255,255,255,0.05),_0_2px_5px_rgba(0,0,0,0.2)]' 
               : 'bg-white/5 border shadow-sm'
@@ -757,7 +851,7 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
             isHighlighted 
               ? 'border-[#0A84FF] ring-2 ring-[#0A84FF]/50 bg-[#0A84FF]/10' 
               : isOwn ? 'border-white/10' : 'border-white/5'
-          }`}
+          } ${isSelectionMode ? 'cursor-pointer' : ''}`}
           onContextMenu={handleContextMenu}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
@@ -787,7 +881,37 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
         )}
         
         <div className="relative px-3.5 pt-2.5 pb-2 flex flex-col justify-between">
-          {isVoice ? (
+          {message.isUnsent ? (
+            <div className="flex items-center gap-2 py-1 italic text-white/40">
+              <span className="text-[12px]">{isOwn ? "You unsent a message" : "This message was unsent"}</span>
+            </div>
+          ) : message.messageType === 'call' && message.callData ? (
+            <div 
+              className="flex items-center gap-3 pr-2 min-w-[200px] py-1 cursor-pointer"
+              onClick={() => triggerCall && triggerCall(message.callData.callType)}
+            >
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border ${
+                message.callData.status === 'missed' || message.callData.status === 'rejected'
+                  ? 'bg-[#FF453A]/10 border-[#FF453A]/20 text-[#FF453A]'
+                  : isOwn ? 'bg-black/50 border-white/10 text-white/70' : 'bg-[#34C759]/10 border-[#34C759]/20 text-[#34C759]'
+              }`}>
+                {message.callData.callType === 'video' ? <Video size={18} /> : <Phone size={18} />}
+              </div>
+              <div className="flex-1 flex flex-col">
+                <span className="text-[13px] font-medium text-white/90">
+                  {message.callData.status === 'missed' 
+                    ? 'Missed Call' 
+                    : message.callData.status === 'rejected'
+                      ? 'Declined Call'
+                      : isOwn ? 'Outgoing Call' : 'Incoming Call'
+                  }
+                </span>
+                <span className="text-[10px] text-white/40 uppercase tracking-widest mt-0.5">
+                  {message.callData.duration ? formatDuration(message.callData.duration) : 'No Answer'}
+                </span>
+              </div>
+            </div>
+          ) : isVoice ? (
             <div className="flex items-center gap-3 pr-2 min-w-[200px] py-1">
               {message?.mediaUrl && (
                 <audio 

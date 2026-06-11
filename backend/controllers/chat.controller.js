@@ -298,7 +298,10 @@ export const fetchMessages = async (req, res) => {
       await Message.deleteMany({ _id: { $in: vanishedMsgs.map(m => m._id) } });
     }
 
-    let messages = await Message.find({ chat: chatId })
+    let messages = await Message.find({ 
+      chat: chatId,
+      deletedFor: { $ne: req.user._id }
+    })
       .populate("sender", "displayName profilePic email privacySettings")
       .populate({
         path: "chat",
@@ -590,6 +593,77 @@ export const deleteMessage = async (req, res) => {
     res.status(200).json({ message: "Message deleted successfully", messageId });
   } catch (error) {
     console.error("Error in deleteMessage:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const unsendMessage = async (req, res) => {
+  try {
+    const { messageIds } = req.body;
+    const loggedInUserId = req.user._id;
+
+    if (!Array.isArray(messageIds) || messageIds.length === 0) {
+      return res.status(400).json({ message: "No messages provided" });
+    }
+
+    const messages = await Message.find({ _id: { $in: messageIds } });
+    if (messages.length === 0) {
+      return res.status(404).json({ message: "Messages not found" });
+    }
+
+    let chatId = null;
+    let unsentIds = [];
+
+    for (const msg of messages) {
+      // Only sender can unsend
+      if (msg.sender.toString() === loggedInUserId.toString()) {
+        chatId = msg.chat;
+        msg.isUnsent = true;
+        // Delete media from Cloudinary if it exists
+        if (msg.mediaUrl) {
+          await deleteFromCloudinary(msg.mediaUrl);
+        }
+        msg.mediaUrl = null;
+        msg.content = ""; // Content will be replaced in UI
+        await msg.save();
+        unsentIds.push(msg._id.toString());
+      }
+    }
+
+    // Emit socket event to notify other clients in the chat room
+    if (req.io && chatId && unsentIds.length > 0) {
+      const chat = await Chat.findById(chatId);
+      if (chat) {
+        chat.participants.forEach(participantId => {
+          req.io.to(participantId.toString()).emit('messagesUnsent', { messageIds: unsentIds, chatId: chatId.toString() });
+        });
+      }
+    }
+
+    res.status(200).json({ message: "Messages unsent successfully", unsentIds });
+  } catch (error) {
+    console.error("Error in unsendMessage:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const deleteMessagesForMe = async (req, res) => {
+  try {
+    const { messageIds } = req.body;
+    const loggedInUserId = req.user._id;
+
+    if (!Array.isArray(messageIds) || messageIds.length === 0) {
+      return res.status(400).json({ message: "No messages provided" });
+    }
+
+    await Message.updateMany(
+      { _id: { $in: messageIds } },
+      { $addToSet: { deletedFor: loggedInUserId } }
+    );
+
+    res.status(200).json({ message: "Messages deleted for you successfully", deletedIds: messageIds });
+  } catch (error) {
+    console.error("Error in deleteMessagesForMe:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

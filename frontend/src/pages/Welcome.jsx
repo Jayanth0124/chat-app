@@ -21,10 +21,10 @@ export default function Welcome() {
     <div className="bg-black text-white selection:bg-blue-600/30 selection:text-white min-h-screen w-full font-sans overflow-x-hidden flex flex-col">
 
       {/* SECTION 1 — HERO + LIVE PRODUCT */}
-      <section className="relative w-full grid grid-cols-1 lg:grid-cols-[minmax(0,45%)_minmax(0,55%)] xl:grid-cols-2 items-center pt-10 sm:pt-16 pb-12 px-[clamp(1.5rem,4vw,3rem)] gap-[clamp(2rem,5vw,4rem)] max-w-[1800px] mx-auto lg:min-h-[100svh]">
+      <section className="relative w-full flex flex-col lg:flex-row items-center pt-10 sm:pt-16 pb-20 px-[clamp(1.5rem,4vw,3rem)] gap-[clamp(2rem,5vw,4rem)] max-w-[1800px] mx-auto lg:min-h-[100svh]">
 
         {/* Left: Branding & Copy */}
-        <div className="flex flex-col justify-center z-20 items-center lg:items-start text-center lg:text-left pt-6 lg:pt-0 w-full min-w-0">
+        <div className="flex flex-col justify-center z-20 items-center lg:items-start text-center lg:text-left pt-6 lg:pt-0 w-full lg:w-[45%] xl:w-1/2 shrink-0">
           <div className="flex items-center justify-center lg:justify-start gap-[clamp(0.25rem,1vw,0.5rem)] mb-[clamp(2rem,4vw,4rem)]">
             <div className="w-10 h-10 sm:w-14 sm:h-14 shrink-0 relative flex items-center justify-center">
               <img src="/logo.png" alt="Orbit Logo" className="absolute w-24 h-24 sm:w-32 sm:h-32 object-contain max-w-none" />
@@ -52,8 +52,8 @@ export default function Welcome() {
         </div>
 
         {/* Right: Massive Live Product Showcase */}
-        <div className="flex items-center justify-center mt-4 sm:mt-8 lg:mt-0 relative z-10 w-full min-w-0">
-          <div className="w-full max-w-[700px] min-h-[460px] sm:min-h-[550px] lg:min-h-[600px] h-auto lg:aspect-[4/3] max-h-[700px] bg-[#0A0A0A] border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] lg:rounded-[3rem] overflow-hidden shadow-2xl relative flex flex-col z-20">
+        <div className="flex items-center justify-center mt-4 sm:mt-8 lg:mt-0 relative z-10 w-full lg:w-[55%] xl:w-1/2">
+          <div className="w-full max-w-[700px] min-h-[460px] sm:min-h-[550px] lg:min-h-[600px] h-auto lg:aspect-[4/3] bg-[#0A0A0A] border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] lg:rounded-[3rem] overflow-hidden shadow-2xl relative flex flex-col z-20">
             {/* Base layer: Chat UI Header */}
             <div className="h-16 sm:h-20 border-b border-white/10 flex items-center px-4 sm:px-6 lg:px-8 justify-between bg-[#050505] shrink-0 z-10 relative">
               <div className="flex items-center gap-3 sm:gap-4">
@@ -70,21 +70,21 @@ export default function Welcome() {
             </div>
 
             {/* Chat Body & In-Flow Elements for Mobile & Laptop */}
-            <div className="flex-1 p-5 sm:p-6 lg:p-8 flex flex-col gap-6 sm:gap-8 lg:gap-0 justify-end relative bg-black/50 overflow-y-auto lg:overflow-hidden lg:pb-40">
+            <div className="flex-1 p-5 sm:p-6 lg:p-8 flex flex-col gap-4 sm:gap-6 justify-end relative bg-black/50 overflow-y-auto">
               
-              {/* Blue Message (In Flow) */}
-              <div className="flex flex-col items-end gap-2 w-full z-10 lg:mb-0">
-                <div className="bg-blue-600 text-white p-3 sm:p-4 rounded-2xl rounded-tr-sm text-xs sm:text-sm font-medium w-fit max-w-[85%] shadow-lg">
-                  The orbital uplink is secured. Awaiting packet transfer.
+              {/* 3. Orbit Connection Badge */}
+              <div className="flex items-center gap-4 bg-[#0A0A0A]/90 backdrop-blur-xl border border-white/10 rounded-[1.5rem] p-4 shadow-2xl z-10 w-fit self-start mt-auto">
+                <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 shrink-0">
+                  <Activity size={14} className="w-4 h-4" />
                 </div>
-                <div className="flex items-center gap-2 text-blue-500 pr-2">
-                  <span className="text-[10px] font-mono tracking-widest uppercase">Decaying</span>
-                  <CheckCheck size={14} />
+                <div>
+                  <div className="text-[10px] text-white/40 font-mono tracking-widest uppercase mb-1">Connection</div>
+                  <div className="text-sm font-medium text-white leading-none">Level 5 — Sync</div>
                 </div>
               </div>
 
               {/* 2. Active Call Card */}
-              <div className="relative lg:absolute lg:top-28 lg:right-4 xl:right-10 bg-[#111]/90 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-[2rem] p-4 sm:p-5 shadow-2xl z-30 max-w-[220px] lg:max-w-none self-end lg:self-auto">
+              <div className="bg-[#111]/90 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-[2rem] p-4 sm:p-5 shadow-2xl z-30 w-[220px] self-end">
                 <div className="flex justify-between items-center mb-4 sm:mb-5 gap-4 sm:gap-8">
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full animate-pulse" />
@@ -98,8 +98,19 @@ export default function Welcome() {
                 </div>
               </div>
 
+              {/* Blue Message (In Flow) */}
+              <div className="flex flex-col items-end gap-2 w-full z-10">
+                <div className="bg-blue-600 text-white p-3 sm:p-4 rounded-2xl rounded-tr-sm text-xs sm:text-sm font-medium w-fit max-w-[85%] shadow-lg">
+                  The orbital uplink is secured. Awaiting packet transfer.
+                </div>
+                <div className="flex items-center gap-2 text-blue-500 pr-2">
+                  <span className="text-[10px] font-mono tracking-widest uppercase">Decaying</span>
+                  <CheckCheck size={14} />
+                </div>
+              </div>
+
               {/* 1. Voice Note Player */}
-              <div className="relative lg:absolute lg:bottom-10 lg:left-4 xl:left-10 bg-[#141414] border border-white/10 p-2 sm:p-3 rounded-2xl sm:rounded-[2rem] shadow-2xl backdrop-blur-xl z-20 flex items-center gap-3 sm:gap-4 w-full sm:w-auto lg:w-auto max-w-full lg:max-w-[340px] mt-2 lg:mt-0 self-start lg:self-auto">
+              <div className="bg-[#141414] border border-white/10 p-2 sm:p-3 rounded-2xl sm:rounded-[2rem] shadow-2xl backdrop-blur-xl z-20 flex items-center gap-3 sm:gap-4 w-full sm:w-auto max-w-full sm:max-w-[340px] self-start">
                 <button className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0">
                   <Play size={16} className="ml-0.5 sm:ml-1" />
                 </button>
@@ -113,27 +124,16 @@ export default function Welcome() {
 
             </div>
 
-            {/* 3. Orbit Connection Badge */}
-            <div className="hidden lg:flex absolute top-64 left-4 xl:left-10 bg-[#0A0A0A]/90 backdrop-blur-xl border border-white/10 rounded-[1.5rem] p-4 items-center gap-4 shadow-2xl z-10">
-              <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 shrink-0">
-                <Activity size={14} className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-[10px] text-white/40 font-mono tracking-widest uppercase mb-1">Connection</div>
-                <div className="text-sm font-medium text-white leading-none">Level 5 — Sync</div>
-              </div>
-            </div>
-
           </div>
         </div>
       </section>
 
       {/* SECTION 2 — ORBIT ECOSYSTEM */}
-      <section className="w-full px-6 lg:px-12 pb-8 max-w-[1800px] mx-auto">
-        <div className="w-full bg-[#0A0A0A] border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] lg:rounded-[3rem] p-6 sm:p-8 lg:p-16 flex flex-col lg:flex-row gap-8 lg:gap-16 items-center">
+      <section className="w-full px-6 lg:px-12 pb-20 max-w-[1800px] mx-auto">
+        <div className="w-full bg-[#0A0A0A] border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] lg:rounded-[3rem] p-6 sm:p-8 lg:p-12 xl:p-16 grid grid-cols-1 xl:grid-cols-3 gap-8 lg:gap-12 xl:gap-16 items-center">
 
           {/* Left: Progression Hierarchy */}
-          <div className="w-full lg:w-[35%] xl:w-[25%] flex flex-col gap-3 sm:gap-4 relative">
+          <div className="w-full flex flex-col gap-3 sm:gap-4 relative">
             <div className="absolute left-[23px] sm:left-[27px] lg:left-[35px] top-4 bottom-4 w-px bg-white/10" />
             {connectionStages.map((stage, i) => {
               const Icon = stage.icon;
@@ -152,20 +152,20 @@ export default function Welcome() {
           </div>
 
           {/* Center: Ecosystem Copy */}
-          <div className="w-full xl:w-[35%] text-center xl:text-left mt-4 xl:mt-0">
+          <div className="w-full flex flex-col items-center xl:items-start text-center xl:text-left">
             <h2 className="font-['Spectron',_sans-serif] text-3xl sm:text-4xl lg:text-5xl leading-tight mb-4 sm:mb-6">
               The architecture <br className="hidden sm:block" /> of trust.
             </h2>
-            <p className="text-white/50 text-sm sm:text-base lg:text-lg leading-relaxed mb-4 sm:mb-6 lg:mb-8 max-w-[500px] mx-auto xl:mx-0">
+            <p className="text-white/50 text-sm sm:text-base lg:text-lg leading-relaxed mb-4 sm:mb-6 lg:mb-8 max-w-[500px]">
               Every interaction fuels the Orbit Connection core. Relationships evolve through 7 discrete cryptographic stages based on sustained peer-to-peer engagement.
             </p>
-            <p className="text-white/50 text-sm sm:text-base lg:text-lg leading-relaxed max-w-[500px] mx-auto xl:mx-0">
+            <p className="text-white/50 text-sm sm:text-base lg:text-lg leading-relaxed max-w-[500px]">
               This metric is localized. No centralized database records your hierarchy. If the connection decays, the rank disintegrates.
             </p>
           </div>
 
           {/* Right: Live Telemetry Dashboard */}
-          <div className="w-full xl:w-[40%] flex flex-col gap-4 mt-4 xl:mt-0">
+          <div className="w-full flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row gap-4 w-full">
               <div className="flex-1 bg-[#111] border border-white/10 rounded-2xl sm:rounded-[2rem] p-6 lg:p-8 flex flex-col justify-center gap-4 shadow-lg">
                 <Shield className="text-blue-500" size={20} />
@@ -197,7 +197,7 @@ export default function Welcome() {
       </section>
 
       {/* SECTION 3 — FEATURES + CTA */}
-      <section className="w-full px-6 lg:px-12 pb-8 max-w-[1800px] mx-auto flex-1">
+      <section className="w-full px-6 lg:px-12 pb-20 max-w-[1800px] mx-auto flex-1">
         <div className="bg-[#0A0A0A] border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] lg:rounded-[3rem] p-3 sm:p-4 flex flex-col gap-3 sm:gap-4 h-full">
 
           {/* Asymmetric Grid */}
