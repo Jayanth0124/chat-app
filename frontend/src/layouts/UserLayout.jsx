@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import UserSidebar from '../components/UserSidebar';
-import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Volume2, VolumeX, PhoneOff, PhoneIncoming, Check, Loader2, Bell, Trash2, ShieldAlert, ShieldCheck, UserPlus, UserCheck, Bug, HelpCircle, Inbox, CheckCircle2, Video, VideoOff, SwitchCamera, Bluetooth, Maximize, ChevronUp, Smartphone } from 'lucide-react';
+import { MessageSquare, Users, Phone, Search, Settings, User, LogOut, X, Camera, Mic, MicOff, Volume2, VolumeX, PhoneOff, PhoneIncoming, Check, Loader2, Bell, Trash2, ShieldAlert, ShieldCheck, UserPlus, UserCheck, Bug, HelpCircle, Inbox, CheckCircle2, Video, VideoOff, SwitchCamera, Bluetooth, Maximize, ChevronUp, Smartphone, CircleDashed } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 import { useChatStore } from '../store/useChatStore';
@@ -12,6 +12,8 @@ import toast from 'react-hot-toast';
 import ManageFriends from '../components/ManageFriends';
 import { motion, AnimatePresence } from 'framer-motion';
 import { audioManager } from '../lib/audioManager';
+import StoryViewer from '../components/stories/StoryViewer';
+import useStoryStore from '../store/useStoryStore';
 
 export default function UserLayout() {
   const location = useLocation();
@@ -47,6 +49,7 @@ export default function UserLayout() {
 
   const { socket, selectedChat, chats, setSelectedChat, accessChat } = useChatStore();
   const { unreadCount } = useNotificationStore();
+  const { activeStoryGroups, activeStoryGroupIndex, closeStoryViewer } = useStoryStore();
 
   // WebRTC Setup
   const pcRef = useRef(null);
@@ -66,10 +69,11 @@ export default function UserLayout() {
   useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
   useEffect(() => { isVideoEnabledRef.current = isVideoEnabled; }, [isVideoEnabled]);
 
-  // Fetch notifications and call history on mount
+  // Fetch notifications, call history, and stories on mount
   useEffect(() => {
     useNotificationStore.getState().fetchNotifications();
     fetchCallHistory();
+    useStoryStore.getState().fetchStories();
   }, []);
 
   // Update last viewed time when visiting /calls
@@ -530,7 +534,7 @@ export default function UserLayout() {
 
     if (activeCall.callId) {
       try {
-        const finalStatus = isDialing ? 'cancelled' : (activeCall.status === 'connected' ? 'completed' : 'missed');
+        const finalStatus = isDialing ? 'missed' : (activeCall.status === 'connected' ? 'completed' : 'missed');
         await axiosInstance.patch(`/calls/${activeCall.callId}`, {
           status: finalStatus,
           duration: callDuration
@@ -568,10 +572,9 @@ export default function UserLayout() {
           <User size={20} />
           <span className="text-[10px] font-semibold">Profile</span>
         </button>
-        <button onClick={() => navigate('/activity')} className={`relative flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/activity' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
-          <Bell size={20} />
-          {unreadCount > 0 && <span className="absolute top-1 right-2 w-3 h-3 bg-primary rounded-full border-2 border-surface"></span>}
-          <span className="text-[10px] font-semibold">Activity</span>
+        <button onClick={() => navigate('/stories')} className={`relative flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/stories' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
+          <CircleDashed size={20} />
+          <span className="text-[10px] font-semibold">Stories</span>
         </button>
       </div>
 
@@ -638,6 +641,16 @@ export default function UserLayout() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {activeStoryGroups && (
+          <StoryViewer 
+            groups={activeStoryGroups} 
+            initialGroupIndex={activeStoryGroupIndex}
+            onClose={closeStoryViewer} 
+          />
         )}
       </AnimatePresence>
 

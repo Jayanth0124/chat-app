@@ -84,6 +84,17 @@ export const createCall = async (req, res) => {
     };
     await sendPushNotification(receiverId, payload);
 
+    // Guaranteed Socket Signaling (overrides frontend failure)
+    if (req.io) {
+      req.io.to(receiverId.toString()).emit('call:incoming', {
+        callId: call._id,
+        callerId: call.caller._id,
+        callerName: call.caller.displayName,
+        callerPic: call.caller.profilePic,
+        type: call.type
+      });
+    }
+
     res.status(201).json(call);
   } catch (error) {
     console.error('Error in createCall:', error);
@@ -162,8 +173,10 @@ export const updateCall = async (req, res) => {
 
         await Chat.findByIdAndUpdate(chat._id, { latestMessage: callLogMsg });
 
-        if (req.io) {
-          req.io.to(chat._id.toString()).emit("messageReceived", callLogMsg);
+        if (req.io && callLogMsg.chat.participants) {
+          callLogMsg.chat.participants.forEach((participant) => {
+            req.io.to(participant._id.toString()).emit("message received", callLogMsg);
+          });
         }
       }
     }

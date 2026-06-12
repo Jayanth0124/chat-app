@@ -153,7 +153,7 @@ export const handleSockets = (io) => {
     // Caller cancels before receiver answers
     socket.on('call:cancel', async ({ to, callId }) => {
       try {
-        const call = await Call.findByIdAndUpdate(callId, { status: 'cancelled' }).populate('caller', 'displayName');
+        const call = await Call.findByIdAndUpdate(callId, { status: 'missed' }).populate('caller', 'displayName');
         if (call) {
           // Send missed call push notification
           const payload = {

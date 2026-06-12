@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { MessageSquare, Phone, Settings, LogOut, Search, Users, Bell } from 'lucide-react';
+import { MessageSquare, Phone, Settings, LogOut, Search, Users, Bell, CircleDashed } from 'lucide-react';
 import Avatar from './ui/Avatar';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLayoutStore } from '../store/useLayoutStore';
@@ -28,6 +28,7 @@ export default function UserSidebar() {
 
   const navItems = [
     { to: '/', icon: <MessageSquare size={22} />, label: 'Chats', type: 'link' },
+    { to: '/stories', icon: <CircleDashed size={22} />, label: 'Stories', type: 'link' },
     { to: '/calls', icon: <Phone size={22} />, label: 'Calls', type: 'link' },
     {
       to: '/friends',

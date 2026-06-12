@@ -6,6 +6,7 @@ import { useAuthStore } from './useAuthStore';
 import { useNotificationStore } from './useNotificationStore';
 import { useLayoutStore } from './useLayoutStore';
 import { useFriendStore } from './useFriendStore';
+import useStoryStore from './useStoryStore';
 import { audioManager } from '../lib/audioManager';
 
 export const useChatStore = create((set, get) => ({
@@ -53,6 +54,8 @@ export const useChatStore = create((set, get) => ({
     socket.emit('setup', user);
     set({ socket });
 
+    // Initialize story sockets
+    useStoryStore.getState().initStorySockets(socket);
 
     // ── Message received ──────────────────────────────────────────────────
     socket.on('message received', async (newMessage) => {
@@ -224,7 +227,6 @@ export const useChatStore = create((set, get) => ({
         updatedSelectedChat = null;
       }
       set({ chats: updatedChats, selectedChat: updatedSelectedChat });
-      toast.success('Conversation deleted');
     });
 
     // ── Message deleted ───────────────────────────────────────────────────
@@ -491,7 +493,10 @@ export const useChatStore = create((set, get) => ({
 
   disconnectSocket: () => {
     const socket = get().socket;
-    if (socket?.connected) socket.disconnect();
+    if (socket?.connected) {
+      useStoryStore.getState().cleanupStorySockets(socket);
+      socket.disconnect();
+    }
     set({ socket: null });
   },
 
@@ -681,7 +686,6 @@ export const useChatStore = create((set, get) => ({
       let updatedSelectedChat = selectedChat;
       if (selectedChat?._id === chatId) updatedSelectedChat = res.data;
       set({ chats: updatedChats, selectedChat: updatedSelectedChat });
-      toast.success(`Vanish mode: ${vanishMode}`);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error updating vanish mode');
     }
@@ -697,7 +701,6 @@ export const useChatStore = create((set, get) => ({
         updatedSelectedChat = null;
       }
       set({ chats: updatedChats, selectedChat: updatedSelectedChat });
-      toast.success('Conversation deleted successfully');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error deleting conversation');
     }
@@ -708,7 +711,6 @@ export const useChatStore = create((set, get) => ({
       await axiosInstance.delete(`/chat/message/${messageId}`);
       const { messages } = get();
       set({ messages: messages.filter((m) => m._id !== messageId) });
-      toast.success('Message deleted');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error deleting message');
     }
@@ -746,7 +748,6 @@ export const useChatStore = create((set, get) => ({
       }
 
       set({ isSelectionMode: false, selectedMessages: [] });
-      toast.success('Messages unsent');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error unsending messages');
     }
@@ -759,7 +760,6 @@ export const useChatStore = create((set, get) => ({
       
       const updatedMessages = messages.filter((m) => !messageIds.includes(m._id));
       set({ messages: updatedMessages, isSelectionMode: false, selectedMessages: [] });
-      toast.success('Messages deleted for you');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error deleting messages');
     }
@@ -768,7 +768,6 @@ export const useChatStore = create((set, get) => ({
   reportMessage: async (messageId, reason, details) => {
     try {
       await axiosInstance.post(`/chat/message/${messageId}/report`, { reason, details });
-      toast.success('Message reported successfully');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error reporting message');
     }
@@ -780,7 +779,6 @@ export const useChatStore = create((set, get) => ({
       const { unreadCounts } = get();
       const newUnread = { ...unreadCounts, [chatId]: (unreadCounts[chatId] || 0) + 1 };
       set({ unreadCounts: newUnread });
-      toast.success('Conversation marked as unread');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error marking conversation as unread');
     }
@@ -810,7 +808,6 @@ export const useChatStore = create((set, get) => ({
         const currentUser = useAuthStore.getState().user;
         useAuthStore.setState({ user: { ...currentUser, pinnedChats: res.data.pinnedChats } });
       });
-      toast.success(pin ? 'Chat pinned' : 'Chat unpinned');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error pinning chat');
     }
@@ -824,9 +821,9 @@ export const useChatStore = create((set, get) => ({
         useAuthStore.setState({ user: { ...currentUser, mutedChats: res.data.mutedChats } });
       });
       if (durationHours === false) {
-        toast.success('Chat unmuted');
+        // Chat unmuted
       } else {
-        toast.success('Notifications muted');
+        // Notifications muted
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error muting chat');

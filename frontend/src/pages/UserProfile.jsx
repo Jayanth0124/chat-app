@@ -5,9 +5,11 @@ import { axiosInstance } from '../lib/axios';
 import { useFriendStore } from '../store/useFriendStore';
 import { useChatStore } from '../store/useChatStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { useLayoutStore } from '../store/useLayoutStore';
 import toast from 'react-hot-toast';
 import { useConfirmStore } from '../store/useConfirmStore';
 import Avatar from '../components/ui/Avatar';
+import StoryRing from '../components/stories/StoryRing';
 
 const SocialIcon = ({ platform }) => {
   const p = platform.toLowerCase();
@@ -34,6 +36,7 @@ export default function UserProfile() {
   const { friends, outgoingRequests, sendRequest, acceptRequest, rejectRequest, removeFriend, blockUser, unblockUser, getFriends, getRequests } = useFriendStore();
   const { accessChat, socket } = useChatStore();
   const { user } = useAuthStore();
+  const { setActiveCall } = useLayoutStore();
 
   const fetchUserProfile = async () => {
     try {
@@ -140,6 +143,43 @@ export default function UserProfile() {
       navigate('/');
     } catch (err) {
       console.error('Failed to open chat:', err);
+    }
+  };
+
+  const triggerCall = async (type) => {
+    if (!profileUser) return;
+    try {
+      const res = await axiosInstance.post('/calls', {
+        receiverId: profileUser._id,
+        type
+      });
+      const callRecord = res.data;
+
+      setActiveCall({
+        callId: callRecord._id,
+        name: profileUser.displayName,
+        pic: profileUser.profilePic,
+        type,
+        status: 'dialing',
+        receiverId: profileUser._id,
+        direction: 'outgoing'
+      });
+
+      if (socket) {
+        socket.emit('call:offer', {
+          to: profileUser._id,
+          callData: {
+            callId: callRecord._id,
+            callerId: user._id,
+            callerName: user.displayName,
+            callerPic: user.profilePic,
+            type
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error initiating call:', error);
+      toast.error('Failed to start call');
     }
   };
 
@@ -268,12 +308,10 @@ export default function UserProfile() {
                 className="w-40 h-40 sm:w-48 sm:h-48 relative p-1.5 bg-surface-container-lowest rounded-[2rem] sm:rounded-[2.5rem] shadow-sm border border-outline-variant/40 cursor-pointer hover:border-outline-variant/80 transition-all"
                 onClick={() => setIsFullscreenDp(true)}
               >
-                <Avatar
-                  src={profileUser.profilePic}
-                  name={profileUser.displayName || profileUser.username}
-                  sizeClass="w-full h-full"
-                  textClass="text-6xl md:text-7xl"
-                  roundedClass="rounded-[1.6rem] sm:rounded-[2.1rem]"
+                <StoryRing
+                  user={profileUser}
+                  size="100%"
+                  className="w-full h-full"
                 />
               </div>
             </div>
@@ -324,7 +362,7 @@ export default function UserProfile() {
                             <span className="md:text-[11px] lg:text-[13px]">Message</span>
                           </button>
                           <button
-                            onClick={() => toast("Voice call starting...")}
+                            onClick={() => triggerCall('voice')}
                             className="flex-1 py-3 px-4 bg-surface-container-low text-on-surface hover:bg-surface-container-high hover:text-primary font-bold rounded-xl text-[13px] flex flex-row md:flex-col lg:flex-row items-center justify-center gap-2 transition-all cursor-pointer hover:-translate-y-0.5 border border-outline-variant/40"
                             title="Voice Call"
                           >
@@ -332,7 +370,7 @@ export default function UserProfile() {
                             <span className="md:text-[11px] lg:text-[13px]">Voice</span>
                           </button>
                           <button
-                            onClick={() => toast("Video call starting...")}
+                            onClick={() => triggerCall('video')}
                             className="flex-1 py-3 px-4 bg-surface-container-low text-on-surface hover:bg-surface-container-high hover:text-primary font-bold rounded-xl text-[13px] flex flex-row md:flex-col lg:flex-row items-center justify-center gap-2 transition-all cursor-pointer hover:-translate-y-0.5 border border-outline-variant/40"
                             title="Video Call"
                           >

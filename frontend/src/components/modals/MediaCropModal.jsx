@@ -92,7 +92,7 @@ export default function MediaCropModal({ imageSrc, onClose, onSend, isSnap = fal
       </div>
 
       {/* Cropper Container */}
-      <div className="flex-1 relative w-full min-h-0 bg-black">
+      <div className="flex-1 relative w-full h-0 min-h-0 bg-black flex items-center justify-center">
         <Cropper
           src={imageSrc}
           style={{ height: '100%', width: '100%' }}

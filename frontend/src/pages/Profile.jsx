@@ -165,12 +165,10 @@ export default function Profile() {
                 </p>
               </div>
               
-              {/* Closing Quote (Bottom Right) - Only if bio exists */}
-              {bio && (
-                <div className="absolute bottom-0 right-0 text-5xl md:text-6xl text-white/[0.06] font-serif leading-none select-none pointer-events-none rotate-180 translate-y-2">
-                  "
-                </div>
-              )}
+              {/* Closing Quote (Bottom Right) - Always visible */}
+              <div className="absolute bottom-0 right-0 text-5xl md:text-6xl text-white/[0.06] font-serif leading-none select-none pointer-events-none rotate-180 translate-y-2">
+                "
+              </div>
             </div>
             
             {/* Elegant Divider */}

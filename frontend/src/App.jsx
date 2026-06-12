@@ -21,6 +21,7 @@ import AddFriends from './pages/AddFriends';
 import Discover from './pages/Discover';
 import Calls from './pages/Calls';
 import Friends from './pages/Friends';
+import Stories from './pages/Stories';
 import Activity from './pages/Activity';
 import Profile from './pages/Profile';
 import UserProfile from './pages/UserProfile';
@@ -321,6 +322,7 @@ export default function App() {
               <UserLayout />
         }>
           <Route index element={<Chat />} />
+          <Route path="stories" element={<Stories />} />
           <Route path="calls" element={<Calls />} />
           <Route path="friends" element={<Friends />} />
           <Route path="activity" element={<Activity />} />

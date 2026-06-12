@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import chatWindowBg from '../assets/images/chat-window.jpg';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, MoreHorizontal, CheckCheck, Check, Phone, Video, Play, Pause, FileText, Search, Image as ImageIcon, Clock, MonitorPlay, Download, StopCircle, X, ChevronUp, ChevronDown, Eye, Camera, Trash2 } from 'lucide-react';
+import { ArrowLeft, MoreHorizontal, CheckCheck, Check, Phone, Video, Play, Pause, FileText, Search, Image as ImageIcon, Clock, MonitorPlay, Download, StopCircle, X, ChevronUp, ChevronDown, Eye, Camera, Trash2, CircleDashed } from 'lucide-react';
 import ChatInput from './ChatInput';
 import Select from './ui/Select';
 import { useChatStore } from '../store/useChatStore';
@@ -813,6 +813,7 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
   const isImg = message?.messageType === 'image' || text?.startsWith('[Shared Image');
   const isVideo = message?.messageType === 'video';
   const isSnap = message?.messageType === 'snap';
+  const isStoryReply = message?.messageType === 'story_reply';
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(null);
@@ -1130,6 +1131,19 @@ function MessagePanel({ isOwn, text, time, status, isFirstInGroup, isLastInGroup
                   </span>
                 </div>
               )}
+            </div>
+          ) : isStoryReply ? (
+            <div className="flex flex-col min-w-[200px] max-w-sm rounded-lg overflow-hidden relative group p-1.5">
+              <div className={`text-[10px] uppercase tracking-widest font-bold flex items-center gap-1.5 mb-2 ${isOwn ? 'text-white/50' : 'text-[#0A84FF]'}`}>
+                <CircleDashed size={12} /> 
+                {isOwn ? 'Replied to story' : 'Replied to your story'}
+              </div>
+              {message?.mediaUrl && (
+                <div className="relative rounded-md overflow-hidden bg-black mb-2 aspect-[9/16] max-h-[300px]">
+                  <img src={message.mediaUrl} alt="Story thumbnail" className="w-full h-full object-cover opacity-90" />
+                </div>
+              )}
+              {text && <span className={`text-[14px] leading-relaxed whitespace-pre-wrap break-words inline-block px-1 ${isOwn ? 'text-white/95' : 'text-white/85'}`}>{text}</span>}
             </div>
           ) : (
             <span className={`text-[14px] leading-relaxed whitespace-pre-wrap break-words inline-block ${isOwn ? 'text-white/95' : 'text-white/85'}`}>

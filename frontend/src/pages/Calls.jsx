@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function Calls() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { activeCall, setActiveCall } = useLayoutStore();
+  const { activeCall, setActiveCall, incomingCall } = useLayoutStore();
   const { socket, onlineUsers } = useChatStore();
   const { friends, getFriends, isLoading: isFriendsLoading } = useFriendStore();
   const { confirm } = useConfirmStore();
@@ -40,10 +40,10 @@ export default function Calls() {
 
   // Re-fetch call history when a call ends to update instantly
   useEffect(() => {
-    if (!activeCall && !historyLoading) {
+    if (!activeCall && !incomingCall && !historyLoading) {
       fetchCallHistory();
     }
-  }, [activeCall]);
+  }, [activeCall, incomingCall]);
 
   const fetchCallHistory = async () => {
     setHistoryLoading(true);

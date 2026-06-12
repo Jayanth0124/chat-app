@@ -9,6 +9,7 @@ import { useNotificationStore } from '../store/useNotificationStore';
 import { useNavigate } from 'react-router-dom';
 import { useLongPress } from '../hooks/useLongPress';
 import { useConfirmStore } from '../store/useConfirmStore';
+import StoryRing from './stories/StoryRing';
 import Avatar from './ui/Avatar';
 
 function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContextMenu, setActiveContextMenu, getSender, getSenderPic, unreadCounts }) {
@@ -97,12 +98,23 @@ function ChatListItem({ chat, user, selectedChat, setSelectedChat, activeContext
           }}
           className="relative shrink-0 flex items-center justify-center cursor-pointer transition-transform"
         >
-          <div className="w-[48px] h-[48px] rounded-full overflow-hidden shadow-lg border border-white/5 bg-black/50 flex shrink-0">
-            <Avatar 
-              src={!chat.isGroupChat ? getSenderPic(user, chat.participants) : null}
-              name={!chat.isGroupChat ? getSender(user, chat.participants) : chat.groupName}
-              sizeClass="w-full h-full text-lg"
-            />
+          <div className="w-[48px] h-[48px] rounded-full flex shrink-0 items-center justify-center">
+            {!chat.isGroupChat && otherParticipant ? (
+              <StoryRing 
+                user={{
+                  ...otherParticipant,
+                  profilePic: getSenderPic(user, chat.participants),
+                  displayName: getSender(user, chat.participants)
+                }}
+                size={48} 
+              />
+            ) : (
+              <Avatar 
+                src={chat.isGroupChat ? chat.groupPic : getSenderPic(user, chat.participants)}
+                name={chat.isGroupChat ? chat.groupName : getSender(user, chat.participants)}
+                sizeClass="w-full h-full text-lg shadow-lg border border-white/5 bg-black/50"
+              />
+            )}
           </div>
           {isOnline && (
             <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#34C759] rounded-full border-[2px] border-[#1C1C1E] shadow-sm z-10" />

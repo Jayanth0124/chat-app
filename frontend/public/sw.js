@@ -134,6 +134,16 @@ self.addEventListener('push', function(event) {
 
         const isCall = type === 'incoming_call' || (data.data && data.data.type === 'incoming_call');
 
+        // Check if the app is currently in focus
+        const windowClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+        const isAppFocused = windowClients.some(client => client.focused);
+
+        // If the app is focused, don't show incoming call push notifications 
+        // because the in-app UI will handle it.
+        if (isAppFocused && isCall) {
+          return;
+        }
+
         const options = {
           body: data.body || '',
           icon: data.icon || '/logo.png',

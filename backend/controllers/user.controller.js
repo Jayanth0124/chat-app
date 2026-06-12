@@ -96,7 +96,7 @@ export const updateProfile = async (req, res) => {
     ).select("-password");
 
     if (req.io) {
-      req.io.emit('userProfileUpdated', {
+      req.io.except(userId.toString()).emit('userProfileUpdated', {
         userId: updatedUser._id,
         updatedData: {
           displayName: updatedUser.displayName,
@@ -331,7 +331,7 @@ export const updatePrivacySettings = async (req, res) => {
 
     if (onlineStatusChanged && req.io) {
       // Broadcast the change immediately so clients update chat list/profile
-      req.io.emit('privacySettingsUpdated', {
+      req.io.except(req.user._id.toString()).emit('privacySettingsUpdated', {
         userId: user._id.toString(),
         onlineStatus: onlineStatus,
         isOnline: user.isOnline,

@@ -69,7 +69,6 @@ export const useFriendStore = create((set, get) => ({
   sendRequest: async (userId) => {
     try {
       await axiosInstance.post(`/users/request/${userId}`);
-      toast.success('Friend request sent');
       get().getRequests(); // Refresh requests list
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to send request');
@@ -79,7 +78,6 @@ export const useFriendStore = create((set, get) => ({
   acceptRequest: async (userId) => {
     try {
       await axiosInstance.post(`/users/accept/${userId}`);
-      toast.success('Friend request accepted');
       get().getRequests();
       get().getFriends();
     } catch (error) {
@@ -90,7 +88,6 @@ export const useFriendStore = create((set, get) => ({
   rejectRequest: async (userId) => {
     try {
       await axiosInstance.post(`/users/reject/${userId}`);
-      toast.success('Friend request rejected');
       get().getRequests();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to reject request');
@@ -100,7 +97,6 @@ export const useFriendStore = create((set, get) => ({
   removeFriend: async (userId) => {
     try {
       await axiosInstance.delete(`/users/remove/${userId}`);
-      toast.success('Friend removed');
       get().getFriends();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to remove friend');
@@ -110,7 +106,6 @@ export const useFriendStore = create((set, get) => ({
   blockUser: async (userId) => {
     try {
       await axiosInstance.post(`/users/block/${userId}`);
-      toast.success('User blocked');
       get().getFriends();
       get().getRequests();
     } catch (error) {
@@ -121,7 +116,6 @@ export const useFriendStore = create((set, get) => ({
   unblockUser: async (userId) => {
     try {
       await axiosInstance.post(`/users/unblock/${userId}`);
-      toast.success('User unblocked');
       get().getFriends();
       get().getRequests();
     } catch (error) {
