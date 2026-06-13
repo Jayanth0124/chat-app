@@ -8,6 +8,7 @@ import cookieParser from 'cookie-parser';
 import { handleSockets } from './sockets/socketHandler.js';
 import Message from './models/Message.js';
 import Broadcast from './models/Broadcast.js';
+import Story from './models/Story.js';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import chatRoutes from './routes/chat.js';
@@ -126,6 +127,34 @@ mongoose.connect(process.env.MONGODB_URI, {
         const deletedBroadcasts = await Broadcast.deleteMany({ expiresAt: { $ne: null, $lte: new Date() } });
         if (deletedBroadcasts.deletedCount > 0) {
           console.log(`[PRUNING] Cleaned up ${deletedBroadcasts.deletedCount} expired broadcasts.`);
+        }
+
+        // Clean up Cloudinary assets for expired stories, but keep the story docs for rank
+        const expiredStories = await Story.find({ expiresAt: { $lte: new Date() }, mediaUrl: { $ne: null, $exists: true } });
+        let deletedStoryAssets = 0;
+        for (const story of expiredStories) {
+          if (story.mediaUrl && story.mediaUrl.includes('cloudinary.com')) {
+            try {
+              const urlParts = story.mediaUrl.split('/upload/');
+              if (urlParts.length > 1) {
+                const afterUpload = urlParts[1].split('/');
+                if (afterUpload[0].startsWith('v') && !isNaN(afterUpload[0].substring(1))) {
+                  afterUpload.shift();
+                }
+                const publicId = afterUpload.join('/').split('.')[0];
+                const resourceType = story.mediaType === 'video' ? 'video' : 'image';
+                await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+                deletedStoryAssets++;
+              }
+            } catch (e) {
+              console.error('Failed to delete story asset from Cloudinary:', e);
+            }
+          }
+          story.mediaUrl = null;
+          await story.save();
+        }
+        if (deletedStoryAssets > 0) {
+          console.log(`[PRUNING] Cleaned up ${deletedStoryAssets} Cloudinary assets from expired stories.`);
         }
       } catch (err) {
         console.error('Failed to run periodic pruning:', err);

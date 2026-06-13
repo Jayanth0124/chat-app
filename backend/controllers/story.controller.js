@@ -5,7 +5,7 @@ import cloudinary from "../utils/cloudinary.js";
 // Create a new story
 export const createStory = async (req, res) => {
   try {
-    const { mediaUrl, mediaType, caption, textOverlay, privacy, allowedUsers } = req.body;
+    const { mediaUrl, mediaType, caption, textOverlay, privacy, allowedUsers, showBadge } = req.body;
     const userId = req.user._id;
 
     if (!mediaUrl && mediaType !== 'text') {
@@ -35,6 +35,7 @@ export const createStory = async (req, res) => {
       caption,
       textOverlay,
       privacy: privacy || 'everyone',
+      showBadge: showBadge !== undefined ? showBadge : true,
       allowedUsers: allowedUsers || [],
       expiresAt
     });
@@ -80,9 +81,20 @@ export const getStories = async (req, res) => {
     const publicUserIds = publicUsers.map(u => u._id);
 
     const stories = await Story.find({
-      $or: [
-        { user: { $in: validUserIds } },
-        { user: { $in: publicUserIds } }
+      $and: [
+        {
+          $or: [
+            { user: { $in: validUserIds } },
+            { user: { $in: publicUserIds } }
+          ]
+        },
+        {
+          $or: [
+            { privacy: { $ne: 'custom' } },
+            { privacy: 'custom', allowedUsers: userId },
+            { user: userId }
+          ]
+        }
       ],
       expiresAt: { $gt: new Date() },
       isArchived: false
@@ -211,10 +223,21 @@ export const deleteStory = async (req, res) => {
       return res.status(404).json({ message: "Story not found or unauthorized" });
     }
 
-    if (story.mediaUrl) {
-      // Optional: Delete from cloudinary
-      // const publicId = story.mediaUrl.split("/").pop().split(".")[0];
-      // await cloudinary.uploader.destroy(publicId);
+    if (story.mediaUrl && story.mediaUrl.includes('cloudinary.com')) {
+      try {
+        const urlParts = story.mediaUrl.split('/upload/');
+        if (urlParts.length > 1) {
+          const afterUpload = urlParts[1].split('/');
+          if (afterUpload[0].startsWith('v') && !isNaN(afterUpload[0].substring(1))) {
+            afterUpload.shift();
+          }
+          const publicId = afterUpload.join('/').split('.')[0];
+          const resourceType = story.mediaType === 'video' ? 'video' : 'image';
+          await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+        }
+      } catch (e) {
+        console.error('Failed to delete story asset from Cloudinary:', e);
+      }
     }
     // Use exact match deletion by storyId and userId to prevent accidental cascade deletions
     await Story.deleteOne({ _id: storyId, user: userId });
@@ -230,6 +253,130 @@ export const deleteStory = async (req, res) => {
     res.status(200).json({ success: true, message: "Story deleted" });
   } catch (error) {
     console.error("Error in deleteStory:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Get stats for the current user
+export const getStoryStats = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Get all stories for the user (including archived/expired ones if they exist in DB)
+    const allStories = await Story.find({ user: userId }).sort({ createdAt: 1 });
+
+    let totalStories = allStories.length;
+    let totalStoryViews = 0;
+    
+    // Time bounds
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+
+    let storiesThisWeek = 0;
+    let storiesThisMonth = 0;
+    
+    // Streak tracking
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let lastStoryDateStr = null;
+
+    // Iterate chronologically to calculate streaks and other stats
+    allStories.forEach(story => {
+      // Views
+      if (story.views) {
+        totalStoryViews += story.views.length;
+      }
+
+      // Time filters
+      const storyDate = new Date(story.createdAt);
+      if (storyDate >= oneWeekAgo) storiesThisWeek++;
+      if (storyDate >= oneMonthAgo) storiesThisMonth++;
+
+      // Streak logic (group by calendar day string: YYYY-MM-DD)
+      const dateStr = storyDate.toISOString().split('T')[0];
+      
+      if (!lastStoryDateStr) {
+        currentStreak = 1;
+        longestStreak = 1;
+        lastStoryDateStr = dateStr;
+      } else if (dateStr !== lastStoryDateStr) {
+        // Parse dates to check consecutive days
+        const lastDate = new Date(lastStoryDateStr);
+        const currDate = new Date(dateStr);
+        const diffTime = Math.abs(currDate - lastDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        
+        if (diffDays === 1) {
+          // Consecutive day
+          currentStreak++;
+          longestStreak = Math.max(longestStreak, currentStreak);
+        } else if (diffDays > 1) {
+          // Streak broken
+          currentStreak = 1;
+        }
+        lastStoryDateStr = dateStr;
+      }
+    });
+
+    // Check if the current streak is dead (no stories today or yesterday)
+    if (lastStoryDateStr) {
+      const lastDate = new Date(lastStoryDateStr);
+      const diffTime = Math.abs(now - lastDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      // If it's been > 2 days since last story, streak is broken for "current"
+      if (diffDays > 2) {
+        currentStreak = 0;
+      }
+    }
+
+    res.status(200).json({
+      totalStories,
+      totalStoryViews,
+      currentStreak,
+      longestStreak,
+      storiesThisMonth,
+      storiesThisWeek
+    });
+
+  } catch (error) {
+    console.error("Error in getStoryStats:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const updateStoryPrivacy = async (req, res) => {
+  try {
+    const { storyId } = req.params;
+    const { privacy, allowedUsers, showBadge } = req.body;
+    const userId = req.user._id;
+
+    const story = await Story.findById(storyId);
+    if (!story) return res.status(404).json({ message: "Story not found" });
+
+    // Only owner can update privacy
+    if (story.user.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "Not authorized to update this story" });
+    }
+
+    story.privacy = privacy || story.privacy;
+    if (allowedUsers !== undefined) story.allowedUsers = allowedUsers;
+    if (showBadge !== undefined) story.showBadge = showBadge;
+
+    await story.save();
+    
+    // Populate user to return the full story object similar to what the frontend expects
+    await story.populate("user", "username displayName profilePic");
+
+    // Emit event to update live clients
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("storyUpdated", story);
+    }
+
+    res.status(200).json(story);
+  } catch (error) {
+    console.error("Error in updateStoryPrivacy:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

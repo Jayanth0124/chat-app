@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Heart, MessageCircle, Eye, Trash2, MoreVertical, Send, Loader2, User, Share, Download, Archive, Link as LinkIcon } from 'lucide-react';
+import { X, Heart, MessageCircle, Eye, Trash2, MoreVertical, Send, Loader2, User, Share, Download, Archive, Link as LinkIcon, Star } from 'lucide-react';
 import useStoryStore from '../../store/useStoryStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useChatStore } from '../../store/useChatStore';
 import Avatar from '../ui/Avatar';
+import StoryPrivacyModal from '../modals/StoryPrivacyModal';
 
 const STORY_DURATION = 5000;
 
@@ -43,6 +44,9 @@ export default function StoryViewer({ groups, initialGroupIndex, onClose }) {
   
   const [showInsights, setShowInsights] = useState(false);
   const [showOwnerMenu, setShowOwnerMenu] = useState(false);
+  const [showEditPrivacy, setShowEditPrivacy] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const formatTime = (date) => {
     const seconds = Math.floor((new Date() - date) / 1000);
@@ -67,14 +71,14 @@ export default function StoryViewer({ groups, initialGroupIndex, onClose }) {
   const isClosingRef = useRef(false);
   
   const { user } = useAuthStore();
-  const { stories, viewStory, reactToStory, deleteStory } = useStoryStore();
+  const { stories, viewStory, reactToStory, deleteStory, updateStoryPrivacy } = useStoryStore();
   const { sendReplyToStory } = useChatStore.getState();
 
   // Compute LIVE group and story data so websocket updates reflect instantly!
   const staticGroup = groups[currentGroupIndex];
   const currentGroup = staticGroup ? {
     ...staticGroup,
-    stories: staticGroup.stories.map(s => stories.find(live => live._id === s._id) || s).filter(s => stories.find(live => live._id === s._id) || s._id)
+    stories: staticGroup.stories.map(s => stories.find(live => live._id === s._id)).filter(Boolean)
   } : null;
   
   const currentStory = currentGroup?.stories[currentStoryIndex];
@@ -120,7 +124,7 @@ export default function StoryViewer({ groups, initialGroupIndex, onClose }) {
   }, [currentStoryIndex, currentGroupIndex]);
 
   useEffect(() => {
-    if (isPaused || showInsights || showOwnerMenu || isReplying) {
+    if (isPaused || showInsights || showOwnerMenu || isReplying || showEditPrivacy || showDeleteConfirm) {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
       if (videoRef.current) videoRef.current.pause();
       return;
@@ -208,10 +212,17 @@ export default function StoryViewer({ groups, initialGroupIndex, onClose }) {
     }
   };
 
-  const handleDelete = async () => {
-    if (!currentStory) return;
+  const handleDelete = () => {
+    setShowOwnerMenu(false);
+    setShowDeleteConfirm(true);
     setIsPaused(true);
-    if (window.confirm("Delete this story?")) {
+  };
+
+  const confirmDelete = async () => {
+    if (!currentStory || isDeleting) return;
+    setIsDeleting(true);
+    
+    try {
       await deleteStory(currentStory._id);
       if (currentGroup.stories.length === 1) {
         if (groups.length === 1) onClose();
@@ -221,9 +232,11 @@ export default function StoryViewer({ groups, initialGroupIndex, onClose }) {
           handlePrev();
         }
       }
+    } finally {
+      setShowDeleteConfirm(false);
+      setIsPaused(false);
+      setIsDeleting(false);
     }
-    setIsPaused(false);
-    setShowOwnerMenu(false);
   };
 
   const handleReaction = (e, emoji) => {
@@ -391,6 +404,11 @@ export default function StoryViewer({ groups, initialGroupIndex, onClose }) {
                 <span className="font-bold text-[14px] text-white flex items-center gap-2">
                   {currentGroup.user.displayName}
                   {isOwner && <span className="bg-white/20 text-white px-1.5 py-0.5 rounded text-[9px] font-bold">OWNER</span>}
+                  {currentStory.privacy === 'custom' && currentStory.showBadge !== false && (
+                    <span className="bg-green-500/20 text-green-400 border border-green-500/30 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+                      <Star size={10} className="fill-current" /> Close Friends
+                    </span>
+                  )}
                 </span>
                 <span className="text-[11px] text-white/70 font-medium tracking-wide">
                   {formatTime(new Date(currentStory.createdAt))}
@@ -494,9 +512,9 @@ export default function StoryViewer({ groups, initialGroupIndex, onClose }) {
                     <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center"><Download size={20} /></div>
                     <span className="font-semibold text-[15px]">Save Photo</span>
                   </button>
-                  <button className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 transition text-white/90">
-                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center"><LinkIcon size={20} /></div>
-                    <span className="font-semibold text-[15px]">Copy Link</span>
+                  <button onClick={() => { setShowOwnerMenu(false); setShowEditPrivacy(true); }} className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 transition text-white/90">
+                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center"><Star size={20} /></div>
+                    <span className="font-semibold text-[15px]">Edit Privacy</span>
                   </button>
 
                   <button onClick={handleDelete} className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-red-500/10 transition text-red-500 mt-2 border border-red-500/20 bg-red-500/5">
@@ -620,6 +638,61 @@ export default function StoryViewer({ groups, initialGroupIndex, onClose }) {
           )}
         </AnimatePresence>
       </motion.div>
+
+      {showEditPrivacy && (
+        <StoryPrivacyModal 
+          isEditing={true}
+          initialPrivacy={currentStory?.privacy}
+          initialAllowedUsers={currentStory?.allowedUsers}
+          initialShowBadge={currentStory?.showBadge}
+          onClose={() => setShowEditPrivacy(false)}
+          onConfirm={async (privacyData) => {
+            await updateStoryPrivacy(currentStory._id, privacyData);
+            setShowEditPrivacy(false);
+          }}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm pointer-events-auto">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#1C1C1E] border border-white/10 w-full max-w-[320px] rounded-[24px] overflow-hidden shadow-2xl flex flex-col p-6 items-center text-center"
+            >
+              <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-4">
+                <Trash2 size={28} />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">Delete Story?</h3>
+              <p className="text-sm text-white/60 mb-6">
+                This story will be permanently removed. This action cannot be undone.
+              </p>
+              
+              <div className="flex gap-3 w-full">
+                <button 
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setIsPaused(false);
+                  }}
+                  className="flex-1 py-3 rounded-xl font-bold text-[14px] bg-white/10 text-white hover:bg-white/20 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className={`flex-1 py-3 rounded-xl font-bold text-[14px] text-white shadow-lg shadow-red-500/20 transition-all flex items-center justify-center gap-2 ${isDeleting ? 'bg-red-500/50 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}
+                >
+                  {isDeleting ? <Loader2 size={16} className="animate-spin" /> : 'Delete'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

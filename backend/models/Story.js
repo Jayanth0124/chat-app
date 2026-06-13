@@ -29,6 +29,10 @@ const storySchema = new mongoose.Schema(
       enum: ["everyone", "contacts", "close_friends", "custom"],
       default: "everyone",
     },
+    showBadge: {
+      type: Boolean,
+      default: true,
+    },
     allowedUsers: [
       {
         type: mongoose.Schema.Types.ObjectId,
