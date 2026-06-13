@@ -1,6 +1,6 @@
 import express from 'express';
 import { protectRoute } from '../middleware/auth.middleware.js';
-import { getUsersForSidebar, updateProfile, changeUsername, getUserById, getActiveBroadcasts, updatePrivacySettings, requestUsernameChange, getUsernameChangeRequests, getConnection } from '../controllers/user.controller.js';
+import { getUsersForSidebar, updateProfile, changeUsername, getUserById, getActiveBroadcasts, updatePrivacySettings, requestUsernameChange, getUsernameChangeRequests, getConnection, updateLastViewed } from '../controllers/user.controller.js';
 import { getSettings } from '../controllers/admin.controller.js';
 import { 
   searchUsers, 
@@ -27,6 +27,7 @@ router.post('/username-request', protectRoute, requestUsernameChange);
 router.get('/username-request', protectRoute, getUsernameChangeRequests);
 router.put('/privacy', protectRoute, updatePrivacySettings);
 router.get('/notifications/broadcasts', protectRoute, getActiveBroadcasts);
+router.put('/last-viewed', protectRoute, updateLastViewed);
 // Friend System Routes
 router.get('/search', protectRoute, searchUsers);
 router.get('/friends', protectRoute, getFriends);

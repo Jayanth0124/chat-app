@@ -5,6 +5,8 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 import { useFriendStore } from '../store/useFriendStore';
 import { useNotificationStore } from '../store/useNotificationStore';
+import { useChatStore } from '../store/useChatStore';
+import useStoryStore from '../store/useStoryStore';
 import { useEffect } from 'react';
 
 export default function UserSidebar() {
@@ -26,10 +28,29 @@ export default function UserSidebar() {
     getRequests();
   }, [getRequests]);
 
+  const { unreadCounts } = useChatStore();
+  const unreadChatsCount = Object.keys(unreadCounts || {}).length;
+
+  const { stories } = useStoryStore();
+  const lastStoriesViewed = user?.lastViewed?.stories ? new Date(user.lastViewed.stories) : new Date(0);
+  const hasNewStories = stories?.some(s => new Date(s.createdAt) > lastStoriesViewed);
+
+  const { callHistory } = useLayoutStore();
+  const lastCallsViewed = user?.lastViewed?.calls ? new Date(user.lastViewed.calls) : new Date(0);
+  const hasNewMissedCalls = callHistory?.some(c => 
+    (c.status === 'missed' || c.status === 'rejected') && 
+    c.receiver?._id === user?._id && 
+    new Date(c.startTime) > lastCallsViewed
+  );
+
+  const { notifications } = useNotificationStore();
+  const lastNotificationsViewed = user?.lastViewed?.notifications ? new Date(user.lastViewed.notifications) : new Date(0);
+  const hasNewNotifications = notifications?.some(n => new Date(n.createdAt) > lastNotificationsViewed);
+
   const navItems = [
-    { to: '/', icon: <MessageSquare size={22} />, label: 'Chats', type: 'link' },
-    { to: '/stories', icon: <CircleDashed size={22} />, label: 'Stories', type: 'link' },
-    { to: '/calls', icon: <Phone size={22} />, label: 'Calls', type: 'link' },
+    { to: '/', icon: <MessageSquare size={22} />, label: 'Chats', type: 'link', badge: unreadChatsCount > 0 ? unreadChatsCount : null },
+    { to: '/stories', icon: <CircleDashed size={22} />, label: 'Stories', type: 'link', badge: hasNewStories ? 'dot' : null },
+    { to: '/calls', icon: <Phone size={22} />, label: 'Calls', type: 'link', badge: hasNewMissedCalls ? 'dot' : null },
     {
       to: '/friends',
       icon: <Users size={22} />,
@@ -42,7 +63,7 @@ export default function UserSidebar() {
       icon: <Bell size={22} />,
       label: 'Activity Center',
       type: 'link',
-      badge: unreadCount > 0 ? unreadCount : null,
+      badge: hasNewNotifications ? 'dot' : null,
     },
     { to: '/settings', icon: <Settings size={22} />, label: 'Settings', type: 'link' },
   ];
@@ -50,17 +71,30 @@ export default function UserSidebar() {
   const SidebarItem = ({ item, index }) => {
     const isActive = item.type === 'link' && location.pathname === item.to;
 
+    const renderBadge = () => {
+      if (!item.badge) return null;
+      if (item.badge === 'dot') {
+        return <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-surface shadow-sm"></span>;
+      }
+      return (
+        <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-primary rounded-full text-white text-[9px] font-bold flex items-center justify-center shadow-sm">
+          {item.badge > 9 ? '9+' : item.badge}
+        </span>
+      );
+    };
+
     const inner =
       item.type === 'link' ? (
         <Link
           to={item.to}
-          className={`p-3 rounded-2xl transition-all duration-300 ${
+          className={`relative p-3 rounded-2xl transition-all duration-300 ${
             isActive
               ? 'text-white bg-gradient-to-br from-primary to-primary-container shadow-lg shadow-primary/25 font-bold'
               : 'text-on-surface-variant hover:bg-on-surface/10 hover:text-on-surface'
           }`}
         >
           {item.icon}
+          {renderBadge()}
         </Link>
       ) : (
         <button
@@ -68,11 +102,7 @@ export default function UserSidebar() {
           className="relative p-3 rounded-2xl text-on-surface-variant hover:bg-on-surface/10 hover:text-on-surface transition-all duration-300 cursor-pointer"
         >
           {item.icon}
-          {item.badge && (
-            <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-primary rounded-full text-white text-[9px] font-bold flex items-center justify-center">
-              {item.badge > 9 ? '9+' : item.badge}
-            </span>
-          )}
+          {renderBadge()}
         </button>
       );
 

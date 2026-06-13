@@ -24,10 +24,9 @@ export default function UserLayout() {
     activeCall, setActiveCall,
     incomingCall, setIncomingCall,
     isManageFriendsOpen, setManageFriendsOpen,
-    activeAnnouncement, setActiveAnnouncement
+    activeAnnouncement, setActiveAnnouncement,
+    callHistory, setCallHistory
   } = useLayoutStore();
-
-  const [callHistory, setCallHistory] = useState([]);
   const [callHistoryLoading, setCallHistoryLoading] = useState(false);
 
   // Audio/Video controls for active call
@@ -76,10 +75,16 @@ export default function UserLayout() {
     useStoryStore.getState().fetchStories();
   }, []);
 
-  // Update last viewed time when visiting /calls
+  // Update last viewed time when visiting specific sections
   useEffect(() => {
-    if (location.pathname === '/calls') {
-      localStorage.setItem('orbit_last_viewed_calls', new Date().toISOString());
+    const sectionMap = {
+      '/calls': 'calls',
+      '/stories': 'stories',
+      '/activity': 'notifications'
+    };
+    const section = sectionMap[location.pathname];
+    if (section) {
+      useAuthStore.getState().updateLastViewed(section);
     }
   }, [location.pathname]);
 
@@ -544,6 +549,19 @@ export default function UserLayout() {
     setActiveCall(null);
   };
 
+  const unreadChatsCount = Object.keys(useChatStore().unreadCounts || {}).length;
+  
+  const stories = useStoryStore().stories;
+  const lastStoriesViewed = user?.lastViewed?.stories ? new Date(user.lastViewed.stories) : new Date(0);
+  const hasNewStories = stories?.some(s => new Date(s.createdAt) > lastStoriesViewed);
+
+  const lastCallsViewed = user?.lastViewed?.calls ? new Date(user.lastViewed.calls) : new Date(0);
+  const hasNewMissedCalls = callHistory?.some(c => 
+    (c.status === 'missed' || c.status === 'rejected') && 
+    c.receiver?._id === user?._id && 
+    new Date(c.startTime) > lastCallsViewed
+  );
+
   return (
     <div className="relative h-screen w-full flex flex-col md:flex-row overflow-hidden font-sans bg-black text-on-surface">
       <div className="hidden md:block h-full relative z-50">
@@ -556,16 +574,29 @@ export default function UserLayout() {
 
       <div className={`md:hidden flex justify-around items-center bg-surface border-t border-outline-variant/60 px-2 py-1 shrink-0 pb-safe ${location.pathname === '/' && selectedChat ? 'hidden' : 'flex'
         }`}>
-        <button onClick={() => navigate('/')} className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
+        <button onClick={() => navigate('/')} className={`relative flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
           <MessageSquare size={20} />
+          {unreadChatsCount > 0 && (
+            <span className="absolute top-1 right-2 w-4 h-4 bg-primary rounded-full text-white text-[9px] font-bold flex items-center justify-center shadow-sm">
+              {unreadChatsCount > 9 ? '9+' : unreadChatsCount}
+            </span>
+          )}
           <span className="text-[10px] font-semibold">Chats</span>
         </button>
-        <button onClick={() => navigate('/calls')} className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/calls' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
+        <button onClick={() => navigate('/calls')} className={`relative flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/calls' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
           <Phone size={20} />
+          {hasNewMissedCalls && (
+            <span className="absolute top-1.5 right-3 w-2 h-2 bg-red-500 rounded-full border-2 border-surface shadow-sm"></span>
+          )}
           <span className="text-[10px] font-semibold">Calls</span>
         </button>
-        <button onClick={() => navigate('/friends')} className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/friends' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
+        <button onClick={() => navigate('/friends')} className={`relative flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/friends' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
           <Users size={20} />
+          {useFriendStore().incomingRequests?.length > 0 && (
+            <span className="absolute top-1 right-2 w-4 h-4 bg-primary rounded-full text-white text-[9px] font-bold flex items-center justify-center shadow-sm">
+              {useFriendStore().incomingRequests.length > 9 ? '9+' : useFriendStore().incomingRequests.length}
+            </span>
+          )}
           <span className="text-[10px] font-semibold">Friends</span>
         </button>
         <button onClick={() => navigate('/profile')} className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/profile' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
@@ -574,6 +605,9 @@ export default function UserLayout() {
         </button>
         <button onClick={() => navigate('/stories')} className={`relative flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/stories' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
           <CircleDashed size={20} />
+          {hasNewStories && (
+            <span className="absolute top-1.5 right-3 w-2 h-2 bg-red-500 rounded-full border-2 border-surface shadow-sm"></span>
+          )}
           <span className="text-[10px] font-semibold">Stories</span>
         </button>
       </div>

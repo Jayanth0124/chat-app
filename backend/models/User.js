@@ -121,7 +121,12 @@ const userSchema = new mongoose.Schema({
     type: Date
   },
   resetPasswordToken: String,
-  resetPasswordExpires: Date
+  resetPasswordExpires: Date,
+  lastViewed: {
+    stories: { type: Date, default: Date.now },
+    calls: { type: Date, default: Date.now },
+    notifications: { type: Date, default: Date.now }
+  }
 }, { timestamps: true });
 
 export default mongoose.model('User', userSchema);

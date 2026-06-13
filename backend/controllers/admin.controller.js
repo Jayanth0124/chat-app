@@ -10,6 +10,7 @@ import Broadcast from '../models/Broadcast.js';
 import Notification from '../models/Notification.js';
 import Setting from '../models/Setting.js';
 import UsernameChangeRequest from '../models/UsernameChangeRequest.js';
+import bcrypt from 'bcrypt';
 import Call from '../models/Call.js';
 import { sendPushNotification } from '../utils/webPush.js';
 
@@ -640,3 +641,78 @@ export const updateUsernameRequest = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const updateAdminUsername = async (req, res) => {
+  try {
+    const { username } = req.body;
+    if (!username || username.length < 8) {
+      return res.status(400).json({ message: "Username must be at least 8 characters long." });
+    }
+
+    const existingUser = await User.findOne({ username });
+    if (existingUser && existingUser._id.toString() !== req.user._id.toString()) {
+      return res.status(400).json({ message: "Username is already taken." });
+    }
+
+    const admin = await User.findById(req.user._id);
+    const oldUsername = admin.username;
+    
+    admin.username = username;
+    await admin.save();
+
+    await AuditLog.create({
+      adminId: req.user._id,
+      action: 'UPDATE_ADMIN_CREDENTIALS',
+      targetId: req.user._id,
+      targetModel: 'User',
+      details: `Admin changed their username from ${oldUsername} to ${username}.`
+    });
+
+    res.status(200).json({ message: "Username updated successfully", username: admin.username });
+  } catch (error) {
+    console.error("Error in updateAdminUsername:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const updateAdminPassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: "Invalid password data provided." });
+    }
+
+    const admin = await User.findById(req.user._id);
+    
+    const isMatch = await bcrypt.compare(currentPassword, admin.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect." });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    admin.password = await bcrypt.hash(newPassword, salt);
+    await admin.save();
+
+    await AuditLog.create({
+      adminId: req.user._id,
+      action: 'UPDATE_ADMIN_CREDENTIALS',
+      targetId: req.user._id,
+      targetModel: 'User',
+      details: `Admin changed their password.`
+    });
+
+    // Force logout across all active sessions via socket
+    if (req.io) {
+      req.io.to(req.user._id.toString()).emit('forceLogout');
+    }
+
+    // Clear current session cookie
+    res.cookie("jwt", "", { maxAge: 0 });
+
+    res.status(200).json({ message: "Password updated successfully. Please log in again." });
+  } catch (error) {
+    console.error("Error in updateAdminPassword:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+

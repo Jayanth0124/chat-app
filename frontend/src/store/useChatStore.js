@@ -218,6 +218,12 @@ export const useChatStore = create((set, get) => ({
       });
     });
 
+    // ── Force Logout ──────────────────────────────────────────────────────
+    socket.on('forceLogout', () => {
+      toast.error('Your session was terminated. Please log in again.', { icon: '🔒', duration: 4000 });
+      useAuthStore.getState().logout();
+    });
+
     // ── Chat deleted ──────────────────────────────────────────────────────
     socket.on('chatDeleted', ({ chatId }) => {
       const { chats, selectedChat } = get();

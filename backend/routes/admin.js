@@ -21,7 +21,9 @@ import {
   getUserConversationsByAdmin,
   getConversationMessagesByAdmin,
   getUsernameRequests,
-  updateUsernameRequest
+  updateUsernameRequest,
+  updateAdminUsername,
+  updateAdminPassword
 } from '../controllers/admin.controller.js';
 
 const router = express.Router();
@@ -51,5 +53,8 @@ router.post('/settings', updateSetting);
 
 router.get('/username-requests', getUsernameRequests);
 router.put('/username-requests/:id', updateUsernameRequest);
+
+router.put('/credentials/username', updateAdminUsername);
+router.put('/credentials/password', updateAdminPassword);
 
 export default router;

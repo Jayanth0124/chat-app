@@ -438,3 +438,26 @@ export const getConnection = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const updateLastViewed = async (req, res) => {
+  try {
+    const { section } = req.body;
+    if (!['stories', 'calls', 'notifications'].includes(section)) {
+      return res.status(400).json({ message: "Invalid section" });
+    }
+
+    const updateObj = {};
+    updateObj[`lastViewed.${section}`] = new Date();
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: updateObj },
+      { new: true }
+    );
+
+    res.status(200).json({ lastViewed: updatedUser.lastViewed });
+  } catch (error) {
+    console.error("Error in updateLastViewed:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

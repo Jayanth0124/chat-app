@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, MessageSquare, AlertCircle, Shield, Activity, Bell, LogOut, Database, X, LifeBuoy, Fingerprint } from 'lucide-react';
+import { LayoutDashboard, Users, MessageSquare, AlertCircle, Shield, Activity, Bell, LogOut, Database, X, LifeBuoy, Fingerprint, Settings as SettingsIcon } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 
@@ -57,6 +57,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
           <NavItem to="/admin/database" icon={<Database size={18} strokeWidth={2.5} />} label="Database Usage" onClick={() => setIsOpen(false)} />
           <NavItem to="/admin/security" icon={<Shield size={18} strokeWidth={2.5} />} label="Security" onClick={() => setIsOpen(false)} />
           <NavItem to="/admin/notifications" icon={<Bell size={18} strokeWidth={2.5} />} label="Notifications" onClick={() => setIsOpen(false)} />
+          <NavItem to="/admin/settings" icon={<SettingsIcon size={18} strokeWidth={2.5} />} label="Settings" onClick={() => setIsOpen(false)} />
         </nav>
 
         {/* Logout */}

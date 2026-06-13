@@ -138,6 +138,15 @@ export const useAuthStore = create((set) => ({
     }
   },
 
+  updateLastViewed: async (section) => {
+    try {
+      const res = await axiosInstance.put('/user/last-viewed', { section });
+      set((state) => ({ user: { ...state.user, lastViewed: res.data.lastViewed } }));
+    } catch (error) {
+      console.error('Failed to update last viewed:', error);
+    }
+  },
+
   forgotPassword: async (email) => {
     try {
       const res = await axiosInstance.post('/auth/forgot-password', { email });

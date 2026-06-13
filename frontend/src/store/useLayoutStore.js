@@ -22,4 +22,6 @@ export const useLayoutStore = create((set) => ({
   setActiveCall: (call) => set({ activeCall: call }),
   setIncomingCall: (call) => set({ incomingCall: call }),
   setActiveAnnouncement: (announcement) => set({ activeAnnouncement: announcement }),
+  callHistory: [],
+  setCallHistory: (history) => set({ callHistory: history }),
 }));

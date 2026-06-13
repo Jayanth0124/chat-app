@@ -35,6 +35,7 @@ import ChatModeration from './components/admin/ChatModeration';
 import DatabaseUsage from './pages/admin/DatabaseUsage';
 import AdminSupportCenter from './pages/admin/SupportCenter';
 import UsernameRequests from './pages/admin/UsernameRequests';
+import AdminSettings from './pages/admin/AdminSettings';
 import InAppNotification from './components/InAppNotification';
 import ConfirmDialog from './components/ui/ConfirmDialog';
 import { subscribeUserToPush, unsubscribeUserFromPush } from './lib/pushSubscription';
@@ -356,6 +357,7 @@ export default function App() {
             <Route path="database" element={<DatabaseUsage />} />
             <Route path="support" element={<AdminSupportCenter />} />
             <Route path="username-requests" element={<UsernameRequests />} />
+            <Route path="settings" element={<AdminSettings />} />
           </Route>
         )}
 
