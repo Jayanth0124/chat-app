@@ -1,12 +1,67 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Play, Phone, Video, Mic, CheckCheck,
   Shield, Activity, Clock, PhoneOff, Lock,
-  Zap, Satellite, Moon, Globe, Radar, Sparkles, Star
+  Zap, Satellite, Moon, Globe, Radar, Sparkles, Star, Download, X
 } from 'lucide-react';
 
 export default function Welcome() {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+  const [showBanner, setShowBanner] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    // Check if already installed
+    const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    setIsStandalone(isStandaloneMode);
+
+    const checkDismissal = () => {
+      const dismissedAt = localStorage.getItem('pwa_install_dismissed');
+      if (!dismissedAt) return true;
+      const sevenDays = 7 * 24 * 60 * 60 * 1000;
+      return Date.now() - parseInt(dismissedAt, 10) > sevenDays;
+    };
+
+    const isMobile = window.innerWidth < 768;
+    if (isMobile && checkDismissal() && !isStandaloneMode) {
+      setShowBanner(true);
+    }
+
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+      // Ensure banner is shown when event fires if not already
+      if (isMobile && checkDismissal()) {
+        setShowBanner(true);
+      }
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+      setIsInstallable(false);
+      setShowBanner(false);
+    }
+  };
+
+  const handleDismissBanner = () => {
+    localStorage.setItem('pwa_install_dismissed', Date.now().toString());
+    setShowBanner(false);
+  };
+
   const connectionStages = [
     { name: 'Encounter', icon: Zap },
     { name: 'Alignment', icon: Satellite },
@@ -18,18 +73,69 @@ export default function Welcome() {
   ];
 
   return (
-    <div className="bg-black text-white selection:bg-blue-600/30 selection:text-white min-h-screen w-full font-sans overflow-x-hidden flex flex-col">
+    <div className="bg-black text-white selection:bg-blue-600/30 selection:text-white min-h-screen w-full font-sans overflow-x-hidden flex flex-col relative">
+
+
+      {/* Mobile Floating Install Banner */}
+      {showBanner && !isStandalone && (
+        <div className="fixed bottom-4 left-4 right-4 z-[100] md:hidden animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className="bg-[#111]/90 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] p-4 flex items-center justify-between gap-3 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 shadow-md">
+                <img src="/logo.png" alt="Orbit Logo" className="w-full h-full object-cover scale-[2] translate-y-1" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-semibold text-sm text-white leading-tight mb-0.5">Install Orbit App</span>
+                <span className="text-[10px] text-white/50 leading-tight">Get faster access, notifications, and a native app experience.</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5 shrink-0 ml-2">
+              <button 
+                onClick={handleInstallClick}
+                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold rounded-full transition-colors shadow-sm"
+              >
+                Install
+              </button>
+              <button 
+                onClick={handleDismissBanner}
+                className="px-4 py-1.5 bg-transparent hover:bg-white/5 text-white/60 text-[11px] font-medium rounded-full transition-colors"
+              >
+                Not Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SECTION 1 — HERO + LIVE PRODUCT */}
       <section className="relative w-full flex flex-col lg:flex-row items-center pt-10 sm:pt-16 pb-20 px-[clamp(1.5rem,4vw,3rem)] gap-[clamp(2rem,5vw,4rem)] max-w-[1800px] mx-auto lg:min-h-[100svh]">
 
         {/* Left: Branding & Copy */}
         <div className="flex flex-col justify-center z-20 items-center lg:items-start text-center lg:text-left pt-6 lg:pt-0 w-full lg:w-[45%] xl:w-1/2 shrink-0">
-          <div className="flex items-center justify-center lg:justify-start gap-[clamp(0.25rem,1vw,0.5rem)] mb-[clamp(2rem,4vw,4rem)]">
-            <div className="w-10 h-10 sm:w-14 sm:h-14 shrink-0 relative flex items-center justify-center">
-              <img src="/logo.png" alt="Orbit Logo" className="absolute w-24 h-24 sm:w-32 sm:h-32 object-contain max-w-none" />
+          
+          <div className="flex flex-col items-center lg:items-start mb-[clamp(2rem,4vw,4rem)]">
+            <div className="flex items-center justify-center lg:justify-start gap-[clamp(0.25rem,1vw,0.5rem)]">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 shrink-0 relative flex items-center justify-center">
+                <img src="/logo.png" alt="Orbit Logo" className="absolute w-24 h-24 sm:w-32 sm:h-32 object-contain max-w-none" />
+              </div>
+              <span className="font-['Spacetron',_sans-serif] text-[clamp(1.5rem,3vw,2rem)] tracking-wider uppercase text-white relative z-10 mt-1">Orbit</span>
             </div>
-            <span className="font-['Spacetron',_sans-serif] text-[clamp(1.5rem,3vw,2rem)] tracking-wider uppercase text-white relative z-10 mt-1">Orbit</span>
+            
+            {/* Install Button (under logo) */}
+            {!isStandalone && (
+              <div className="mt-2 sm:mt-3 flex justify-center lg:justify-start w-full">
+                <button 
+                  onClick={() => {
+                    if (deferredPrompt) handleInstallClick();
+                    else alert('To install Orbit, use your browser\'s "Install App" or "Add to Home Screen" option.');
+                  }}
+                  className="flex items-center gap-2 px-4 py-1.5 bg-[#1A1A1A]/80 hover:bg-[#222] backdrop-blur-md border border-white/10 text-white font-medium rounded-full transition-colors text-xs"
+                >
+                  <Download size={14} className="text-blue-500" />
+                  Install Orbit
+                </button>
+              </div>
+            )}
           </div>
 
           <h1 className="font-['Spectron',_sans-serif] text-[clamp(2.5rem,5vw,5.5rem)] leading-[1.05] tracking-tight mb-[clamp(1.5rem,3vw,2rem)] break-words">
