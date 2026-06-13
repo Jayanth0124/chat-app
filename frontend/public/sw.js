@@ -1,4 +1,4 @@
-const CACHE_NAME = 'orbit-cache-v1.1';
+const CACHE_NAME = 'orbit-cache-v1.2';
 
 // Install Event: Auto-download and skip waiting
 self.addEventListener('install', (event) => {
@@ -123,8 +123,8 @@ self.addEventListener('push', function(event) {
             const callerName = data.data?.callerName || data.callerName || 'Someone';
             await self.registration.showNotification('Missed Call', {
               body: `${callerName} tried to call you\nTap to open chat`,
-              icon: '/logo.png',
-              badge: '/logo.png',
+              icon: '/android-chrome-192x192.png',
+              badge: '/android-chrome-192x192.png',
               data: { url: '/chat', callId, type: 'missed_call_notice' }
             });
           }
@@ -146,8 +146,8 @@ self.addEventListener('push', function(event) {
 
         const options = {
           body: data.body || '',
-          icon: data.icon || '/logo.png',
-          badge: data.badge || '/logo.png',
+          icon: data.icon || '/android-chrome-192x192.png',
+          badge: data.badge || '/android-chrome-192x192.png',
           vibrate: isCall ? [500, 250, 500, 250, 500, 250, 500, 250] : [100, 50, 100],
           requireInteraction: isCall,
           data: data.data || {}
@@ -164,8 +164,8 @@ self.addEventListener('push', function(event) {
       } catch (e) {
         const options = {
           body: event.data.text(),
-          icon: '/logo.png',
-          badge: '/logo.png',
+          icon: '/android-chrome-192x192.png',
+          badge: '/android-chrome-192x192.png',
           vibrate: [100, 50, 100]
         };
         await self.registration.showNotification('Orbit Announcement', options);
@@ -195,8 +195,8 @@ self.addEventListener('notificationclick', function(event) {
           if (callData.status !== 'ringing' && callData.status !== 'dialing') {
             await self.registration.showNotification('Missed Call', {
               body: 'Call already ended.',
-              icon: '/logo.png',
-              badge: '/logo.png',
+              icon: '/android-chrome-192x192.png',
+              badge: '/android-chrome-192x192.png',
               data: { url: '/chat', type: 'missed_call_notice' }
             });
             return; // Abort navigation/client focus entirely

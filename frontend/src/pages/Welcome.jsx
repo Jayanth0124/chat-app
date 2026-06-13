@@ -82,7 +82,7 @@ export default function Welcome() {
           <div className="bg-[#111]/90 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] p-4 flex items-center justify-between gap-3 shadow-2xl">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 shadow-md">
-                <img src="/logo.png" alt="Orbit Logo" className="w-full h-full object-cover scale-[2] translate-y-1" />
+                <img src="/logo.svg" alt="Orbit Logo" className="w-full h-full object-cover scale-[2] translate-y-1" />
               </div>
               <div className="flex flex-col">
                 <span className="font-semibold text-sm text-white leading-tight mb-0.5">Install Orbit App</span>
@@ -90,13 +90,13 @@ export default function Welcome() {
               </div>
             </div>
             <div className="flex flex-col gap-1.5 shrink-0 ml-2">
-              <button 
+              <button
                 onClick={handleInstallClick}
                 className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold rounded-full transition-colors shadow-sm"
               >
                 Install
               </button>
-              <button 
+              <button
                 onClick={handleDismissBanner}
                 className="px-4 py-1.5 bg-transparent hover:bg-white/5 text-white/60 text-[11px] font-medium rounded-full transition-colors"
               >
@@ -112,7 +112,7 @@ export default function Welcome() {
 
         {/* Left: Branding & Copy */}
         <div className="flex flex-col justify-center z-20 items-center lg:items-start text-center lg:text-left pt-6 lg:pt-0 w-full lg:w-[45%] xl:w-1/2 shrink-0">
-          
+
           <div className="flex flex-col items-center lg:items-start mb-[clamp(2rem,4vw,4rem)]">
             <div className="flex items-center justify-center lg:justify-start gap-[clamp(0.25rem,1vw,0.5rem)]">
               <div className="w-10 h-10 sm:w-14 sm:h-14 shrink-0 relative flex items-center justify-center">
@@ -120,11 +120,11 @@ export default function Welcome() {
               </div>
               <span className="font-['Spacetron',_sans-serif] text-[clamp(1.5rem,3vw,2rem)] tracking-wider uppercase text-white relative z-10 mt-1">Orbit</span>
             </div>
-            
+
             {/* Install Button (under logo) */}
             {!isStandalone && (
               <div className="mt-2 sm:mt-3 flex justify-center lg:justify-start w-full">
-                <button 
+                <button
                   onClick={() => {
                     if (deferredPrompt) handleInstallClick();
                     else alert('To install Orbit, use your browser\'s "Install App" or "Add to Home Screen" option.');
@@ -177,7 +177,7 @@ export default function Welcome() {
 
             {/* Chat Body & In-Flow Elements for Mobile & Laptop */}
             <div className="flex-1 p-5 sm:p-6 lg:p-8 flex flex-col gap-4 sm:gap-6 justify-end relative bg-black/50 overflow-y-auto">
-              
+
               {/* 3. Orbit Connection Badge */}
               <div className="flex items-center gap-4 bg-[#0A0A0A]/90 backdrop-blur-xl border border-white/10 rounded-[1.5rem] p-4 shadow-2xl z-10 w-fit self-start mt-auto">
                 <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 shrink-0">
