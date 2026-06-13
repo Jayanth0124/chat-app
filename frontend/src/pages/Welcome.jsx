@@ -25,16 +25,22 @@ export default function Welcome() {
     };
 
     const isMobile = window.innerWidth < 768;
-    if (isMobile && checkDismissal() && !isStandaloneMode) {
-      setShowBanner(true);
+
+    // Check if the event was already captured globally by index.html script
+    if (window.deferredPrompt) {
+      setDeferredPrompt(window.deferredPrompt);
+      setIsInstallable(true);
+      if (isMobile && checkDismissal() && !isStandaloneMode) {
+        setShowBanner(true);
+      }
     }
 
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
+      window.deferredPrompt = e;
       setDeferredPrompt(e);
       setIsInstallable(true);
-      // Ensure banner is shown when event fires if not already
-      if (isMobile && checkDismissal()) {
+      if (isMobile && checkDismissal() && !isStandaloneMode) {
         setShowBanner(true);
       }
     };
@@ -47,13 +53,15 @@ export default function Welcome() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) {
+    const promptToUse = deferredPrompt || window.deferredPrompt;
+    if (!promptToUse) {
       alert('To install Orbit, use your browser\'s "Install App" or "Add to Home Screen" option.');
       return;
     }
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
+    promptToUse.prompt();
+    const { outcome } = await promptToUse.userChoice;
     setDeferredPrompt(null);
+    window.deferredPrompt = null;
     if (outcome === 'accepted') {
       setIsInstallable(false);
       setShowBanner(false);
