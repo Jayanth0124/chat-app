@@ -47,11 +47,14 @@ export default function Welcome() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      alert('To install Orbit, use your browser\'s "Install App" or "Add to Home Screen" option.');
+      return;
+    }
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
     if (outcome === 'accepted') {
-      setDeferredPrompt(null);
       setIsInstallable(false);
       setShowBanner(false);
     }
@@ -81,8 +84,8 @@ export default function Welcome() {
         <div className="fixed bottom-4 left-4 right-4 z-[100] md:hidden animate-in slide-in-from-bottom-5 fade-in duration-300">
           <div className="bg-[#111]/90 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] p-4 flex items-center justify-between gap-3 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 shadow-md">
-                <img src="/logo.svg" alt="Orbit Logo" className="w-full h-full object-cover scale-[2] translate-y-1" />
+              <div className="w-[48px] h-[48px] shrink-0 flex items-center justify-center">
+                <img src="/logo.svg" alt="Orbit Logo" className="w-full h-full object-contain" />
               </div>
               <div className="flex flex-col">
                 <span className="font-semibold text-sm text-white leading-tight mb-0.5">Install Orbit App</span>
@@ -125,10 +128,7 @@ export default function Welcome() {
             {!isStandalone && (
               <div className="mt-2 sm:mt-3 flex justify-center lg:justify-start w-full">
                 <button
-                  onClick={() => {
-                    if (deferredPrompt) handleInstallClick();
-                    else alert('To install Orbit, use your browser\'s "Install App" or "Add to Home Screen" option.');
-                  }}
+                  onClick={handleInstallClick}
                   className="flex items-center gap-2 px-4 py-1.5 bg-[#1A1A1A]/80 hover:bg-[#222] backdrop-blur-md border border-white/10 text-white font-medium rounded-full transition-colors text-xs"
                 >
                   <Download size={14} className="text-blue-500" />
