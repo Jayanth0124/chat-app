@@ -51,7 +51,20 @@ export const useChatStore = create((set, get) => ({
         : 'https://chat-app-t2pz.onrender.com');
     const socket = io(socketUrl, { withCredentials: true });
     socket.connect();
-    socket.emit('setup', user);
+
+    // Detect device type for SOC telemetry
+    let deviceType = 'desktop';
+    if (typeof window !== 'undefined') {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      if (isPWA) {
+        deviceType = 'pwa';
+      } else if (isMobile) {
+        deviceType = 'mobile';
+      }
+    }
+
+    socket.emit('setup', { ...user, deviceType });
     set({ socket });
 
     // Initialize story sockets

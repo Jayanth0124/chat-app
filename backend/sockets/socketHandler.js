@@ -13,6 +13,7 @@ export const handleSockets = (io) => {
       if (!userData || !userData._id) return;
       socket.join(userData._id);
       socket.userId = userData._id;
+      socket.deviceType = userData.deviceType || 'desktop';
       
       // Join admin room if role is admin
       if (userData.role === 'admin') {
@@ -253,12 +254,26 @@ export const handleSockets = (io) => {
           }
         }));
 
+        // Aggregate active sessions by device type
+        let desktopSessions = 0;
+        let mobileSessions = 0;
+        let pwaInstalls = 0;
+        
+        io.sockets.sockets.forEach(s => {
+          if (s.deviceType === 'desktop') desktopSessions++;
+          else if (s.deviceType === 'mobile') mobileSessions++;
+          else if (s.deviceType === 'pwa') pwaInstalls++;
+        });
+
         const systemHealth = {
           mongodb: mongoose.connection.readyState === 1 ? 'healthy' : 'error',
           socketio: io ? 'healthy' : 'warning',
           cloudinary: process.env.CLOUDINARY_API_KEY ? 'healthy' : 'warning',
           api: 'healthy',
-          activeConnections: io.engine.clientsCount
+          activeConnections: io.engine.clientsCount,
+          desktopSessions,
+          mobileSessions,
+          pwaInstalls
         };
 
         const payload = {

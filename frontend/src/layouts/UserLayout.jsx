@@ -46,9 +46,10 @@ export default function UserLayout() {
   const callTimerRef = useState(null);
   const controlsTimeoutRef = useRef(null);
 
-  const { socket, selectedChat, chats, setSelectedChat, accessChat } = useChatStore();
+  const { socket, selectedChat, chats, setSelectedChat, accessChat, unreadCounts } = useChatStore();
   const { unreadCount } = useNotificationStore();
-  const { activeStoryGroups, activeStoryGroupIndex, closeStoryViewer } = useStoryStore();
+  const { activeStoryGroups, activeStoryGroupIndex, closeStoryViewer, stories } = useStoryStore();
+  const incomingRequests = useFriendStore(state => state.incomingRequests);
 
   // WebRTC Setup
   const pcRef = useRef(null);
@@ -549,9 +550,8 @@ export default function UserLayout() {
     setActiveCall(null);
   };
 
-  const unreadChatsCount = Object.keys(useChatStore().unreadCounts || {}).length;
+  const unreadChatsCount = Object.keys(unreadCounts || {}).length;
   
-  const stories = useStoryStore().stories;
   const lastStoriesViewed = user?.lastViewed?.stories ? new Date(user.lastViewed.stories) : new Date(0);
   const hasNewStories = stories?.some(s => new Date(s.createdAt) > lastStoriesViewed);
 
@@ -592,9 +592,9 @@ export default function UserLayout() {
         </button>
         <button onClick={() => navigate('/friends')} className={`relative flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${location.pathname === '/friends' ? 'text-primary' : 'text-on-surface-variant/80'}`}>
           <Users size={20} />
-          {useFriendStore().incomingRequests?.length > 0 && (
+          {incomingRequests?.length > 0 && (
             <span className="absolute top-1 right-2 w-4 h-4 bg-primary rounded-full text-white text-[9px] font-bold flex items-center justify-center shadow-sm">
-              {useFriendStore().incomingRequests.length > 9 ? '9+' : useFriendStore().incomingRequests.length}
+              {incomingRequests.length > 9 ? '9+' : incomingRequests.length}
             </span>
           )}
           <span className="text-[10px] font-semibold">Friends</span>

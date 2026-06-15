@@ -772,12 +772,27 @@ export const getDatabaseUsageStats = async (req, res) => {
 
     const validCollectionStats = collectionStats.filter(c => c !== null);
 
+    let desktopSessions = 0;
+    let mobileSessions = 0;
+    let pwaInstalls = 0;
+    
+    if (req.io && req.io.sockets && req.io.sockets.sockets) {
+      req.io.sockets.sockets.forEach(s => {
+        if (s.deviceType === 'desktop') desktopSessions++;
+        else if (s.deviceType === 'mobile') mobileSessions++;
+        else if (s.deviceType === 'pwa') pwaInstalls++;
+      });
+    }
+
     const systemHealth = {
       mongodb: mongoose.connection.readyState === 1 ? 'healthy' : 'error',
       socketio: req.io ? 'healthy' : 'warning',
       cloudinary: process.env.CLOUDINARY_API_KEY ? 'healthy' : 'warning',
       api: 'healthy',
-      activeConnections: req.io ? req.io.engine.clientsCount : 0
+      activeConnections: req.io ? req.io.engine.clientsCount : 0,
+      desktopSessions,
+      mobileSessions,
+      pwaInstalls
     };
 
     res.status(200).json({
