@@ -4,6 +4,11 @@ import {
   getDashboardStats, 
   getAllUsers, 
   banUser, 
+  warnUser,
+  forceLogoutUser,
+  suspendUser,
+  restrictCommsUser,
+  clearUserStories,
   deleteUser,
   getAuditLogs,
   getReports,
@@ -35,6 +40,11 @@ router.get('/stats', getDashboardStats);
 router.get('/database-stats', getDatabaseUsageStats);
 router.get('/users', getAllUsers);
 router.put('/users/:userId/ban', banUser);
+router.post('/users/:userId/warn', warnUser);
+router.post('/users/:userId/logout', forceLogoutUser);
+router.put('/users/:userId/suspend', suspendUser);
+router.put('/users/:userId/restrict', restrictCommsUser);
+router.delete('/users/:userId/stories', clearUserStories);
 router.delete('/users/:userId', deleteUser);
 router.get('/audit-logs', getAuditLogs);
 router.get('/reports', getReports);

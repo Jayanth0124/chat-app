@@ -27,8 +27,8 @@ export const protectRoute = async (req, res, next) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    if (user.status === 'banned') {
-      return res.status(403).json({ message: "Your account has been banned." });
+    if (user.status === 'banned' || user.status === 'suspended') {
+      return res.status(403).json({ message: "Your account has been restricted by an administrator." });
     }
 
     req.user = user;

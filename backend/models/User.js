@@ -43,7 +43,7 @@ const userSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'banned'],
+    enum: ['active', 'banned', 'suspended'],
     default: 'active'
   },
   isOnline: {
@@ -126,6 +126,16 @@ const userSchema = new mongoose.Schema({
     stories: { type: Date, default: Date.now },
     calls: { type: Date, default: Date.now },
     notifications: { type: Date, default: Date.now }
+  },
+  lifetimeMetrics: {
+    messagesSent: { type: Number, default: 0 },
+    storiesPosted: { type: Number, default: 0 },
+    callsMade: { type: Number, default: 0 },
+    reportsReceived: { type: Number, default: 0 }
+  },
+  mutedUntil: {
+    type: Date,
+    default: null
   }
 }, { timestamps: true });
 

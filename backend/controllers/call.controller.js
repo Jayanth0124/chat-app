@@ -63,6 +63,9 @@ export const createCall = async (req, res) => {
       type,
       status: 'ringing' // Defaulting to ringing now
     });
+    
+    await User.findByIdAndUpdate(callerId, { $inc: { "lifetimeMetrics.callsMade": 1 } });
+    await User.findByIdAndUpdate(receiverId, { $inc: { "lifetimeMetrics.callsMade": 1 } });
 
     await call.populate('caller', 'displayName profilePic username');
     await call.populate('receiver', 'displayName profilePic username');

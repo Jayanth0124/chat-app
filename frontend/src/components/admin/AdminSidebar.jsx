@@ -27,7 +27,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
               <div className="w-8 h-8 rounded-lg overflow-hidden shadow-sm shrink-0">
                 <img src="/logo.png" alt="Orbit Logo" className="w-full h-full object-cover" />
               </div>
-              <h1 className="md:hidden lg:block text-on-surface font-bold text-[16px] tracking-tight">
+              <h1 className="md:hidden lg:block text-on-surface font-spacetron font-bold text-[16px] tracking-tight">
                 Orbit Admin
               </h1>
             </div>

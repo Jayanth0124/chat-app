@@ -57,6 +57,29 @@
   --on-secondary-container: #E0E7FF;
 }
 
+.admin-theme,
+.admin-theme * {
+  --background: #050505 !important;
+  --color-background: #050505 !important;
+  --surface: #0A0A0A !important;
+  --color-surface: #0A0A0A !important;
+  --surface-container-lowest: #020202 !important;
+  --color-surface-container-lowest: #020202 !important;
+  --surface-container-low: rgba(255, 255, 255, 0.02) !important;
+  --color-surface-container-low: rgba(255, 255, 255, 0.02) !important;
+  --surface-container: rgba(255, 255, 255, 0.03) !important;
+  --surface-container-high: rgba(255, 255, 255, 0.05) !important;
+  --surface-container-highest: rgba(255, 255, 255, 0.08) !important;
+  --on-surface: #FFFFFF !important;
+  --color-on-surface: #FFFFFF !important;
+  --on-surface-variant: rgba(255, 255, 255, 0.6) !important;
+  --color-on-surface-variant: rgba(255, 255, 255, 0.6) !important;
+  --outline: rgba(255, 255, 255, 0.1) !important;
+  --color-outline: rgba(255, 255, 255, 0.1) !important;
+  --outline-variant: rgba(255, 255, 255, 0.05) !important;
+  --color-outline-variant: rgba(255, 255, 255, 0.05) !important;
+}
+
 html.theme-deep-space {
   --primary: #6366F1;
   --primary-container: rgba(99, 102, 241, 0.2);

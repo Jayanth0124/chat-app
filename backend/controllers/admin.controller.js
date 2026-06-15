@@ -14,15 +14,46 @@ import bcrypt from 'bcrypt';
 import Call from '../models/Call.js';
 import { sendPushNotification } from '../utils/webPush.js';
 
+import Story from '../models/Story.js';
+
 export const getDashboardStats = async (req, res) => {
   try {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const startOfMonth = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
     const totalUsers = await User.countDocuments();
     const activeUsers = await User.countDocuments({ status: 'active' });
     const onlineUsers = await User.countDocuments({ isOnline: true });
+    
     const messagesSent = await Message.countDocuments();
+    const messagesToday = await Message.countDocuments({ createdAt: { $gte: startOfToday } });
+    
     const reportsSubmitted = await Report.countDocuments();
+    const pendingReports = await Report.countDocuments({ status: 'pending' });
+    
     const bannedUsers = await User.countDocuments({ status: 'banned' });
     const totalChats = await Chat.countDocuments();
+
+    // Story Stats
+    const storiesToday = await Story.countDocuments({ createdAt: { $gte: startOfToday } });
+    const storiesThisWeek = await Story.countDocuments({ createdAt: { $gte: startOfWeek } });
+    const allStories = await Story.find().select('views');
+    const totalStoryViews = allStories.reduce((acc, story) => acc + (story.views ? story.views.length : 0), 0);
+    
+    // Most Viewed Story
+    const topStory = await Story.aggregate([
+      { $project: { mediaUrl: 1, viewsCount: { $size: { $ifNull: ["$views", []] } } } },
+      { $sort: { viewsCount: -1 } },
+      { $limit: 1 }
+    ]);
+    const mostViewedStory = topStory[0] || null;
+
+    // Security Monitor
+    const failedLogins = await SecurityLog.countDocuments({ logType: 'failed_login' });
+    const rateLimited = 0; // Placeholder if no rate limit collection exists
+    const blockedAttempts = await SecurityLog.countDocuments({ status: 'blocked' });
 
     const friendRequestsRes = await User.aggregate([
       { $project: { count: { $size: { $ifNull: ["$friendRequests", []] } } } },
@@ -33,17 +64,42 @@ export const getDashboardStats = async (req, res) => {
     const totalVoiceCalls = await Call.countDocuments({ type: 'voice' });
     const totalVideoCalls = await Call.countDocuments({ type: 'video' });
 
+    // User Growth (Last 7 days)
+    const userGrowth = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const nextDay = new Date(d.getTime() + 24 * 60 * 60 * 1000);
+      const count = await User.countDocuments({ createdAt: { $gte: d, $lt: nextDay } });
+      userGrowth.push({
+        date: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        count
+      });
+    }
+
     res.status(200).json({
       totalUsers,
       activeUsers,
       onlineUsers,
       messagesSent,
+      messagesToday,
       friendRequests,
       reportsSubmitted,
+      pendingReports,
       bannedUsers,
       totalChats,
       totalVoiceCalls,
-      totalVideoCalls
+      totalVideoCalls,
+      storiesToday,
+      storiesThisWeek,
+      totalStoryViews,
+      mostViewedStory,
+      securityMonitor: {
+        failedLogins,
+        rateLimited,
+        reportsSubmitted,
+        blockedAttempts
+      },
+      userGrowth
     });
   } catch (error) {
     console.log("Error in getDashboardStats:", error);
@@ -53,8 +109,34 @@ export const getDashboardStats = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password").sort({ createdAt: -1 });
-    res.status(200).json(users);
+    const users = await User.find().select("-password").sort({ createdAt: -1 }).lean();
+    
+    // Enrich with real database telemetry
+    const enrichedUsers = await Promise.all(users.map(async (user) => {
+      const liveMessages = await Message.countDocuments({ sender: user._id });
+      const liveStories = await Story.countDocuments({ user: user._id });
+      const liveCalls = await Call.countDocuments({ $or: [{ caller: user._id }, { receiver: user._id }] });
+      const liveReports = await Report.countDocuments({ reportedUser: user._id });
+      
+      const lifetime = user.lifetimeMetrics || {};
+      const messagesCount = Math.max(lifetime.messagesSent || 0, liveMessages);
+      const storiesCount = Math.max(lifetime.storiesPosted || 0, liveStories);
+      const callsCount = Math.max(lifetime.callsMade || 0, liveCalls);
+      const reportsReceived = Math.max(lifetime.reportsReceived || 0, liveReports);
+      
+      const trustScore = Math.max(0, 100 - (reportsReceived * 20));
+      
+      return {
+        ...user,
+        messagesCount,
+        storiesCount,
+        callsCount,
+        reportsReceived,
+        trustScore
+      };
+    }));
+
+    res.status(200).json(enrichedUsers);
   } catch (error) {
     console.log("Error in getAllUsers:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -84,9 +166,205 @@ export const banUser = async (req, res) => {
       details: `${action} executed for user ${user.username} (Email: ${user.email}). Status changed from ${previousStatus} to ${newStatus}.`
     });
 
+    // Notify clients to force logout if banned
+    if (newStatus === 'banned' && req.io) {
+      req.io.to(user._id.toString()).emit('forceLogout', { reason: 'Your account has been banned by an administrator.' });
+    }
+
     res.status(200).json({ message: `User status changed to ${user.status}`, user });
   } catch (error) {
     console.log("Error in banUser:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const warnUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const messageText = 'You have received an official warning from a platform administrator regarding your recent activity.';
+
+    const notif = await Notification.create({
+      userId: user._id,
+      type: 'system',
+      title: 'Official Warning',
+      body: messageText,
+      metadata: { action: 'warn' }
+    });
+
+    // Emit warning notification via socket
+    if (req.io) {
+      req.io.to(user._id.toString()).emit('adminNotification', {
+        id: notif._id,
+        type: 'warning',
+        title: 'Official Warning',
+        message: messageText,
+        createdAt: notif.createdAt
+      });
+    }
+    
+    // Attempt to send push notification
+    try {
+      await sendPushNotification(user._id.toString(), {
+        title: '⚠️ Official Warning',
+        body: 'You have received an official warning from a platform administrator.',
+        icon: '/logo.png'
+      });
+    } catch (e) {
+      // Ignore if webPush is not configured
+    }
+
+    await AuditLog.create({
+      adminId: req.user._id,
+      action: 'WARN_USER',
+      targetId: user._id,
+      targetModel: 'User',
+      details: `Admin issued an official warning to user ${user.username}.`
+    });
+
+    res.status(200).json({ message: `Warning issued to ${user.username}`, user });
+  } catch (error) {
+    console.log("Error in warnUser:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const forceLogoutUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (req.io) {
+      req.io.to(user._id.toString()).emit('forceLogout', { reason: 'Your session has been terminated by an administrator.' });
+    }
+
+    await AuditLog.create({
+      adminId: req.user._id,
+      action: 'FORCE_LOGOUT',
+      targetId: user._id,
+      targetModel: 'User',
+      details: `Admin forced logout for user ${user.username}.`
+    });
+
+    res.status(200).json({ message: `Force logout command sent to ${user.username}`, user });
+  } catch (error) {
+    console.log("Error in forceLogoutUser:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const suspendUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const newStatus = user.status === 'suspended' ? 'active' : 'suspended';
+    
+    user.status = newStatus;
+    await user.save();
+
+    if (newStatus === 'suspended' && req.io) {
+      req.io.to(user._id.toString()).emit('forceLogout', { reason: 'Your account has been temporarily suspended.' });
+    }
+
+    const action = newStatus === 'suspended' ? 'SUSPEND_USER' : 'UNSUSPEND_USER';
+    await AuditLog.create({
+      adminId: req.user._id,
+      action: action,
+      targetId: user._id,
+      targetModel: 'User',
+      details: `${action} executed for user ${user.username}. Status changed to ${newStatus}.`
+    });
+
+    res.status(200).json({ message: `User status changed to ${user.status}`, user });
+  } catch (error) {
+    console.log("Error in suspendUser:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const restrictCommsUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { durationHours } = req.body;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Set mutedUntil
+    const mutedUntil = new Date(Date.now() + durationHours * 60 * 60 * 1000);
+    user.mutedUntil = mutedUntil;
+    await user.save();
+
+    const messageText = `Your account has been restricted from sending messages for ${durationHours} hours.`;
+
+    const notif = await Notification.create({
+      userId: user._id,
+      type: 'system',
+      title: 'Communication Restricted',
+      body: messageText,
+      metadata: { action: 'restrict_comms', durationHours }
+    });
+
+    if (req.io) {
+      req.io.to(user._id.toString()).emit('adminNotification', {
+        id: notif._id,
+        type: 'warning',
+        title: 'Communication Restricted',
+        message: messageText,
+        createdAt: notif.createdAt
+      });
+    }
+
+    await AuditLog.create({
+      adminId: req.user._id,
+      action: 'RESTRICT_COMMS',
+      targetId: user._id,
+      targetModel: 'User',
+      details: `Admin restricted communications for user ${user.username} for ${durationHours} hours.`
+    });
+
+    res.status(200).json({ message: `Communications restricted for ${user.username}`, user });
+  } catch (error) {
+    console.log("Error in restrictCommsUser:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const clearUserStories = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const stories = await Story.find({ user: userId });
+    
+    for (const story of stories) {
+      if (story.mediaUrl) {
+        await deleteFromCloudinary(story.mediaUrl);
+      }
+    }
+    
+    await Story.deleteMany({ user: userId });
+
+    if (req.io) {
+      req.io.emit('storyDeleted', { userId });
+    }
+
+    await AuditLog.create({
+      adminId: req.user._id,
+      action: 'CLEAR_STORIES',
+      targetId: user._id,
+      targetModel: 'User',
+      details: `Admin cleared all active stories for user ${user.username}.`
+    });
+
+    res.status(200).json({ message: `Successfully cleared stories for ${user.username}`, user });
+  } catch (error) {
+    console.log("Error in clearUserStories:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -130,11 +408,38 @@ export const getAuditLogs = async (req, res) => {
 export const getReports = async (req, res) => {
   try {
     const reports = await Report.find()
-      .populate('reporter', 'displayName username profilePic email')
-      .populate('reportedUser', 'displayName username profilePic email')
+      .populate('reporter', 'displayName username profilePic email status')
+      .populate('reportedUser', 'displayName username profilePic email status')
       .populate('reportedMessage')
-      .sort({ createdAt: -1 });
-    res.status(200).json(reports);
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Enrich with real risk profiles
+    const enrichedReports = await Promise.all(reports.map(async (report) => {
+      const reporterLive = report.reporter ? await Report.countDocuments({ reportedUser: report.reporter._id }) : 0;
+      const reporterLifetime = report.reporter?.lifetimeMetrics?.reportsReceived || 0;
+      const reporterReports = Math.max(reporterLive, reporterLifetime);
+
+      const offenderLive = report.reportedUser ? await Report.countDocuments({ reportedUser: report.reportedUser._id }) : 0;
+      const offenderLifetime = report.reportedUser?.lifetimeMetrics?.reportsReceived || 0;
+      const offenderReports = Math.max(offenderLive, offenderLifetime);
+      
+      return {
+        ...report,
+        reporter: report.reporter ? {
+          ...report.reporter,
+          trustScore: Math.max(0, 100 - (reporterReports * 20))
+        } : null,
+        reportedUser: report.reportedUser ? {
+          ...report.reportedUser,
+          violations: offenderReports,
+          trustScore: Math.max(0, 100 - (offenderReports * 20)),
+          riskScore: Math.min(100, offenderReports * 25)
+        } : null
+      };
+    }));
+
+    res.status(200).json(enrichedReports);
   } catch (error) {
     console.log("Error in getReports:", error);
     res.status(500).json({ message: "Internal server error" });

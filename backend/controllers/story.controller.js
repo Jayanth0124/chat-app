@@ -41,6 +41,7 @@ export const createStory = async (req, res) => {
     });
 
     await newStory.save();
+    await User.findByIdAndUpdate(userId, { $inc: { "lifetimeMetrics.storiesPosted": 1 } });
     
     await newStory.populate("user", "displayName profilePic _id");
 

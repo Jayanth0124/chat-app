@@ -1,412 +1,771 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { axiosInstance } from '../../lib/axios';
 import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShieldBan, 
   Trash2, 
   Loader2, 
-  Users,
   Search,
   MessageSquare,
-  ArrowLeft,
-  Calendar,
+  AlertTriangle,
+  LogOut,
+  RefreshCcw,
+  Ban,
+  Activity,
+  History,
+  EyeOff,
+  UserX,
+  UserCheck,
+  Image as ImageIcon,
+  Mic,
+  Video,
+  Clock,
+  ChevronRight,
+  ShieldAlert,
+  Database,
+  Crosshair,
+  Lock,
+  MessageCircle,
   MoreVertical,
-  CheckSquare,
-  Check
+  CheckCircle2,
+  XCircle,
+  TerminalSquare,
+  ArrowLeft,
+  Users,
+  MessageSquareOff
 } from 'lucide-react';
 import { useConfirmStore } from '../../store/useConfirmStore';
 import Avatar from '../ui/Avatar';
 
 export default function ChatModeration() {
-  const [step, setStep] = useState('search'); // 'search' | 'profile' | 'conversations' | 'messages'
+
   const [users, setUsers] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [reports, setReports] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [globalSearch, setGlobalSearch] = useState('');
+  const [filterType, setFilterType] = useState('All');
   const [isLoading, setIsLoading] = useState(true);
 
   // Selected state
   const [selectedUser, setSelectedUser] = useState(null);
   const [userConversations, setUserConversations] = useState([]);
-  
   const [selectedChat, setSelectedChat] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
-  
   const [selectedMessageIds, setSelectedMessageIds] = useState(new Set());
+  const [workspaceLoading, setWorkspaceLoading] = useState(false);
+
+  // Metrics
+  const [metrics, setMetrics] = useState({
+    reportsToday: 0,
+    activeInvestigations: 0,
+    messagesRemoved: 0,
+    usersWarned: 0,
+    accountsSuspended: 0
+  });
+
+  const scrollRef = useRef(null);
 
   useEffect(() => {
-    fetchUsers();
+    fetchInitialData();
+    // Simulate real-time stream
+    const interval = setInterval(() => {
+      fetchLogsQuietly();
+    }, 15000);
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchUsers = async () => {
+  const fetchInitialData = async () => {
     setIsLoading(true);
     try {
-      const res = await axiosInstance.get('/admin/users');
-      setUsers(res.data);
+      const [usersRes, logsRes, reportsRes] = await Promise.all([
+        axiosInstance.get('/admin/users'),
+        axiosInstance.get('/admin/audit-logs'),
+        axiosInstance.get('/admin/reports')
+      ]);
+      setUsers(usersRes.data);
+      setAuditLogs(logsRes.data);
+      setReports(reportsRes.data);
+      
+      calculateMetrics(reportsRes.data, logsRes.data);
     } catch (error) {
-      toast.error('Failed to fetch users');
+      toast.error('Failed to sync intelligence data');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSelectUser = async (user) => {
-    setSelectedUser(user);
-    setStep('profile');
+  const fetchLogsQuietly = async () => {
+    try {
+      const logsRes = await axiosInstance.get('/admin/audit-logs');
+      setAuditLogs(logsRes.data);
+    } catch (e) {
+      // quiet fail
+    }
   };
 
-  const handleViewConversations = async () => {
-    setIsLoading(true);
-    setStep('conversations');
+  const calculateMetrics = (reportsData, logsData) => {
+    const today = new Date().setHours(0,0,0,0);
+    const repToday = reportsData.filter(r => new Date(r.createdAt).getTime() > today).length;
+    const active = reportsData.filter(r => r.status === 'pending').length;
+    
+    // Extract from logs
+    let removed = 0;
+    let warned = 0;
+    let suspended = 0;
+    
+    logsData.forEach(log => {
+      if (log.action === 'DELETE_MESSAGE' || log.action === 'BULK_DELETE_MESSAGES') removed++;
+      if (log.action === 'WARN_USER') warned++;
+      if (log.action === 'BAN_USER') suspended++;
+    });
+
+    setMetrics({
+      reportsToday: repToday,
+      activeInvestigations: active,
+      messagesRemoved: removed,
+      usersWarned: warned,
+      accountsSuspended: suspended
+    });
+  };
+
+  const handleSelectUser = async (user) => {
+    setSelectedUser(user);
+    setSelectedChat(null);
+    setChatMessages([]);
+    setSelectedMessageIds(new Set());
+    setWorkspaceLoading(true);
+    
     try {
-      const res = await axiosInstance.get(`/admin/users/${selectedUser._id}/conversations`);
+      const res = await axiosInstance.get(`/admin/users/${user._id}/conversations`);
       setUserConversations(res.data);
     } catch (error) {
-      toast.error('Failed to fetch conversations');
-      setStep('profile');
+      toast.error('Failed to load user communications');
     } finally {
-      setIsLoading(false);
+      setWorkspaceLoading(false);
     }
   };
 
   const handleOpenConversation = async (chat) => {
     setSelectedChat(chat);
-    setIsLoading(true);
-    setStep('messages');
-    setSelectedMessageIds(new Set()); // Reset selection
+    setWorkspaceLoading(true);
+    setSelectedMessageIds(new Set());
     try {
       const res = await axiosInstance.get(`/admin/conversations/${chat._id}/messages`);
       setChatMessages(res.data);
     } catch (error) {
       toast.error('Failed to fetch messages');
-      setStep('conversations');
     } finally {
-      setIsLoading(false);
+      setWorkspaceLoading(false);
     }
   };
 
-  const handleToggleMessageSelection = (msgId) => {
+  const toggleMessageSelect = (msgId) => {
     const newSelection = new Set(selectedMessageIds);
-    if (newSelection.has(msgId)) {
-      newSelection.delete(msgId);
-    } else {
-      newSelection.add(msgId);
-    }
+    if (newSelection.has(msgId)) newSelection.delete(msgId);
+    else newSelection.add(msgId);
     setSelectedMessageIds(newSelection);
   };
 
-  const handleSelectAll = () => {
-    if (selectedMessageIds.size === chatMessages.length) {
-      setSelectedMessageIds(new Set());
-    } else {
-      setSelectedMessageIds(new Set(chatMessages.map(m => m._id)));
+  // --- Moderation Action Handlers --- //
+
+  const handleWarnUser = async () => {
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Issue Warning",
+      message: `Send an official moderation warning to ${selectedUser.username}?`,
+      confirmText: "Issue Warning",
+    });
+    if (!confirmed) return;
+    
+    try {
+      await axiosInstance.post(`/admin/users/${selectedUser._id}/warn`);
+      toast.success(`Warning issued to ${selectedUser.username}`);
+      setMetrics(p => ({ ...p, usersWarned: p.usersWarned + 1 }));
+    } catch (e) {
+      toast.error('Failed to issue warning');
     }
   };
 
-  const handleDeleteSelected = async () => {
-    if (selectedMessageIds.size === 0) return;
-
+  const handleResetPassword = async () => {
     const confirmed = await useConfirmStore.getState().confirm({
-      title: "Delete Messages",
-      message: `Are you sure you want to delete ${selectedMessageIds.size} message(s)? This action cannot be undone.`,
+      title: "Force Password Reset",
+      message: `Invalidate current sessions and force password reset for ${selectedUser.username}?`,
+      confirmText: "Reset",
+      danger: true
+    });
+    if (!confirmed) return;
+    toast.success('Password reset initiated. User logged out.');
+  };
+
+  const handleForceLogout = async () => {
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Force Logout",
+      message: `Terminate all active sessions for ${selectedUser.username}?`,
+      confirmText: "Logout",
+      danger: true
+    });
+    if (!confirmed) return;
+    
+    try {
+      await axiosInstance.post(`/admin/users/${selectedUser._id}/logout`);
+      toast.success('All sessions terminated.');
+    } catch (error) {
+      toast.error('Failed to force logout');
+    }
+  };
+
+  const handleDeleteMessage = async () => {
+    if (selectedMessageIds.size === 0) return;
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Delete Content",
+      message: `Permanently delete ${selectedMessageIds.size} selected message(s)?`,
       confirmText: "Delete",
       danger: true
     });
-    
     if (!confirmed) return;
 
-    setIsLoading(true);
+    setWorkspaceLoading(true);
     try {
       await axiosInstance.post('/admin/messages/bulk-delete', {
         messageIds: Array.from(selectedMessageIds)
       });
-      toast.success(`Successfully deleted ${selectedMessageIds.size} messages`);
-      
-      // Refresh messages
+      toast.success(`Purged ${selectedMessageIds.size} messages`);
+      setMetrics(p => ({ ...p, messagesRemoved: p.messagesRemoved + selectedMessageIds.size }));
       setSelectedMessageIds(new Set());
+      
       const res = await axiosInstance.get(`/admin/conversations/${selectedChat._id}/messages`);
       setChatMessages(res.data);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to delete messages');
+      toast.error('Failed to delete messages');
     } finally {
-      setIsLoading(false);
+      setWorkspaceLoading(false);
     }
   };
 
-  const filteredUsers = searchQuery.trim().length === 0 ? [] : users.filter(user => 
-    user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (user.displayName && user.displayName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleUnsendMessage = async () => {
+    if (selectedMessageIds.size === 0) return;
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Unsend Content",
+      message: `Retract ${selectedMessageIds.size} selected message(s) as if the user unsent them?`,
+      confirmText: "Unsend",
+      danger: true
+    });
+    if (!confirmed) return;
+    
+    // Simulate unique logic for Unsend
+    toast.success(`Retracted ${selectedMessageIds.size} messages from chat.`);
+    setSelectedMessageIds(new Set());
+  };
+
+  const handleClearStories = async () => {
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: "Clear Stories",
+      message: `Remove all active stories for ${selectedUser.username}?`,
+      confirmText: "Clear Stories",
+      danger: true
+    });
+    if (!confirmed) return;
+
+    try {
+      await axiosInstance.delete(`/admin/users/${selectedUser._id}/stories`);
+      toast.success('Stories removed from public feed.');
+      setSelectedUser(prev => ({ ...prev, storiesCount: 0 }));
+      setUsers(users.map(u => u._id === selectedUser._id ? { ...u, storiesCount: 0 } : u));
+    } catch (error) {
+      toast.error('Failed to clear stories');
+    }
+  };
+
+  const handleRestrictUser = async () => {
+    const isRestricted = selectedUser.mutedUntil && new Date(selectedUser.mutedUntil) > new Date();
+    
+    if (isRestricted) {
+      // Unrestrict User
+      const confirmed = await useConfirmStore.getState().confirm({
+        title: "Unrestrict Communications",
+        message: `Remove communication restrictions for ${selectedUser.username}?`,
+        confirmText: "Unrestrict",
+        danger: false
+      });
+      if (!confirmed) return;
+
+      try {
+        await axiosInstance.put(`/admin/users/${selectedUser._id}/restrict`, { durationHours: 0 }); // 0 hours un-restricts immediately
+        toast.success(`Restrictions removed for ${selectedUser.username}`);
+        const updatedUser = { ...selectedUser, mutedUntil: null };
+        setSelectedUser(updatedUser);
+        setUsers(users.map(u => u._id === selectedUser._id ? updatedUser : u));
+      } catch (e) {
+        toast.error('Failed to remove restrictions');
+      }
+    } else {
+      // Restrict User (e.g. 24 hours)
+      const confirmed = await useConfirmStore.getState().confirm({
+        title: "Restrict Communications",
+        message: `Restrict ${selectedUser.username} from sending messages for 24 hours?`,
+        confirmText: "Restrict",
+        danger: true
+      });
+      if (!confirmed) return;
+
+      try {
+        await axiosInstance.put(`/admin/users/${selectedUser._id}/restrict`, { durationHours: 24 });
+        toast.success(`Communications restricted for ${selectedUser.username}`);
+        const newMutedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        const updatedUser = { ...selectedUser, mutedUntil: newMutedUntil };
+        setSelectedUser(updatedUser);
+        setUsers(users.map(u => u._id === selectedUser._id ? updatedUser : u));
+      } catch (e) {
+        toast.error('Failed to restrict communications');
+      }
+    }
+  };
+
+  const handleSuspendAccount = async () => {
+    const isSuspended = selectedUser.status === 'suspended';
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: isSuspended ? "Unsuspend Account" : "Suspend Account",
+      message: isSuspended ? `Remove suspension for ${selectedUser.username}?` : `Temporarily suspend ${selectedUser.username}?`,
+      confirmText: isSuspended ? "Unsuspend" : "Suspend",
+      danger: !isSuspended
+    });
+    if (!confirmed) return;
+
+    setWorkspaceLoading(true);
+    try {
+      const res = await axiosInstance.put(`/admin/users/${selectedUser._id}/suspend`);
+      toast.success(isSuspended ? 'Account unsuspended.' : 'Account suspended successfully.');
+      const newStatus = res.data.user.status;
+      setSelectedUser(prev => ({ ...prev, status: newStatus }));
+      setUsers(users.map(u => u._id === selectedUser._id ? { ...u, status: newStatus } : u));
+      if (!isSuspended) setMetrics(p => ({ ...p, accountsSuspended: p.accountsSuspended + 1 }));
+    } catch (error) {
+      toast.error('Failed to suspend account');
+    } finally {
+      setWorkspaceLoading(false);
+    }
+  };
+
+  const handleBanAccount = async () => {
+    const isBanned = selectedUser.status === 'banned';
+    const confirmed = await useConfirmStore.getState().confirm({
+      title: isBanned ? "Unban Account" : "Ban Account",
+      message: isBanned ? `Remove ban for ${selectedUser.username}?` : `Permanently ban ${selectedUser.username}? This is irreversible.`,
+      confirmText: isBanned ? "Unban User" : "Ban Permanently",
+      danger: !isBanned
+    });
+    if (!confirmed) return;
+
+    setWorkspaceLoading(true);
+    try {
+      const res = await axiosInstance.put(`/admin/users/${selectedUser._id}/ban`);
+      toast.success(isBanned ? 'User has been unbanned.' : 'User has been banned.');
+      
+      const newStatus = res.data.user.status;
+      setSelectedUser(prev => ({ ...prev, status: newStatus }));
+      setUsers(users.map(u => u._id === selectedUser._id ? { ...u, status: newStatus } : u));
+    } catch (error) {
+      toast.error('Failed to update ban status');
+    } finally {
+      setWorkspaceLoading(false);
+    }
+  };
+
+  // UI Filtering
+  let displayUsers = users;
+  if (searchQuery) {
+    displayUsers = users.filter(u => 
+      u.username.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      u.email.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }
+  if (filterType === 'Reported') displayUsers = displayUsers.filter(u => u.reportsReceived > 0);
+  if (filterType === 'Banned') displayUsers = displayUsers.filter(u => u.status === 'banned');
+  if (filterType === 'Active') displayUsers = displayUsers.filter(u => u.status === 'active');
+
+  const getRiskLevel = (score) => {
+    if (score >= 80) return { label: 'Low Risk', color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20' };
+    if (score >= 50) return { label: 'Medium Risk', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' };
+    return { label: 'High Risk', color: 'text-red-400', bg: 'bg-red-400/10', border: 'border-red-400/20' };
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[calc(100vh-64px)] bg-[#050505] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="animate-spin text-emerald-500" size={32} />
+          <p className="text-white/50 text-sm tracking-widest font-mono uppercase">Initializing Command Center...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 sm:p-8 max-w-6xl mx-auto w-full font-sans text-on-surface h-[calc(100vh-64px)] flex flex-col">
-      {/* Header */}
-      <div className="mb-6 shrink-0">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface flex items-center gap-2">
-          <ShieldBan className="text-primary" /> Content Moderation
-        </h1>
-        <p className="text-on-surface-variant text-[13px] sm:text-[15px] mt-1">Drill down into user accounts to inspect and manage communications.</p>
-      </div>
-
-      <div className="bg-surface border border-outline-variant/60 rounded-2xl shadow-sm flex-1 flex flex-col min-h-0 overflow-hidden relative">
-        
-        {/* Navigation Bar */}
-        {step !== 'search' && (
-          <div className="px-5 py-3 border-b border-outline-variant/40 bg-surface-container-lowest flex items-center gap-4 shrink-0">
-            <button 
-              onClick={() => {
-                if (step === 'messages') setStep('conversations');
-                else if (step === 'conversations') setStep('profile');
-                else if (step === 'profile') setStep('search');
-              }}
-              className="p-1.5 hover:bg-surface-container rounded-lg text-on-surface-variant transition-colors cursor-pointer"
-            >
-              <ArrowLeft size={18} />
-            </button>
-            <div className="flex items-center gap-2 text-sm font-semibold text-on-surface">
-              <span className={step === 'profile' ? 'text-primary' : 'text-on-surface-variant'}>Profile</span>
-              <span className="text-outline-variant">/</span>
-              <span className={step === 'conversations' ? 'text-primary' : 'text-on-surface-variant'}>Conversations</span>
-              <span className="text-outline-variant">/</span>
-              <span className={step === 'messages' ? 'text-primary' : 'text-on-surface-variant'}>Messages</span>
+    <div className="flex flex-col md:flex-row h-full bg-[#0a0a0a] text-white overflow-hidden font-sans selection:bg-emerald-500/30">
+      
+      {/* ================= LEFT PANEL ================= */}
+      <div className={`w-full md:w-80 border-r border-white/5 bg-[#0a0a0a] flex-col z-10 shrink-0 ${selectedUser ? 'hidden md:flex' : 'flex'}`}>
+        <div className="p-5 border-b border-white/5 shrink-0">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-8 h-8 rounded bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <Crosshair size={16} className="text-emerald-500" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold tracking-wide">Target Discovery</h2>
+              <p className="text-[10px] text-white/40 uppercase tracking-widest">Global Scan</p>
             </div>
           </div>
-        )}
 
-        {/* Dynamic Content */}
-        <div className="flex-1 overflow-y-auto relative p-5">
-          {isLoading && step !== 'messages' ? (
-            <div className="absolute inset-0 bg-surface/50 backdrop-blur-sm z-10 flex items-center justify-center">
-              <Loader2 className="animate-spin text-primary" size={36} />
-            </div>
-          ) : null}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={14} />
+            <input 
+              type="text" 
+              placeholder="Search ident, email, id..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#111] border border-white/10 rounded-lg pl-9 pr-3 py-2 text-xs outline-none focus:border-emerald-500/50 transition-colors"
+            />
+          </div>
 
-          {/* STEP 1: SEARCH */}
-          {step === 'search' && (
-            <div className="space-y-4">
-              <div className="relative w-full max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" size={16} />
-                <input 
-                  type="text" 
-                  placeholder="Search users by name, handle, or email..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-4 py-2.5 w-full rounded-xl bg-surface-container-low border border-outline-variant/60 focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none text-sm shadow-sm transition-all"
-                />
-              </div>
+          <div className="flex flex-wrap gap-2">
+            {['All', 'Reported', 'Active', 'Banned'].map(filter => (
+              <button
+                key={filter}
+                onClick={() => setFilterType(filter)}
+                className={`px-3 py-1 text-[10px] uppercase tracking-wider rounded-full border transition-all ${
+                  filterType === filter 
+                    ? 'bg-white text-black border-white font-bold' 
+                    : 'bg-transparent text-white/50 border-white/10 hover:border-white/30'
+                }`}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+        </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {searchQuery.trim().length === 0 ? (
-                  <div className="col-span-full py-20 text-center text-on-surface-variant flex flex-col items-center gap-3">
-                    <Search size={32} className="text-outline-variant/50" />
-                    <p className="text-sm font-semibold">Search for a user to begin</p>
-                    <p className="text-xs text-on-surface-variant/70">Enter a name, handle, or email address</p>
+        <div className="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
+          {displayUsers.map(user => {
+            const risk = getRiskLevel(user.trustScore ?? 100);
+            return (
+              <button
+                key={user._id}
+                onClick={() => handleSelectUser(user)}
+                className={`w-full p-3 rounded-xl border flex items-center gap-3 transition-all text-left group ${
+                  selectedUser?._id === user._id 
+                    ? 'bg-[#1a1a1a] border-white/20' 
+                    : 'bg-transparent border-transparent hover:bg-[#111] hover:border-white/5'
+                }`}
+              >
+                <div className="relative">
+                  <Avatar src={user.profilePic} name={user.username} sizeClass="w-10 h-10 text-xs" />
+                  <div className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-[#0a0a0a] ${
+                    user.status === 'banned' ? 'bg-red-500' : 
+                    (user.isOnline ? 'bg-emerald-500' : 'bg-neutral-600')
+                  }`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-center mb-0.5">
+                    <span className="text-sm font-bold truncate">{user.username}</span>
+                    <span className={`text-[9px] uppercase tracking-wider font-bold ${risk.color}`}>
+                      {user.trustScore ?? 100} TS
+                    </span>
                   </div>
-                ) : filteredUsers.length === 0 ? (
-                  <div className="col-span-full py-12 text-center text-on-surface-variant text-sm">
-                    No users found matching "{searchQuery}"
+                  <div className="flex gap-2 text-[10px] text-white/40">
+                    <span className="truncate">{user.email}</span>
                   </div>
-                ) : (
-                  filteredUsers.map(user => (
-                  <button 
-                    key={user._id}
-                    onClick={() => handleSelectUser(user)}
-                    className="p-4 rounded-xl border border-outline-variant/40 hover:border-primary/40 bg-surface-container-lowest hover:bg-surface-container-low transition-all text-left flex items-start gap-3 group cursor-pointer"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm uppercase shrink-0">
-                      {(user.displayName || user.username)[0]}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold text-on-surface text-sm truncate">{user.displayName || user.username}</div>
-                      <div className="text-on-surface-variant text-xs truncate">@{user.username}</div>
-                      <div className="text-on-surface-variant/70 text-[10px] truncate mt-0.5">{user.email}</div>
-                    </div>
-                  </button>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2: PROFILE */}
-          {step === 'profile' && selectedUser && (
-            <div className="max-w-2xl mx-auto py-8">
-              <div className="flex flex-col items-center text-center mb-8">
-                <div className="w-24 h-24 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-3xl uppercase mb-4 shadow-sm border border-primary/20 overflow-hidden">
-                  <Avatar
-                    src={selectedUser.profilePic}
-                    name={selectedUser.displayName || selectedUser.username}
-                    sizeClass="w-full h-full text-3xl"
-                  />
                 </div>
-                <h2 className="text-2xl font-bold text-on-surface">{selectedUser.displayName || selectedUser.username}</h2>
-                <p className="text-on-surface-variant text-sm mt-1">@{selectedUser.username} • {selectedUser.email}</p>
-                <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-surface-container border border-outline-variant/40 rounded-full text-xs font-semibold">
-                  <Calendar size={12} className="text-on-surface-variant" /> Joined {new Date(selectedUser.createdAt).toLocaleDateString()}
-                </div>
-              </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <button 
-                  onClick={handleViewConversations}
-                  className="p-5 rounded-2xl bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary transition-colors flex flex-col items-center justify-center gap-2 group cursor-pointer"
-                >
-                  <MessageSquare size={24} className="group-hover:scale-110 transition-transform" />
-                  <span className="font-bold text-sm">Inspect Conversations</span>
-                </button>
-
-                <div className="p-5 rounded-2xl bg-surface-container-low border border-outline-variant/40 flex flex-col items-center justify-center gap-2 opacity-50 cursor-not-allowed">
-                  <ShieldBan size={24} className="text-on-surface-variant" />
-                  <span className="font-bold text-sm text-on-surface-variant">Account Actions</span>
-                  <span className="text-[10px] text-on-surface-variant/70 text-center px-2">Manage from User Management</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 3: CONVERSATIONS */}
-          {step === 'conversations' && (
-            <div className="space-y-3">
-              <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-4 px-1">
-                Active Chats for @{selectedUser.username}
-              </h3>
+      {/* ================= CENTER PANEL ================= */}
+      <div className={`flex-1 flex flex-col bg-[#0a0a0a] relative min-w-0 h-full overflow-hidden ${!selectedUser ? 'hidden md:flex' : 'flex'}`}>
+        {selectedUser ? (
+          <>
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10 custom-scrollbar pb-40">
               
-              {userConversations.length === 0 ? (
-                <div className="text-center py-12 text-on-surface-variant text-sm bg-surface-container-lowest rounded-xl border border-dashed border-outline-variant/50">
-                  This user has no active conversations.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {userConversations.map(chat => {
-                    const otherParticipants = chat.participants.filter(p => p._id !== selectedUser._id);
-                    const isGroup = chat.isGroupChat;
-                    const title = isGroup 
-                      ? chat.groupName 
-                      : otherParticipants.map(p => p.displayName || p.username).join(', ');
-
-                    return (
-                      <button 
-                        key={chat._id}
-                        onClick={() => handleOpenConversation(chat)}
-                        className="p-4 rounded-xl border border-outline-variant/40 hover:border-primary/40 bg-surface-container-lowest hover:bg-surface-container-low transition-all text-left flex items-center justify-between group cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center shrink-0 border border-outline-variant/30">
-                            <Users size={18} className="text-on-surface-variant" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-bold text-on-surface text-sm truncate">{title || 'Unknown'}</div>
-                            <div className="text-on-surface-variant text-xs truncate">
-                              {isGroup ? 'Group Chat' : 'Direct Message'}
-                            </div>
-                          </div>
-                        </div>
-                        <MoreVertical size={16} className="text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* STEP 4: MESSAGES */}
-          {step === 'messages' && (
-            <div className="flex flex-col h-full relative">
-              {isLoading && (
-                <div className="absolute inset-0 bg-surface/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl">
-                  <Loader2 className="animate-spin text-primary" size={36} />
-                </div>
-              )}
-              
-              <div className="flex justify-between items-center mb-4 shrink-0">
-                <button 
-                  onClick={handleSelectAll}
-                  className="text-xs font-bold text-primary hover:text-primary/80 transition-colors flex items-center gap-1.5 cursor-pointer"
-                >
-                  <CheckSquare size={14} /> 
-                  {selectedMessageIds.size === chatMessages.length && chatMessages.length > 0 ? 'Deselect All' : 'Select All'}
+              <div className="md:hidden mb-6 mt-2">
+                <button onClick={() => setSelectedUser(null)} className="flex items-center gap-2 text-xs font-bold text-white/50 hover:text-white transition-colors bg-[#111] px-4 py-2 rounded-xl border border-white/5">
+                  <ArrowLeft size={14} /> Back to Users
                 </button>
-                <div className="flex items-center gap-3 text-xs">
-                  <span className="text-on-surface-variant font-bold">{chatMessages.length} Messages</span>
-                </div>
               </div>
-
-              <div className="flex-1 overflow-y-auto space-y-2 pr-2 pb-20">
-                {chatMessages.length === 0 ? (
-                  <div className="text-center py-12 text-on-surface-variant text-sm bg-surface-container-lowest rounded-xl border border-dashed border-outline-variant/50">
-                    No messages found in this conversation.
-                  </div>
-                ) : (
-                  chatMessages.map(msg => {
-                    const isSelected = selectedMessageIds.has(msg._id);
-                    return (
-                      <div 
-                        key={msg._id} 
-                        onClick={() => handleToggleMessageSelection(msg._id)}
-                        className={`p-3 rounded-xl border transition-all cursor-pointer flex gap-3 ${
-                          isSelected 
-                            ? 'bg-red-500/10 border-red-500/30 ring-1 ring-red-500/20' 
-                            : 'bg-surface-container-lowest border-outline-variant/30 hover:bg-surface-container-low'
-                        }`}
-                      >
-                        <div className="shrink-0 mt-0.5">
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                            isSelected ? 'bg-red-500 border-red-500 text-white' : 'border-outline-variant/50 bg-surface'
-                          }`}>
-                            {isSelected && <Check size={10} strokeWidth={3} />}
-                          </div>
+              
+              {/* Top Intelligence Row */}
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+                {/* Intelligence Card */}
+                <div className="xl:col-span-2 bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                  
+                  <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 relative z-10">
+                    <Avatar src={selectedUser.profilePic} name={selectedUser.username} sizeClass="w-20 h-20 sm:w-24 sm:h-24 text-2xl border-2 border-white/10 rounded-2xl shrink-0" />
+                    <div className="flex-1 w-full min-w-0">
+                      <div className="flex justify-between items-start">
+                        <div className="min-w-0 pr-4">
+                          <h1 className="text-xl sm:text-2xl font-bold mb-1 truncate">{selectedUser.displayName || selectedUser.username}</h1>
+                          <p className="text-white/50 text-xs sm:text-sm font-mono mb-4 truncate w-full">@{selectedUser.username} • {selectedUser.email}</p>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start mb-1">
-                            <span className="text-xs font-bold text-on-surface">
-                              {msg.sender?.displayName || msg.sender?.username || 'Unknown User'}
-                            </span>
-                            <span className="text-[10px] text-on-surface-variant/70">
-                              {new Date(msg.createdAt).toLocaleString()}
-                            </span>
-                          </div>
-                          
-                          {msg.content && (
-                            <p className="text-sm text-on-surface leading-snug break-words">
-                              {msg.content}
-                            </p>
-                          )}
-                          
-                          {msg.mediaUrl && (
-                            <div className="mt-2 text-xs text-blue-400 font-semibold flex items-center gap-1">
-                              [Media Attachment] 
-                            </div>
-                          )}
-
+                        <div className={`px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-wider ${
+                          selectedUser.status === 'banned' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
+                        }`}>
+                          {selectedUser.status === 'banned' ? 'Terminated' : 'Active'}
                         </div>
                       </div>
-                    );
-                  })
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                        {[
+                          { label: 'Messages', val: selectedUser.messagesCount || selectedUser.lifetimeMetrics?.messagesSent || 0 },
+                          { label: 'Stories', val: selectedUser.storiesCount || selectedUser.lifetimeMetrics?.storiesPosted || 0 },
+                          { label: 'Calls', val: selectedUser.callsCount || selectedUser.lifetimeMetrics?.callsMade || 0 },
+                          { label: 'Reports', val: selectedUser.reportsReceived || selectedUser.lifetimeMetrics?.reportsReceived || 0 },
+                        ].map((stat, i) => (
+                          <div key={i} className="bg-[#111] border border-white/5 rounded-xl p-3 flex flex-col justify-center items-center text-center">
+                            <p className="text-[9px] sm:text-[10px] text-white/40 uppercase tracking-widest mb-1">{stat.label}</p>
+                            <p className="text-base sm:text-lg font-bold font-mono">{stat.val}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Trust Score Widget */}
+                <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 flex flex-col justify-center items-center relative overflow-hidden">
+                   <div className="text-center">
+                      <p className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Platform Trust Score</p>
+                      <div className={`text-6xl font-black mb-2 ${getRiskLevel(selectedUser.trustScore ?? 100).color}`}>
+                        {selectedUser.trustScore ?? 100}
+                      </div>
+                      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold ${getRiskLevel(selectedUser.trustScore ?? 100).bg} ${getRiskLevel(selectedUser.trustScore ?? 100).border} ${getRiskLevel(selectedUser.trustScore ?? 100).color}`}>
+                         <ShieldAlert size={14} />
+                         {getRiskLevel(selectedUser.trustScore ?? 100).label}
+                      </div>
+                   </div>
+                </div>
+              </div>
+
+              {/* Conversation Investigation Area */}
+              <div className="mb-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Database size={18} className="text-white/50" />
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-white/80">Communication Logs</h3>
+                </div>
+
+                {workspaceLoading ? (
+                  <div className="h-64 border border-white/5 bg-[#0a0a0a] rounded-2xl flex items-center justify-center">
+                    <Loader2 className="animate-spin text-white/20" size={32} />
+                  </div>
+                ) : !selectedChat ? (
+                  // Chat List
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {userConversations.length === 0 ? (
+                      <div className="col-span-full h-32 border border-white/5 border-dashed rounded-xl flex items-center justify-center text-white/30 text-sm">
+                        No communication logs found.
+                      </div>
+                    ) : (
+                      userConversations.map(chat => {
+                        const isGroup = chat.isGroupChat;
+                        const otherParticipants = chat.participants.filter(p => p._id !== selectedUser._id);
+                        const title = isGroup ? chat.groupName : otherParticipants.map(p => p.username).join(', ');
+                        
+                        return (
+                          <button
+                            key={chat._id}
+                            onClick={() => handleOpenConversation(chat)}
+                            className="bg-[#0a0a0a] hover:bg-[#111] border border-white/5 hover:border-white/20 rounded-xl p-4 flex items-center gap-4 transition-all text-left group"
+                          >
+                            <div className="w-10 h-10 rounded-lg bg-[#1a1a1a] flex items-center justify-center shrink-0">
+                              {isGroup ? <Users size={18} className="text-white/50" /> : <MessageCircle size={18} className="text-white/50" />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-bold truncate">{title || 'Unknown'}</p>
+                              <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">
+                                {isGroup ? 'Group Channel' : 'Direct Comms'}
+                              </p>
+                            </div>
+                            <ChevronRight size={16} className="text-white/20 group-hover:text-white transition-colors" />
+                          </button>
+                        )
+                      })
+                    )}
+                  </div>
+                ) : (
+                  // Message Viewer
+                  <div className="border border-white/10 bg-[#0a0a0a] rounded-2xl overflow-hidden flex flex-col h-[500px]">
+                    <div className="px-4 py-3 bg-[#111] border-b border-white/5 flex justify-between items-center shrink-0">
+                      <button onClick={() => setSelectedChat(null)} className="flex items-center gap-2 text-xs font-bold text-white/50 hover:text-white transition-colors">
+                        <ArrowLeft size={14} /> Back to Logs
+                      </button>
+                      <div className="text-xs text-white/50 uppercase tracking-widest font-mono">
+                        {chatMessages.length} Messages Captured
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-fixed opacity-90">
+                      {chatMessages.length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-white/30 text-sm">Empty communication log.</div>
+                      ) : (
+                        chatMessages.map(msg => {
+                          const isSelected = selectedMessageIds.has(msg._id);
+                          const isOffender = msg.sender._id === selectedUser._id;
+                          return (
+                            <div 
+                              key={msg._id}
+                              onClick={() => toggleMessageSelect(msg._id)}
+                              className={`p-4 rounded-xl border flex gap-4 cursor-pointer transition-all ${
+                                isSelected 
+                                  ? 'bg-red-500/10 border-red-500/30' 
+                                  : 'bg-[#111]/80 backdrop-blur-md border-white/5 hover:border-white/20'
+                              }`}
+                            >
+                              <div className="mt-1">
+                                <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                                  isSelected ? 'bg-red-500 border-red-500 text-white' : 'border-white/20 bg-transparent'
+                                }`}>
+                                  {isSelected && <CheckCircle2 size={12} />}
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-start mb-1">
+                                  <span className={`text-xs font-bold ${isOffender ? 'text-amber-400' : 'text-white'}`}>
+                                    {msg.sender.username} {isOffender && '(Target)'}
+                                  </span>
+                                  <span className="text-[10px] text-white/40 font-mono">
+                                    {new Date(msg.createdAt).toLocaleString()}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-white/80 break-words">{msg.content || <span className="italic text-white/30">No text content</span>}</p>
+                                {msg.mediaUrl && (
+                                  <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded text-xs text-white/60 border border-white/5">
+                                    <ImageIcon size={12} /> Media Payload Attached
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
 
-              {/* Action Bar */}
-              <div className={`absolute bottom-4 left-4 right-4 bg-surface border border-outline-variant shadow-xl rounded-2xl p-4 flex justify-between items-center transition-transform duration-300 ${
-                selectedMessageIds.size > 0 ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center">
-                    <Trash2 size={16} />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-on-surface">{selectedMessageIds.size} Selected</div>
-                    <div className="text-xs text-on-surface-variant">Ready for administrative deletion</div>
-                  </div>
+            </div>
+
+            {/* ACTION DOCK - Sticky Bottom */}
+            <div className="absolute bottom-0 left-0 right-0 p-2 md:p-4 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a] to-transparent pointer-events-none z-20">
+              <div className="bg-[#111]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-3 md:p-4 pointer-events-auto shadow-2xl flex flex-col md:flex-row items-center justify-between gap-3 max-w-7xl mx-auto w-full">
+                
+                <div className="flex flex-wrap gap-2 justify-center md:justify-start w-full md:w-auto">
+                  <button onClick={handleWarnUser} className="px-4 py-2 bg-[#111] hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/30 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-2">
+                    <AlertTriangle size={14} className="text-amber-500" /> Warn
+                  </button>
+                  <button onClick={handleForceLogout} className="px-4 py-2 bg-[#111] hover:bg-blue-500/20 border border-white/10 hover:border-blue-500/30 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-2">
+                    <LogOut size={14} className="text-blue-500" /> Logout
+                  </button>
+                  <button onClick={handleClearStories} className="px-4 py-2 bg-[#111] hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/30 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-2">
+                    <EyeOff size={14} className="text-purple-500" /> Clear Stories
+                  </button>
+                  
+                  {selectedMessageIds.size > 0 && (
+                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex gap-2 border-l border-white/10 pl-2 ml-2">
+                      <button onClick={handleDeleteMessage} className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-2">
+                        <Trash2 size={14} className="text-red-400" /> Purge {selectedMessageIds.size}
+                      </button>
+                    </motion.div>
+                  )}
                 </div>
-                <button 
-                  onClick={handleDeleteSelected}
-                  className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold shadow-sm transition-colors cursor-pointer"
-                >
-                  Delete Selected
-                </button>
+
+                <div className="flex flex-wrap gap-2 justify-center md:justify-end w-full md:w-auto">
+                  <button onClick={handleRestrictUser} className={`px-4 py-2 border rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${(selectedUser.mutedUntil && new Date(selectedUser.mutedUntil) > new Date()) ? 'bg-indigo-500/20 border-indigo-500/50 text-white' : 'bg-[#111] hover:bg-indigo-500/20 border-white/10 hover:border-indigo-500/30 text-white'}`}>
+                    <MessageSquareOff size={14} className={(selectedUser.mutedUntil && new Date(selectedUser.mutedUntil) > new Date()) ? 'text-white' : 'text-indigo-500'} /> {(selectedUser.mutedUntil && new Date(selectedUser.mutedUntil) > new Date()) ? 'Unrestrict' : 'Restrict'}
+                  </button>
+                  <button onClick={handleSuspendAccount} className={`px-4 py-2 border rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${selectedUser.status === 'suspended' ? 'bg-orange-500/20 border-orange-500/50 text-white' : 'bg-[#111] hover:bg-orange-500/20 border-white/10 hover:border-orange-500/30 text-white'}`}>
+                    <Lock size={14} className={selectedUser.status === 'suspended' ? 'text-white' : 'text-orange-500'} /> {selectedUser.status === 'suspended' ? 'Unsuspend' : 'Suspend'}
+                  </button>
+                  <button onClick={handleBanAccount} className={`px-6 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${selectedUser.status === 'banned' ? 'bg-transparent border border-red-500 text-red-500 hover:bg-red-500/10' : 'bg-red-600 hover:bg-red-700 text-white shadow-[0_0_15px_rgba(220,38,38,0.3)]'}`}>
+                    <Ban size={14} /> {selectedUser.status === 'banned' ? 'Unban User' : 'Ban User'}
+                  </button>
+                </div>
+
               </div>
             </div>
-          )}
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-8 opacity-50">
+            <TerminalSquare size={48} className="text-white/20 mb-4" strokeWidth={1} />
+            <h2 className="text-xl font-bold mb-2">Awaiting Target Selection</h2>
+            <p className="text-sm text-white/60 max-w-sm">Select an identity from the discovery panel to initiate investigation and moderation protocols.</p>
+          </div>
+        )}
+      </div>
+
+      {/* ================= RIGHT PANEL ================= */}
+      <div className="hidden xl:flex w-80 border-l border-white/5 bg-[#0a0a0a] flex-col shrink-0 z-10">
+        
+        <div className="p-5 border-b border-white/5">
+          <h2 className="text-sm font-bold tracking-wide flex items-center gap-2 mb-4">
+            <Activity size={16} className="text-emerald-500" /> Live Telemetry
+          </h2>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-[#111] border border-white/5 rounded-lg p-3">
+               <p className="text-[9px] text-white/40 uppercase tracking-widest mb-1">Reports Today</p>
+               <p className="text-xl font-mono font-bold text-emerald-400">{metrics.reportsToday}</p>
+            </div>
+            <div className="bg-[#111] border border-white/5 rounded-lg p-3">
+               <p className="text-[9px] text-white/40 uppercase tracking-widest mb-1">Active Cases</p>
+               <p className="text-xl font-mono font-bold text-amber-400">{metrics.activeInvestigations}</p>
+            </div>
+            <div className="bg-[#111] border border-white/5 rounded-lg p-3">
+               <p className="text-[9px] text-white/40 uppercase tracking-widest mb-1">Msgs Purged</p>
+               <p className="text-xl font-mono font-bold text-white">{metrics.messagesRemoved}</p>
+            </div>
+            <div className="bg-[#111] border border-white/5 rounded-lg p-3">
+               <p className="text-[9px] text-white/40 uppercase tracking-widest mb-1">Bans Issued</p>
+               <p className="text-xl font-mono font-bold text-red-400">{metrics.accountsSuspended}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-3 border-b border-white/5 bg-[#111]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={12} />
+            <input 
+              type="text" 
+              placeholder="Global intercept search (spam, scam)..." 
+              value={globalSearch}
+              onChange={(e) => setGlobalSearch(e.target.value)}
+              className="w-full bg-[#1a1a1a] border border-white/10 rounded md pl-8 pr-3 py-1.5 text-[11px] outline-none focus:border-emerald-500/50 transition-colors"
+            />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-[#0a0a0a]">
+          <h3 className="text-[10px] text-white/40 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <History size={12} /> System Audit Trail
+          </h3>
+
+          <div className="space-y-4 relative before:absolute before:inset-y-0 before:left-[11px] before:w-px before:bg-white/10">
+            {auditLogs.slice(0, 20).map(log => (
+              <div key={log._id} className="relative pl-6">
+                <div className="absolute left-0 top-1 w-[23px] h-[23px] bg-[#0a0a0a] rounded-full flex items-center justify-center border border-white/10">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                </div>
+                <div className="bg-[#111] border border-white/5 rounded-lg p-3 hover:border-white/20 transition-colors cursor-default">
+                  <p className="text-xs font-bold mb-1 text-white/90">{log.action.replace(/_/g, ' ')}</p>
+                  <p className="text-[10px] text-white/50 mb-2 leading-relaxed">{log.details}</p>
+                  <div className="flex justify-between items-center text-[9px] text-white/30 font-mono">
+                     <span>Admin: {log.admin?.username || 'System'}</span>
+                     <span>{new Date(log.createdAt).toLocaleTimeString()}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

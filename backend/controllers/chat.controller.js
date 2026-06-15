@@ -137,6 +137,12 @@ export const sendMessage = async (req, res) => {
 
   try {
     const loggedInUserId = req.user._id;
+    const senderUser = await User.findById(loggedInUserId);
+    
+    if (senderUser.mutedUntil && senderUser.mutedUntil > new Date()) {
+      return res.status(403).json({ message: "You are currently restricted from sending messages." });
+    }
+
     const chat = await Chat.findById(chatId).populate("participants");
     if (!chat) {
       return res.status(404).json({ message: "Chat not found" });
@@ -203,6 +209,7 @@ export const sendMessage = async (req, res) => {
     };
 
     let message = await Message.create(newMessage);
+    await User.findByIdAndUpdate(loggedInUserId, { $inc: { "lifetimeMetrics.messagesSent": 1 } });
 
     message = await message.populate("sender", "displayName profilePic");
     message = await message.populate("chat");
@@ -563,6 +570,8 @@ export const reportMessage = async (req, res) => {
       reason: reason || 'Other',
       details: details || ''
     });
+    
+    await User.findByIdAndUpdate(message.sender, { $inc: { "lifetimeMetrics.reportsReceived": 1 } });
 
     res.status(201).json({ message: "Message reported successfully", report });
   } catch (error) {

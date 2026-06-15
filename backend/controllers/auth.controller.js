@@ -147,7 +147,10 @@ export const login = async (req, res) => {
     }
 
     if (user && user.status === 'banned') {
-      return res.status(403).json({ message: "Your account has been banned." });
+      return res.status(403).json({ message: "Your account has been permanently banned." });
+    }
+    if (user && user.status === 'suspended') {
+      return res.status(403).json({ message: "Your account is temporarily suspended." });
     }
 
     // Unified Failure Handler
