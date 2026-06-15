@@ -566,9 +566,11 @@ export default function Friends() {
           <div className="px-4 py-4 space-y-2">
             {getActiveList().map(user => (
               <div key={user._id} onClick={() => setSelectedUser(user)} className="flex items-center gap-4 p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/30 active:bg-surface-container-low cursor-pointer">
-                <div className="w-12 h-12 rounded-full bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center overflow-hidden shrink-0 relative">
-                  <Avatar src={user.profilePic} name={user.displayName || user.username} sizeClass="w-full h-full" textClass="text-base" />
-                  {activeNav === 'friends' && <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-surface ${user.isOnline ? 'bg-emerald-500' : 'bg-on-surface-variant/40'}`} />}
+                <div className="relative shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center overflow-hidden relative">
+                    <Avatar src={user.profilePic} name={user.displayName || user.username} sizeClass="w-full h-full" textClass="text-base" />
+                  </div>
+                  {activeNav === 'friends' && <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-[2.5px] border-surface ${user.isOnline ? 'bg-emerald-500' : 'bg-on-surface-variant/40'}`} />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-sm text-on-surface truncate">{user.displayName || user.username}</div>

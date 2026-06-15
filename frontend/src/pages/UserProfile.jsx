@@ -312,6 +312,7 @@ export default function UserProfile() {
                   user={profileUser}
                   size="100%"
                   className="w-full h-full"
+                  textClass="text-5xl sm:text-6xl"
                 />
               </div>
             </div>

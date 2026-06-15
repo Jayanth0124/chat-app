@@ -3,7 +3,7 @@ import useStoryStore from '../../store/useStoryStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import Avatar from '../ui/Avatar';
 
-const StoryRing = ({ user, size = 48, className = '', onClick }) => {
+const StoryRing = ({ user, size = 48, className = '', textClass = '', onClick }) => {
   const { stories } = useStoryStore();
   const { user: authUser } = useAuthStore();
 
@@ -100,6 +100,7 @@ const StoryRing = ({ user, size = 48, className = '', onClick }) => {
           src={user.profilePic} 
           name={user.displayName || user.username}
           sizeClass="w-full h-full"
+          textClass={textClass}
           roundedClass="rounded-none"
         />
       </div>
