@@ -1,3 +1,10 @@
+/**
+ * Orbit - Secure Real-Time Messaging Platform
+ * Developed by Donavalli Jayanth
+ * Portfolio: https://djayanth.site
+ * GitHub: https://github.com/Jayanth0124
+ */
+
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
@@ -69,7 +76,7 @@ handleSockets(io);
 
 const PORT = process.env.PORT || 5000;
 
-mongoose.connect(process.env.MONGODB_URI, { 
+mongoose.connect(process.env.MONGODB_URI, {
   family: 4 // Forces IPv4 to bypass local network IPv6 DNS resolution issues
 })
   .then(() => {
@@ -100,22 +107,22 @@ mongoose.connect(process.env.MONGODB_URI, {
     setInterval(async () => {
       try {
         const expiredMessages = await Message.find({ expiresAt: { $lte: new Date() } });
-        
+
         let deletedCloudinaryAssets = 0;
         for (const msg of expiredMessages) {
           if (msg.mediaUrl && msg.mediaUrl.includes('cloudinary.com')) {
-             try {
-               const urlParts = msg.mediaUrl.split('/');
-               const filename = urlParts[urlParts.length - 1];
-               const publicId = filename.split('.')[0];
-               
-               // Attempt to destroy. If it fails, we still delete the message.
-               const resourceType = msg.messageType === 'video' ? 'video' : (msg.messageType === 'document' ? 'raw' : 'image');
-               await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
-               deletedCloudinaryAssets++;
-             } catch (e) {
-               console.error('Failed to delete asset from Cloudinary:', e);
-             }
+            try {
+              const urlParts = msg.mediaUrl.split('/');
+              const filename = urlParts[urlParts.length - 1];
+              const publicId = filename.split('.')[0];
+
+              // Attempt to destroy. If it fails, we still delete the message.
+              const resourceType = msg.messageType === 'video' ? 'video' : (msg.messageType === 'document' ? 'raw' : 'image');
+              await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+              deletedCloudinaryAssets++;
+            } catch (e) {
+              console.error('Failed to delete asset from Cloudinary:', e);
+            }
           }
         }
 

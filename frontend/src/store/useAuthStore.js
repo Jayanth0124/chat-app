@@ -1,3 +1,10 @@
+/**
+ * Orbit - Secure Real-Time Messaging Platform
+ * Developed by Donavalli Jayanth
+ * Portfolio: https://djayanth.site
+ * GitHub: https://github.com/Jayanth0124
+ */
+
 import { create } from 'zustand';
 import { axiosInstance } from '../lib/axios';
 import toast from 'react-hot-toast';
@@ -72,10 +79,10 @@ export const useAuthStore = create((set) => ({
     } finally {
       // 1. Purge LocalStorage
       localStorage.removeItem('token');
-      
+
       // 2. Clear Auth State
       set({ user: null, isAuthenticated: false });
-      
+
       // 3. Disconnect Sockets safely via dynamic import to avoid circular dependencies
       import('./useChatStore').then(({ useChatStore }) => {
         useChatStore.getState().disconnectSocket();

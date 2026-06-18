@@ -1,3 +1,10 @@
+/**
+ * Orbit - Secure Real-Time Messaging Platform
+ * Developed by Donavalli Jayanth
+ * Portfolio: https://djayanth.site
+ * GitHub: https://github.com/Jayanth0124
+ */
+
 import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Loader2, ShieldAlert } from 'lucide-react';
@@ -126,12 +133,12 @@ export default function App() {
     const handleServiceWorkerMessage = async (event) => {
       if (event.data && event.data.type === 'CALL_ACTION') {
         const { action, callData } = event.data;
-        
+
         // Verify call status from backend before launching any UI
         try {
           const res = await axiosInstance.get(`/calls/${callData.callId}`);
           const callStatus = res.data.status;
-          
+
           if (callStatus !== 'ringing' && callStatus !== 'in_progress') {
             toast.error('This call has already ended.', { icon: '📞' });
             return; // Ignore stale action completely

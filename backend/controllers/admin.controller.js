@@ -1,3 +1,11 @@
+/**
+ * Orbit - Secure Real-Time Messaging Platform
+ * Developed by Donavalli Jayanth
+ * Portfolio: https://djayanth.site
+ * GitHub: https://github.com/Jayanth0124
+ */
+
+
 import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Chat from '../models/Chat.js';
@@ -26,13 +34,13 @@ export const getDashboardStats = async (req, res) => {
     const totalUsers = await User.countDocuments();
     const activeUsers = await User.countDocuments({ status: 'active' });
     const onlineUsers = await User.countDocuments({ isOnline: true });
-    
+
     const messagesSent = await Message.countDocuments();
     const messagesToday = await Message.countDocuments({ createdAt: { $gte: startOfToday } });
-    
+
     const reportsSubmitted = await Report.countDocuments();
     const pendingReports = await Report.countDocuments({ status: 'pending' });
-    
+
     const bannedUsers = await User.countDocuments({ status: 'banned' });
     const totalChats = await Chat.countDocuments();
 
@@ -41,7 +49,7 @@ export const getDashboardStats = async (req, res) => {
     const storiesThisWeek = await Story.countDocuments({ createdAt: { $gte: startOfWeek } });
     const allStories = await Story.find().select('views');
     const totalStoryViews = allStories.reduce((acc, story) => acc + (story.views ? story.views.length : 0), 0);
-    
+
     // Most Viewed Story
     const topStory = await Story.aggregate([
       { $project: { mediaUrl: 1, viewsCount: { $size: { $ifNull: ["$views", []] } } } },
@@ -110,22 +118,22 @@ export const getDashboardStats = async (req, res) => {
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password").sort({ createdAt: -1 }).lean();
-    
+
     // Enrich with real database telemetry
     const enrichedUsers = await Promise.all(users.map(async (user) => {
       const liveMessages = await Message.countDocuments({ sender: user._id });
       const liveStories = await Story.countDocuments({ user: user._id });
       const liveCalls = await Call.countDocuments({ $or: [{ caller: user._id }, { receiver: user._id }] });
       const liveReports = await Report.countDocuments({ reportedUser: user._id });
-      
+
       const lifetime = user.lifetimeMetrics || {};
       const messagesCount = Math.max(lifetime.messagesSent || 0, liveMessages);
       const storiesCount = Math.max(lifetime.storiesPosted || 0, liveStories);
       const callsCount = Math.max(lifetime.callsMade || 0, liveCalls);
       const reportsReceived = Math.max(lifetime.reportsReceived || 0, liveReports);
-      
+
       const trustScore = Math.max(0, 100 - (reportsReceived * 20));
-      
+
       return {
         ...user,
         messagesCount,
@@ -151,7 +159,7 @@ export const banUser = async (req, res) => {
 
     const previousStatus = user.status;
     const newStatus = previousStatus === 'active' ? 'banned' : 'active';
-    
+
     // Toggle ban status
     user.status = newStatus;
     await user.save();
@@ -204,7 +212,7 @@ export const warnUser = async (req, res) => {
         createdAt: notif.createdAt
       });
     }
-    
+
     // Attempt to send push notification
     try {
       await sendPushNotification(user._id.toString(), {
@@ -263,7 +271,7 @@ export const suspendUser = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const newStatus = user.status === 'suspended' ? 'active' : 'suspended';
-    
+
     user.status = newStatus;
     await user.save();
 
@@ -341,13 +349,13 @@ export const clearUserStories = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const stories = await Story.find({ user: userId });
-    
+
     for (const story of stories) {
       if (story.mediaUrl) {
         await deleteFromCloudinary(story.mediaUrl);
       }
     }
-    
+
     await Story.deleteMany({ user: userId });
 
     if (req.io) {
@@ -423,7 +431,7 @@ export const getReports = async (req, res) => {
       const offenderLive = report.reportedUser ? await Report.countDocuments({ reportedUser: report.reportedUser._id }) : 0;
       const offenderLifetime = report.reportedUser?.lifetimeMetrics?.reportsReceived || 0;
       const offenderReports = Math.max(offenderLive, offenderLifetime);
-      
+
       return {
         ...report,
         reporter: report.reporter ? {
@@ -593,14 +601,14 @@ export const sendBroadcast = async (req, res) => {
       return res.status(400).json({ message: "Target user is required for Specific User audience" });
     }
 
-    const expiresAt = isPermanent 
-      ? null 
+    const expiresAt = isPermanent
+      ? null
       : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     // If specific user, fetch them to add their name to the audience label
     let finalAudience = audience || 'All Users';
     let targetUserObj = null;
-    
+
     if (audience === 'Specific User') {
       targetUserObj = await User.findById(targetUserId);
       if (!targetUserObj) return res.status(404).json({ message: "Target user not found" });
@@ -647,7 +655,7 @@ export const sendBroadcast = async (req, res) => {
         expiresAt,
         metadata: { broadcastId: broadcastRecord._id }
       }));
-      
+
       try {
         const insertedNotifs = await Notification.insertMany(notifsToInsert);
         const notifMap = {};
@@ -753,7 +761,7 @@ export const getDatabaseUsageStats = async (req, res) => {
 
     const stats = await db.command({ dbStats: 1 });
     const collectionsCursor = await db.listCollections().toArray();
-    
+
     const collectionStats = await Promise.all(collectionsCursor.map(async (coll) => {
       try {
         const collStats = await db.command({ collStats: coll.name });
@@ -775,7 +783,7 @@ export const getDatabaseUsageStats = async (req, res) => {
     let desktopSessions = 0;
     let mobileSessions = 0;
     let pwaInstalls = 0;
-    
+
     if (req.io && req.io.sockets && req.io.sockets.sockets) {
       req.io.sockets.sockets.forEach(s => {
         if (s.deviceType === 'desktop') desktopSessions++;
@@ -917,7 +925,7 @@ export const updateUsernameRequest = async (req, res) => {
 
     request.status = status;
     request.approvedBy = req.user.displayName;
-    
+
     let additional = 0;
     if (status === 'approved') {
       additional = parseInt(grantedChanges);
@@ -926,7 +934,7 @@ export const updateUsernameRequest = async (req, res) => {
       }
       request.grantedChanges = additional;
     }
-    
+
     if (adminNotes) request.adminNotes = adminNotes;
     await request.save();
 
@@ -976,7 +984,7 @@ export const updateAdminUsername = async (req, res) => {
 
     const admin = await User.findById(req.user._id);
     const oldUsername = admin.username;
-    
+
     admin.username = username;
     await admin.save();
 
@@ -1003,7 +1011,7 @@ export const updateAdminPassword = async (req, res) => {
     }
 
     const admin = await User.findById(req.user._id);
-    
+
     const isMatch = await bcrypt.compare(currentPassword, admin.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Current password is incorrect." });

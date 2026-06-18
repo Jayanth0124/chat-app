@@ -1,3 +1,10 @@
+/**
+ * Orbit - Secure Real-Time Messaging Platform
+ * Developed by Donavalli Jayanth
+ * Portfolio: https://djayanth.site
+ * GitHub: https://github.com/Jayanth0124
+ */
+
 @import "tailwindcss";
 
 @font-face {
@@ -7,6 +14,7 @@
   font-style: normal;
   font-display: swap;
 }
+
 @theme {
   --color-primary: var(--primary);
   --color-primary-container: var(--primary-container);
@@ -41,18 +49,24 @@
 
 :root {
   /* Orbit Space Theme (Default/Dark) */
-  --primary: #3B82F6; /* Electric Blue */
-  --primary-container: #8B5CF6; /* Orbit Purple */
-  --background: #0B0F19; /* Deep Space Blue */
-  --surface: rgba(30, 41, 59, 0.4); /* Translucent Midnight Navy */
+  --primary: #3B82F6;
+  /* Electric Blue */
+  --primary-container: #8B5CF6;
+  /* Orbit Purple */
+  --background: #0B0F19;
+  /* Deep Space Blue */
+  --surface: rgba(30, 41, 59, 0.4);
+  /* Translucent Midnight Navy */
   --surface-container-low: rgba(15, 23, 42, 0.6);
   --surface-container-lowest: #0B0F19;
-  --on-surface: #F8FAFC; /* Soft White */
+  --on-surface: #F8FAFC;
+  /* Soft White */
   --on-surface-variant: #94A3B8;
   --outline: rgba(255, 255, 255, 0.1);
   --outline-variant: rgba(255, 255, 255, 0.05);
   --inverse-on-surface: #0B0F19;
-  --secondary: #8B5CF6; /* Orbit Purple */
+  --secondary: #8B5CF6;
+  /* Orbit Purple */
   --secondary-container: rgba(139, 92, 246, 0.2);
   --on-secondary-container: #E0E7FF;
 }
@@ -217,9 +231,17 @@ html:not(.theme-deep-space) .orbit-dark-overlay {
 
 /* Orbit Ring Animation */
 @keyframes orbit-ring-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-  70% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
 }
 
 .orbit-online-indicator {
@@ -229,7 +251,7 @@ html:not(.theme-deep-space) .orbit-dark-overlay {
 /* Cosmic Background */
 .cosmic-bg {
   background-color: var(--background);
-  background-image: 
+  background-image:
     radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.08), transparent 25%),
     radial-gradient(circle at 85% 30%, rgba(59, 130, 246, 0.08), transparent 25%);
   background-attachment: fixed;
@@ -257,17 +279,21 @@ html:not(.theme-deep-space) .orbit-dark-overlay {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.1);
   border-radius: 4px;
 }
+
 .theme-dark ::-webkit-scrollbar-thumb,
 .theme-midnight ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.16);
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.2);
 }
