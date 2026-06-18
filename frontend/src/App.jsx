@@ -46,6 +46,7 @@ import AdminSettings from './pages/admin/AdminSettings';
 import InAppNotification from './components/InAppNotification';
 import ConfirmDialog from './components/ui/ConfirmDialog';
 import { subscribeUserToPush, unsubscribeUserFromPush } from './lib/pushSubscription';
+import NotFound from './pages/NotFound';
 
 export default function App() {
   const { isAuthenticated, user, checkAuth, isCheckingAuth } = useAuthStore();
@@ -369,7 +370,7 @@ export default function App() {
         )}
 
         {/* Redirect unauthorized access */}
-        <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       <ToastProvider />
       <InAppNotification />
