@@ -1,7 +1,12 @@
 <div align="center">
-  <img src="https://via.placeholder.com/150x150/1a1a2e/8C6DF0?text=O" alt="Orbit Logo" width="120" height="120" />
+  <img src="logo.svg" alt="Orbit Logo" width="120" height="120" />
   <h1>Orbit</h1>
   <p><strong>Enterprise-Grade Secure Communications Platform</strong></p>
+
+  <p>
+    <a href="https://orbitmessenger.netlify.app/"><strong>Live Demo</strong></a> • 
+    <a href="https://github.com/Jayanth0124/chat-app"><strong>GitHub Repository</strong></a>
+  </p>
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
   [![React](https://img.shields.io/badge/React-18.2.0-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
@@ -23,11 +28,13 @@ We believe that enterprise-grade security and luxurious user experiences are not
 ---
 
 ## 📸 Interface Preview
-*(Placeholder for high-resolution product screenshots)*
-- **Landing Page**: Add stunning screenshot of the landing page here.
-- **Chat Interface**: Add screenshot of the active messaging window.
-- **Video Call**: Add screenshot of the PiP WebRTC video call interface.
-- **Executive Console**: Add screenshot of the Admin Security Dashboard.
+- **Executive Security Dashboard**: 
+  <br/>
+  <img src="dashboard.png" alt="Admin Dashboard" width="800"/>
+
+- **Platform Analytics**:
+  <br/>
+  <img src="analytics.png" alt="Platform Analytics" width="800"/>
 
 ---
 
@@ -89,8 +96,8 @@ We believe that enterprise-grade security and luxurious user experiences are not
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/Jayanth0124/Orbit.git
-   cd Orbit
+   git clone https://github.com/Jayanth0124/chat-app.git
+   cd chat-app
    ```
 
 2. **Backend Configuration**
