@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="logo.svg" alt="Orbit Logo" width="120" height="120" />
-  <h1>Orbit</h1>
+  <img src="/frontend/public/logo.svg" alt="Orbit Logo" width="120" height="120" />
+  <h1>Orbit Messenger</h1>
   <p><strong>Enterprise-Grade Secure Communications Platform</strong></p>
 
   <p>
