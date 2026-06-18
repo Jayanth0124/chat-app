@@ -1,744 +1,132 @@
-# ORBIT - COMPLETE PRODUCT LOGIC & FUNCTIONAL REQUIREMENTS
+# Orbit Backend Architecture & Logic Documentation
 
-## Product Philosophy
-
-Orbit is a friend-based real-time communication platform.
-
-Users cannot directly message strangers.
-
-Workflow:
-
-Register
-→ Search User
-→ Send Friend Request
-→ Accept Request
-→ Become Friends
-→ Chat
-→ Share Images
-→ Use Vanish Mode
-→ Receive Notifications
+This document serves as the comprehensive guide to the backend infrastructure, business logic, and architectural design of the Orbit messaging platform. It is designed to provide future developers and system administrators with a profound understanding of how the core systems interact without relying on source code snippets.
 
 ---
 
-# USER SYSTEM
+## Complete Backend Architecture Overview
 
-## User Registration
+The Orbit backend is built on a modern, event-driven Node.js architecture utilizing Express for RESTful API management and Socket.IO for real-time bidirectional communication. The system relies on MongoDB as the primary persistence layer, structured around a highly normalized data model to support rapid querying of messages, relationships, and user telemetry. Cloudinary is integrated as a dedicated media storage solution for profile pictures, stories, voice notes, and image attachments. 
 
-Required Fields:
+The architecture is explicitly separated into controllers, middleware, and models. All incoming traffic passes through a robust security middleware layer before reaching the business logic.
 
-* Username
-* Display Name
-* Email
-* Password
+## Authentication & Authorization Systems
 
-Optional:
+### Authentication Flow
+Orbit employs a stateless authentication mechanism. Upon successful credential verification, the server issues an HTTP-only, secure cookie containing a JSON Web Token (JWT). This cookie ensures that the token cannot be accessed via client-side scripts, mitigating cross-site scripting (XSS) vulnerabilities. 
 
-* Profile Picture
-* Bio
+### Authorization System
+Authorization is role-based and handled via middleware before request processing. Standard routes verify the presence and validity of the JWT. Administrative routes pass through an additional validation layer that cross-references the user's encoded role against the database to ensure the session hasn't been maliciously elevated or revoked mid-lifecycle.
 
-Validation:
+### JWT Lifecycle
+When a user authenticates, a JWT is generated with a predefined expiration (typically 7 days). The token payload contains minimal, non-sensitive identifiers (such as the database user ID). Upon logout, the cookie is cleared from the client's browser. If a user's account is suspended or banned, the server invalidates their session by forcing a socket disconnection and rejecting subsequent API requests via database-level status checks.
 
-Username:
+### User Registration Flow
+Registration is a multi-step verification process:
+1. **Input Validation**: The payload is sanitized and validated against strict schema rules (e.g., username character limits, email formatting).
+2. **Uniqueness Check**: The database is queried to ensure the email and username are distinct across the platform.
+3. **Cryptographic Hashing**: The plaintext password is mathematically hashed using bcrypt with a high salt round configuration.
+4. **Provisioning**: The user record is created, and an initial JWT is minted and attached to the response.
 
-* Unique
-* Lowercase only
-* 4-20 characters
+### Login & Password Reset Flow
+The login flow compares the provided credentials against the hashed database records. If successful, it updates the user's presence state and mints a new JWT. 
 
-Email:
+For password resets, the system verifies the user's identity, invalidates any existing active sessions to prevent account hijacking, and securely replaces the cryptographic hash in the database.
 
-* Unique
-
-Password:
-
-* Minimum 8 characters
-
-After Registration:
-
-Create:
-
-* User profile
-* Notification preferences
-* Privacy settings
-* Friend list
-* Activity record
-
-Role:
-
-* user
+### Username Management Logic
+Usernames in Orbit are unique identifiers used for connection routing. To prevent namespace pollution and impersonation, username updates are strictly regulated. The system utilizes atomic database operations to ensure that concurrent requests cannot claim the same username. A dedicated `UsernameChangeRequest` flow exists for administrative monitoring of highly sensitive aliases.
 
 ---
 
-# LOGIN SYSTEM
+## Real-Time Communication System
 
-Login Methods:
+### Socket.IO Architecture
+Orbit relies on Socket.IO to maintain persistent TCP connections with active clients. The architecture scales horizontally by mapping a user's unique database ID to their active socket instance. This allows the backend to route payloads directly to a user regardless of their physical device.
 
-* Email
-* Username
+### Presence & Online Status Tracking
+When a client connects, the socket server updates the user's database record to reflect an `isOnline` state. A heartbeat mechanism ensures the connection is alive. Upon a disconnect event (whether intentional or due to network failure), the server updates the presence state and broadcasts this change to the user's active connections.
 
-After Login:
-
-Create:
-
-* JWT token
-* Refresh token
-* Session
-
-Store:
-
-* Device
-* Browser
-* Login timestamp
-
-Update:
-
-* Online status
+### Orbit Connection System Logic
+The "Connection" system represents the social graph (friendships/contacts). The backend handles connection requests, acceptances, and blocks via dedicated REST endpoints, while simultaneously emitting real-time socket events to update the UI for both the sender and receiver.
 
 ---
 
-# PROFILE SYSTEM
+## Messaging Architecture
 
-Profile Contains:
+### Message Delivery Lifecycle
+1. **Ingestion**: A message payload (text or media) is received via the REST API or socket event.
+2. **Persistence**: The message is saved to the MongoDB `Message` collection, referenced against a specific `Chat` document.
+3. **Routing**: The backend identifies all participants in the chat.
+4. **Dispatch**: The server emits the message payload to the specific socket rooms of the participants.
+5. **Fallback**: If a recipient is offline, the message remains in the database and triggers a push notification queue.
 
-* Username
-* Display Name
-* Profile Picture
-* Bio
-* Join Date
-* Friend Count
-* Last Seen
-* Online Status
+### Read Receipt Flow
+When a user views a chat, their client emits a `markMessagesAsRead` event. The backend updates the `readBy` array on the respective message documents and broadcasts a `messagesRead` event to the sender, confirming delivery and consumption.
 
-Editable:
+### Message Unsend Logic
+A user can request to unsend a message. The backend verifies ownership of the message and its temporal validity (e.g., within a specific time frame). If valid, the message content is scrubbed from the database or entirely deleted, and a `messageDeleted` event is broadcasted to all participants to update their local UI.
 
-* Display Name
-* Profile Picture
-* Bio
+### Vanish Mode & Expiration Lifecycle
+Vanish mode enforces ephemeral messaging. When enabled on a chat, messages are flagged with an expiration timestamp. A backend chron-job or TTL (Time-To-Live) database index automatically purges these messages from the system once the conditions (e.g., read status + time elapsed) are met.
 
-Restricted:
-
-* Username change only 3 times
-
-Track:
-
-* Username history
+### Voice Message Processing Flow
+Voice messages are uploaded as binary blobs. The backend pipes this data directly to Cloudinary for optimized storage and format conversion. The resulting secure URL is then attached to a standard message payload and routed through the standard delivery lifecycle.
 
 ---
 
-# FRIEND SYSTEM
+## Audio/Video Call System Architecture
 
-## Search User
-
-Search by:
-
-* Username
-* Display Name
-
-Exclude:
-
-* Self
-* Blocked users
-* Already friends
+The calling infrastructure relies on WebRTC for peer-to-peer media streaming, using the Orbit backend strictly for signaling.
+1. **Initiation**: The caller sends an "offer" via sockets to the backend.
+2. **Signaling**: The backend routes the offer to the recipient.
+3. **Negotiation**: ICE candidates and "answers" are exchanged through the backend socket layer.
+4. **History Storage**: Once a call concludes (or is missed), a `Call` record is created in the database, documenting the duration, participants, and type (audio/video), which populates the user's call history.
 
 ---
 
-## Send Friend Request
+## Push Notifications & Service Workers
 
-Conditions:
-
-Cannot send if:
-
-* Already friends
-* Pending request exists
-* User blocked
-* Same account
-
-Create:
-
-FriendRequest:
-
-status = pending
-
-Receiver gets:
-
-* Notification
-* Request count update
+Orbit integrates Web Push protocols to deliver notifications to inactive or backgrounded clients. 
+When a message or connection request occurs, the backend checks the recipient's active socket status. If they are disconnected, the payload is forwarded to a dedicated Push Notification Service, which utilizes the stored VAPID keys and subscription endpoints to wake the client's Service Worker and display a native device notification.
 
 ---
 
-## Accept Request
+## Administration & Moderation
 
-Actions:
+### Admin Dashboard Logic
+The admin panel is powered by specialized controllers that aggregate platform telemetry. It performs complex MongoDB aggregation pipelines to calculate real-time active sessions, message volume, database storage metrics, and user growth curves.
 
-Create friendship record.
-
-Add user A to user B friends list.
-
-Add user B to user A friends list.
-
-Generate notification:
-
-"Friend request accepted"
+### User Moderation System
+Administrators possess the capability to ban, suspend, or restrict user communications. 
+- **Restrictions**: Modifying a user's `mutedUntil` property prevents them from accessing the message ingestion routes.
+- **Bans**: Updates the user status to `banned` and triggers a real-time `forceLogout` socket event to immediately terminate their access.
+- All moderation actions are securely logged in an immutable `AuditLog` collection for operational transparency.
 
 ---
 
-## Reject Request
-
-Delete request.
-
-No friendship created.
-
----
-
-## Remove Friend
-
-When user removes friend:
-
-Immediately:
-
-* Delete friendship relation
-* Delete chat history
-* Delete conversation
-* Remove conversation from chat list
-* Remove access to messaging
-
-Real-time update:
-
-Both users instantly updated.
-
----
-
-# CHAT SYSTEM
-
-Only friends can chat.
-
-Cannot chat:
-
-* Non-friends
-* Blocked users
-* Banned users
-
----
-
-## Conversation Creation
-
-Conversation created automatically:
-
-First message sent.
-
-Store:
-
-* participants
-* lastMessage
-* updatedAt
-
----
-
-# MESSAGE SYSTEM
-
-Message Types:
-
-* Text
-* Image
-
-No Snap messages.
-
----
-
-## Send Message
-
-Flow:
-
-User presses send.
-
-1. Create temporary UI message
-2. Send socket event
-3. Save in database
-4. Update conversation
-5. Deliver to receiver
-
-Status:
-
-sent
-
----
-
-## Delivered
-
-When receiver device connected:
-
-status:
-
-delivered
-
----
-
-## Seen
-
-Only when:
-
-Receiver opens conversation.
-
-Then:
-
-status:
-
-seen
-
-Blue ticks appear.
-
-Never mark seen before opening.
-
----
-
-# IMAGE MESSAGE SYSTEM
-
-Images uploaded to Cloudinary.
-
-Store:
-
-* imageUrl
-* sender
-* receiver
-* timestamp
-
-Database stores:
-
-URL only.
-
-Never store image files.
-
----
-
-# VANISH MODE
-
-Conversation setting.
-
-Modes:
-
-OFF
-
-DELETE_AFTER_SEEN
-
-DELETE_AFTER_10_SECONDS
-
-DELETE_AFTER_1_MINUTE
-
----
-
-## Vanish Mode Workflow
-
-Sender sends message.
-
-Message visible normally.
-
-Receiver opens chat.
-
-Message becomes:
-
-seen
-
-Timer starts.
-
-Delete behavior:
-
-DELETE_AFTER_SEEN:
-
-* remove immediately
-
-DELETE_AFTER_10_SECONDS:
-
-* delete after 10 seconds
-
-DELETE_AFTER_1_MINUTE:
-
-* delete after 60 seconds
-
-Delete from:
-
-* sender
-* receiver
-* database
-
-Real-time update required.
-
----
-
-# CHAT DELETION
-
-User can:
-
-Delete Conversation
-
-Confirmation:
-
-Delete chat?
-
-Actions:
-
-* Remove messages
-* Remove conversation
-* Remove chat list entry
-
-Real-time update.
-
----
-
-# CALL SYSTEM
-
-Voice Calls Only.
-
-No Video Calls.
-
----
-
-## Outgoing Call
-
-Store:
-
-* caller
-* receiver
-* timestamp
-* status
-
-Status:
-
-calling
-
----
-
-## Accepted Call
-
-Status:
-
-answered
-
-Store:
-
-* startTime
-* endTime
-* duration
-
----
-
-## Rejected Call
-
-Status:
-
-rejected
-
----
-
-## Missed Call
-
-Status:
-
-missed
-
----
-
-# CALL HISTORY
-
-Every call stored.
-
-Show:
-
-* Incoming
-* Outgoing
-* Missed
-* Rejected
-
-Persist after refresh.
-
-Backend-driven only.
-
----
-
-# ONLINE STATUS
-
-Connected:
-
-online=true
-
-Disconnected:
-
-online=false
-
-Update:
-
-lastSeen
-
-Show:
-
-Online
-
-or
-
-Last Seen
-
----
-
-# TYPING INDICATOR
-
-Typing starts:
-
-socket emit
-
-typing=true
-
-Typing stops:
-
-typing=false
-
-Timeout:
-
-2 seconds
-
----
-
-# NOTIFICATION SYSTEM
-
-Generate notifications for:
-
-* Friend Request
-* Friend Request Accepted
-* New Message
-* Missed Call
-* Admin Announcement
-
----
-
-## In-App Notification
-
-If user not currently viewing chat:
-
-Show popup:
-
-Profile Picture
-Username
-Message Preview
-
-Auto hide after 5 seconds.
-
----
-
-## Notification Center
-
-Store notifications.
-
-User can:
-
-* View all
-* Mark read
-* Delete
-
----
-
-# ADMIN SYSTEM
-
-Role:
-
-admin
-
-Access:
-
-/admin
-
-Only admins allowed.
-
----
-
-# USERS MANAGEMENT
-
-Show:
-
-* Total users
-* Active users
-* Online users
-* Banned users
-
-Admin can:
-
-* View profile
-* Ban
-* Unban
-* Delete
-
----
-
-# REPORT SYSTEM
-
-User can report:
-
-* Spam
-* Abuse
-* Harassment
-* Fake Account
-
-Create report record.
-
----
-
-## Admin Reports Center
-
-Display:
-
-* Pending
-* Resolved
-* Rejected
-
-Actions:
-
-* Resolve
-* Dismiss
-* Ban user
-
----
-
-# SECURITY CENTER
-
-Track:
-
-* Login history
-* Failed logins
-* Device activity
-* Browser activity
-* IP addresses
-
-Display:
-
-Security Dashboard
-
----
-
-# AUDIT LOGS
-
-Store every admin action.
-
-Examples:
-
-User banned
-
-User unbanned
-
-Report resolved
-
-Message removed
-
-Role changed
-
----
-
-# ANALYTICS
-
-Real-time metrics.
-
-Track:
-
-* New users
-* Active users
-* Messages sent
-* Calls completed
-* Friend requests
-* Reports submitted
-
-Charts:
-
-Daily
-Weekly
-Monthly
-
----
-
-# PAGE STRUCTURE
-
-/login
-
-/signup
-
-/chat
-
-/friends
-
-/calls
-
-/profile
-
-/settings
-
-/notifications
-
-/admin
-
-/admin/users
-
-/admin/reports
-
-/admin/security
-
-/admin/logs
-
-/admin/analytics
-
----
-
-# REFRESH BEHAVIOR
-
-After refresh:
-
-Must restore:
-
-* User session
-* Conversations
-* Messages
-* Friends
-* Calls
-* Notifications
-* Online state
-
-No data loss.
-
-No mock data.
-
-No placeholders.
-
-Everything must come from backend/database.
-
----
-
-# REAL-TIME EVENTS
-
-Socket Events:
-
-message_sent
-
-message_delivered
-
-message_seen
-
-typing_start
-
-typing_stop
-
-friend_request
-
-friend_accepted
-
-call_started
-
-call_answered
-
-call_rejected
-
-call_ended
-
-notification_created
-
-conversation_deleted
-
-friend_removed
-
-user_online
-
-user_offline
-
-All events must update UI instantly without refresh.
+## Core Engineering Principles
+
+### Security Architecture
+- **Data at Rest**: Passwords are cryptographically hashed.
+- **Data in Transit**: All communications require HTTPS/WSS encryption.
+- **Rate Limiting**: Critical endpoints (like login and registration) are protected against brute-force attacks via IP-based rate limiting.
+- **Input Sanitization**: All incoming data is sanitized to prevent NoSQL injection and payload execution.
+
+### Database Relationships
+The database is highly relational within a NoSQL context. A `Chat` document maintains references to `User` documents (participants) and acts as the parent for `Message` documents. This reference-based approach prevents document size bloat while allowing rapid `$lookup` aggregations when fetching conversation histories.
+
+### API Design Philosophy
+Orbit adheres to strict RESTful conventions. Routes are logically grouped by resource (`/api/users`, `/api/messages`, `/api/admin`). Responses are standardized to ensure consistent parsing by the client, always returning appropriate HTTP status codes (200 for success, 400 for bad request, 401 for unauthorized).
+
+### Error Handling Strategy
+The backend utilizes a centralized error-handling middleware. Expected business logic errors (e.g., "User not found") are thrown with specific status codes. Unexpected runtime exceptions are caught, logged internally for debugging, and return a sanitized 500 Internal Server Error to the client to prevent stack-trace leakage.
+
+### Scalability Considerations & Deployment
+- **Statelessness**: The API is entirely stateless, allowing it to be horizontally scaled across multiple instances behind a load balancer.
+- **Socket Redis Adapter**: To support multiple Node.js processes, a Redis adapter can be implemented to ensure socket events are broadcasted across the entire cluster.
+- **Media Offloading**: By utilizing Cloudinary, the backend is freed from the intensive I/O operations of media serving, significantly reducing bandwidth and CPU overhead.
+
+### Performance Optimizations
+- **Database Indexing**: Heavy-read fields (like usernames, email, and message timestamps) are heavily indexed.
+- **Lean Queries**: Mongoose `.lean()` is utilized on read-only queries to bypass ODM instantiation overhead, drastically improving response times.
+- **Pagination**: Message histories and user lists utilize cursor-based or limit/skip pagination to ensure minimal memory consumption per request.
